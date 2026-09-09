@@ -608,9 +608,14 @@ WHERE "estado" NOT IN ('CANCELADO', 'AUSENTE');--> statement-breakpoint
 
 -- =============================================================================
 -- ROLES AND GRANTS — docs/03-DATOS.md section 6
--- Passwords are NEVER set here. The roles are created through the Neon API so their
--- passwords live in Neon and in the client password manager; this block only keeps the
--- migration idempotent when a role already exists.
+-- Passwords are NEVER set here; they are set once by hand with ALTER ROLE and kept in the
+-- password manager and the Vercel env store (docs/06-SEGURIDAD.md section 6).
+--
+-- All three roles are created HERE, by SQL, and never from the Neon console: the console
+-- grants every role it creates membership in `neon_superuser`, which inherits everything
+-- and makes every grant below decorative — a console-created `sanalys_web` can read
+-- `pacientes` (G-031). Creating the role from the migration also makes it possible to hand
+-- the tables over to `sanalys_migrate`, which a console-created role cannot receive (G-030).
 -- =============================================================================
 DO $do$
 BEGIN
@@ -634,9 +639,20 @@ GRANT INSERT ON "turnos" TO sanalys_web;--> statement-breakpoint
 GRANT SELECT ("id") ON "turnos" TO sanalys_web;--> statement-breakpoint
 GRANT SELECT, INSERT, UPDATE ON "rate_limits" TO sanalys_web;--> statement-breakpoint
 
--- Changing an object owner requires membership in the target role; the migration created
--- it a few statements above, so it holds the admin option on it.
-GRANT sanalys_migrate TO CURRENT_USER;--> statement-breakpoint
+-- Handing an object to a role requires being able to SET ROLE to it. Since Postgres 16 the
+-- creator of a role gets ADMIN on it but NOT the SET option, so this line is what actually
+-- unlocks the transfer below (G-030). It is wrapped because it only works when this
+-- migration created the role: if `sanalys_migrate` came from the Neon console, nobody here
+-- can grant it and the transfer fails loudly, which is the correct outcome.
+DO $do$
+BEGIN
+  BEGIN
+    EXECUTE 'GRANT sanalys_migrate TO CURRENT_USER WITH SET TRUE';
+  EXCEPTION
+    WHEN OTHERS THEN NULL;
+  END;
+END
+$do$;--> statement-breakpoint
 
 -- drizzle-kit runs later migrations as sanalys_migrate, so it must own the objects.
 DO $do$
