@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | Current unit | WU-01a · Repo and tooling — **done** |
-| Status | Workspace, both app scaffolds, flat ESLint, empty Vitest suite and CI written. `pnpm install --frozen-lockfile`, `typecheck`, `lint`, `test`, `build` all green locally on 2026-09-09. First commit on `main`, **not pushed**. CI has therefore never run on a runner. |
+| Status | Workspace, both app scaffolds, flat ESLint, empty Vitest suite and CI. Five gates green locally **and on GitHub Actions** (run 34350246293, 43 s, commit `0aed06f`). `main` pushed to `origin`. |
 | Last chat | 2026-09-09 · WU-01a (this repository) |
-| Waiting on Mateo | Push `main` to `origin` so CI runs once · pick the next unit (WU-02 is the only unblocked one) |
+| Waiting on Mateo | Step-by-step approval before each action · pick the next unit (WU-02 is the only unblocked one) |
 | Waiting on the client | `docs/00-BRIEF.md` §8 — all rows `PENDIENTE`. CI-05 (account ownership) blocks WU-01b |
 | Next action | WU-02 · Database. WU-01b (Vercel projects, previews, rollback, TD-005) stays blocked on CI-05 |
 | Do not touch | `sistema-interno/` (parity reference) · `brandign-sanalys/` (source material) · any decision `D-001`–`D-013` |
@@ -34,6 +34,11 @@
 - **Secret grep (`S1-06`):** vacuous today — no provider secret exists yet in this environment and no `.env*` file is present. It becomes a real gate at WU-01b/WU-02.
 - **Failed / cut:** WU-01b (Vercel projects, preview deploys, rollback drill, TD-005 free-plan limits) not started — blocked on CI-05. `corepack` cannot run the pinned pnpm (G-020), so pnpm 12.3.4 was installed and used directly.
 - **Appended to 10-MEMORY:** G-020, G-021, G-022, G-023, G-024, TD-006
+- **Next:** WU-02 · Database.
+
+### 2026-09-09 · WU-01a · follow-up (push and command fix)
+- **Done:** `docs/07-REPO.md` §4 and `CLAUDE.md` corrected to `pnpm --filter <app> dev` (G-022); commits `40460b8` and `0aed06f` pushed to `origin/main`; CI ran once and was green in 43 s (install --frozen-lockfile, typecheck, lint, test, build).
+- **Open:** GitHub annotation — `actions/checkout@v4` and `actions/setup-node@v4` target the deprecated Node 20 and are forced onto Node 24. Bump to `@v5` is a two-line change to `.github/workflows/ci.yml`, not made yet.
 - **Next:** WU-02 · Database.
 
 <!-- Template for every chat — copy, fill, append:
