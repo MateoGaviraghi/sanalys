@@ -33,7 +33,7 @@ Neutrals carry a deliberate temperature: no pure grays except the brand gris; ti
 
 | Role | Face | Weights | Source |
 |---|---|---|---|
-| Display / brand / highlights | **Borna** | light (300) + bold (700) in the same headline | Client's licence (CI-08). Fallback until received: Roboto Flex at `wght 300` and `wght 800`, `opsz` max — written as a `D-NNN` if it ships |
+| Display / brand / highlights | **Borna** | regular (400) + bold (700) in the same headline — the pairing the PDF uses (p.12–14); the family has no Light (G-033) | Client's licence (CI-08 — atipo, pay what you want). Until received: Roboto Flex at `wght 400` and `wght 700`, `opsz` 144 — D-016 |
 | Body / UI | **Roboto Flex** (variable) | 400, 500, 600 | Self-hosted via Fontsource; `font-display: swap` with size-adjusted fallback (`Arial`) to hold CLS at 0 |
 | Numbers (money, times) | Roboto Flex `font-variant-numeric: tabular-nums` | — | Right-aligned in tables |
 
