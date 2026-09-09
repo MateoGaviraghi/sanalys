@@ -101,4 +101,20 @@ for (const entrada of journal.entries) {
   console.log(`+ ${entrada.tag}: ${statements.length} statements aplicados`)
 }
 
+// The bookkeeping schema is created here, by whoever runs the migration, but it belongs to
+// the migration role: otherwise `pg_dump` run as sanalys_migrate stops with "permission
+// denied for schema drizzle" and the daily backup never completes (G-032).
+try {
+  await sql.query(`do $do$
+    begin
+      if exists (select 1 from pg_roles where rolname = 'sanalys_migrate') then
+        execute 'alter schema drizzle owner to sanalys_migrate';
+        execute 'alter table drizzle.__drizzle_migrations owner to sanalys_migrate';
+      end if;
+    end
+  $do$;`)
+} catch (e) {
+  console.warn(`aviso: no se pudo pasar el esquema drizzle a sanalys_migrate (${e.message})`)
+}
+
 console.log("migraciones al dia")
