@@ -6,13 +6,13 @@
 
 | Field | Value |
 |---|---|
-| Current unit | WU-01a · Repo and tooling — **done** |
-| Status | Workspace, both app scaffolds, flat ESLint, empty Vitest suite and CI. Five gates green locally **and on GitHub Actions** (run 34350246293, 43 s, commit `0aed06f`). `main` pushed to `origin`. |
-| Last chat | 2026-09-09 · WU-01a (this repository) |
-| Waiting on Mateo | Step-by-step approval before each action · pick the next unit (WU-02 is the only unblocked one) |
-| Waiting on the client | `docs/00-BRIEF.md` §8 — all rows `PENDIENTE`. CI-05 (account ownership) blocks WU-01b |
-| Next action | WU-02 · Database. WU-01b (Vercel projects, previews, rollback, TD-005) stays blocked on CI-05 |
-| Do not touch | `sistema-interno/` (parity reference) · `brandign-sanalys/` (source material) · any decision `D-001`–`D-013` |
+| Current unit | WU-02 · Database — **done** |
+| Status | Neon `sanalys` live with 28 tables, its invariants, the 13 config keys and the 8 Drips. Critical test 1 green. Daily encrypted backup ran once and the restore drill passed the same day. Everything pushed; CI green. |
+| Last chat | 2026-09-09 · WU-01a and WU-02 (same chat, by Mateo's decision) |
+| Waiting on Mateo | **Rotate the `sanalys_owner` password** — it was pasted into a chat on 2026-09-09 · move the age private key off the Desktop into the password manager · pick the next unit |
+| Waiting on the client | `docs/00-BRIEF.md` §8, all `PENDIENTE`. CI-05 blocks WU-01b. OQ-13 (salas and session timeout) blocks the booking calendar of WU-08 |
+| Next action | WU-03 · Brand package, or WU-01b when CI-05 arrives |
+| Do not touch | `sistema-interno/` (parity reference) · `brandign-sanalys/` (source material) · any decision `D-001`–`D-014` |
 
 ## 2. Entries (append-only, newest at the bottom)
 
@@ -40,6 +40,18 @@
 - **Done:** `docs/07-REPO.md` §4 and `CLAUDE.md` corrected to `pnpm --filter <app> dev` (G-022); commits `40460b8` and `0aed06f` pushed to `origin/main`; CI ran once and was green in 43 s (install --frozen-lockfile, typecheck, lint, test, build).
 - **Open:** GitHub annotation — `actions/checkout@v4` and `actions/setup-node@v4` target the deprecated Node 20 and are forced onto Node 24. Bump to `@v5` is a two-line change to `.github/workflows/ci.yml`, not made yet.
 - **Next:** WU-02 · Database.
+
+### 2026-09-09 · WU-02 · Database
+- **Plan stated:** the unit was cut into seven steps, each approved separately by Mateo · **GO-AHEAD:** yes (Mateo, 2026-09-09, step by step)
+- **Built:** `packages/db/` — `drizzle.config.ts`, `tsconfig.json`, `src/schema/*.ts` (12 files, 28 tables), `src/format.ts`, `src/queries/*`, `src/web-queries/*`, `migrations/0001_init.sql` (+ `meta/`), `seeds/*.ts`, `scripts/apply-migration.mjs`, `scripts/restore-drill.md`, `tests/sillon.test.ts`; `.github/workflows/backup.yml`; root and package scripts for `db:generate`, `db:migrate`, `db:seed`.
+- **Outside the declared list:** `packages/db/tsconfig.json`, `scripts/apply-migration.mjs`, `tests/sillon.test.ts`, `migrations/meta/*`, and edits to the root and package `package.json` and `vitest.config.ts` — every one named to Mateo and approved before writing.
+- **Database:** Neon project `sanalys` (`polished-dawn-31392247`), Sao Paulo, Postgres 17, on Mateo's org (D-014). 28 tables owned by `sanalys_migrate`, 1 view, 24 triggers, 1 EXCLUDE, 21 FKs, 49 indexes, 2 extensions, 13 `config` keys and the 8 Drips. `deudas` deliberately absent (OQ-08); no `salas` seeded (OQ-13).
+- **Critical test 1:** green. Two concurrent bookings of one chair, exactly one enters; the second chair stays free; a cancelled booking frees its chair. It skips itself without a database, so CI stays green.
+- **Backup:** `backup.yml` ran end to end (46 s); `daily/2026/09/09.dump.age`, 83 262 bytes, encrypted, in R2. Lifecycle rules applied: 30 days for `daily/`, 365 for `monthly/`. **Restore drill done the same day and passed** — details in `docs/10-MEMORY.md`.
+- **What running it for real found:** four defects invisible on paper. G-030 (Postgres 16 grants the creator ADMIN but not SET, so the ownership transfer needs `WITH SET TRUE`), **G-031 (every role created from the Neon console is a member of `neon_superuser`: a console-created `sanalys_web` could read `pacientes` and `sanalys_app` could edit signed consents — every grant in the migration was decorative until all three roles were recreated by the migration)**, G-032 (`pg_dump` could not read the bookkeeping schema), plus `pg_dump` 16 refusing a 17 server on the runner.
+- **Failed / cut:** nothing cut. The database was wiped and re-applied three times to keep it identical to the file.
+- **Appended to 10-MEMORY:** G-026 to G-032, TD-006, OQ-12, OQ-13, D-014, and the restore drill record.
+- **Next:** WU-03 · Brand package. WU-01b (Vercel) stays blocked on CI-05.
 
 <!-- Template for every chat — copy, fill, append:
 
