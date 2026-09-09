@@ -79,7 +79,7 @@ export const turnos = pgTable(
     medica: text("medica"),
     origen: text("origen").notNull().default("sistema"),
     horaInicioInfusion: tstz("hora_inicio_infusion"),
-    /** FK to `registros_enfermeria` is created in 0001_init.sql (circular module otherwise). */
+    /** FK to `registros_enfermeria` is created in 0001_init.sql, for the same circularity reason. */
     registroRefId: uuid("registro_ref_id"),
     formulaNombre: text("formula_nombre"),
     duracionRealMin: integer("duracion_real_min"),

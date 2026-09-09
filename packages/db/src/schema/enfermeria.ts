@@ -4,6 +4,7 @@ import { check, integer, jsonb, numeric, pgTable, text, uuid } from "drizzle-orm
 import { createdAt, id, tstz, updatedAt } from "./columns"
 import { turnos } from "./agenda"
 import { pacientes } from "./pacientes"
+import { insumos } from "./stock"
 
 export type Signos = { ta?: string; fc?: number; sato2?: number; temp?: number; peso?: number }
 
@@ -42,8 +43,9 @@ export const registroMateriales = pgTable("registro_materiales", {
   registroId: uuid("registro_id")
     .notNull()
     .references(() => registrosEnfermeria.id),
-  /** FK to `insumos` is created in 0001_init.sql. */
-  insumoId: uuid("insumo_id").notNull(),
+  insumoId: uuid("insumo_id")
+    .notNull()
+    .references(() => insumos.id),
   cantidad: numeric("cantidad", { precision: 10, scale: 3 }).notNull(),
   createdAt: createdAt(),
 })

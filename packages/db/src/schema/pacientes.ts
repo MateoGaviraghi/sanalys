@@ -56,7 +56,10 @@ export const pacientes = pgTable(
     creadoPor: text("creado_por"),
     origenCrm: text("origen_crm"),
     interesCrm: text("interes_crm"),
-    /** FK to `leads` is created in 0001_init.sql: declaring it here would make the modules circular. */
+    /**
+     * FK to `leads` is created in 0001_init.sql, not here: `pacientes` and `leads` point at
+     * each other and TypeScript degrades both tables to `any` when the modules are circular.
+     */
     crmLeadId: uuid("crm_lead_id"),
     ultimaModificacion: tstz("ultima_modificacion"),
     modificadoPor: text("modificado_por"),
