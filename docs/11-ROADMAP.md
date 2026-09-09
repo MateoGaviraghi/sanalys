@@ -110,6 +110,10 @@ Done: author must have a matrícula; publish/unpublish calls the web revalidatio
 
 ## Block D — Closing
 
+### WU-22b · Client inputs round · R0 (no code)
+Files: `docs/12-CLIENT-QUESTIONS.md` (strike answered rows), `docs/00-BRIEF.md` §8 (status per row), `docs/10-MEMORY.md` (a `D-`/`G-` per answer that changes something built), plus the `{{CONFIRMAR}}` replacements in the pages the answers unblock.
+Done: the 32 questions sent in one batch and every answer written back; a question that hard-blocks an earlier unit (17–19 → WU-08, 25 → WU-14, 31 → WU-25) is sent alone when that unit starts, not held for this one (Mateo, 2026-09-09).
+
 ### WU-23 · Real photos · R0
 Files: `web/public/img/*` replacements only.
 Done: same file names and crops; CR-01 `RECIBIDO`; Nosotros launch unblocked.

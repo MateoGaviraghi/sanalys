@@ -9,8 +9,8 @@
 | Current unit | WU-03 · Brand package — **done** |
 | Status | `@sanalys/brand` live: `tokens.css` (docs/05 §2 verbatim + Tailwind mapping + `highlight` / `type-display` / `ground-*` utilities + inherited `--sys-*`), Roboto Flex self-hosted with a metric-matched Arial fallback, 11 SVG assets traced from the PDF, `tailwind.preset.ts`, README. Both apps import it and render a sample page; build, typecheck, lint and test green; CLS 0 on four views. `docs/05` §3 closed (D-015). Borna stays out until CI-08 (D-016). Committed and pushed (`2b4ccc4`); CI green. |
 | Last chat | 2026-09-09 · WU-03 |
-| Waiting on Mateo | Rotate the `sanalys_owner` password — **deferred by Mateo on 2026-09-09, still open** · move the age private key (`sanalys-backup-age-key.txt` on the Desktop) into the password manager and delete the file (steps given on 2026-09-09) · send the client the question list for `docs/00-BRIEF.md` §8 |
-| Waiting on the client | `docs/00-BRIEF.md` §8, all `PENDIENTE`. CI-05 blocks WU-01b. **CI-08 (Borna web licence — atipo, pay what you want)** blocks Borna in the brand package. OQ-13 (salas and session timeout) blocks the booking calendar of WU-08 |
+| Waiting on Mateo | Rotate the `sanalys_owner` password — **deferred by Mateo on 2026-09-09, still open** · move the age private key (`sanalys-backup-age-key.txt` on the Desktop) into the password manager and delete the file (steps given on 2026-09-09; only Mateo can do it — the key must not pass through a chat or a repo) |
+| Waiting on the client | `docs/00-BRIEF.md` §8, all `PENDIENTE`, rewritten as 32 one-line questions in `docs/12-CLIENT-QUESTIONS.md`. **Mateo's decision 2026-09-09: they go in one batch (WU-22b), except a question that hard-blocks a unit — sent alone when that unit starts** (17–19 before WU-08, 25 before WU-14, 31 before WU-25). CI-08 (Borna) blocks only Borna in the brand package |
 | Next action | WU-04 · Design (client approves look and structure in writing). WU-01b (Vercel deploys) postponed by Mateo on 2026-09-09 until CI-05 |
 | Do not touch | `sistema-interno/` (parity reference) · `brandign-sanalys/` (source material) · any decision `D-001`–`D-016` |
 

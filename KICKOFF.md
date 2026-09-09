@@ -42,7 +42,7 @@ Hosting: Vercel Hobby, two projects from one repo (root dirs `web` and `sistema`
 sanalys/
   CLAUDE.md  KICKOFF.md  README.md  .gitignore  pnpm-workspace.yaml  package.json  tsconfig.base.json
   .github/workflows/ci.yml (build+typecheck+lint+frozen install)  backup.yml (daily encrypted dump → R2)
-  docs/00-BRIEF 01-ARQUITECTURA 02-STACK 03-DATOS 04-INTERFAZ 05-DISENO 06-SEGURIDAD 07-REPO 08-REGLAS-SISTEMA 10-MEMORY 11-ROADMAP
+  docs/00-BRIEF 01-ARQUITECTURA 02-STACK 03-DATOS 04-INTERFAZ 05-DISENO 06-SEGURIDAD 07-REPO 08-REGLAS-SISTEMA 10-MEMORY 11-ROADMAP 12-CLIENT-QUESTIONS
   packages/brand/   tokens.css · tailwind.preset.ts · fonts/ · assets/ (logo SVGs, favicon, pattern)
   packages/db/      drizzle.config.ts · src/schema/ · src/queries/ (system) · src/web-queries/ (public, narrow) · src/format.ts · migrations/ · seeds/ · scripts/
   web/              src/app · src/components · src/actions · src/lib/env.ts · public/img/placeholder/
