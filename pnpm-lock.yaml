@@ -125,7 +125,11 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@22.20.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
 
-  packages/brand: {}
+  packages/brand:
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   packages/db:
     dependencies:
@@ -157,6 +161,9 @@ importers:
 
   sistema:
     dependencies:
+      '@sanalys/brand':
+        specifier: workspace:*
+        version: link:../packages/brand
       '@t3-oss/env-nextjs':
         specifier: 0.13.11
         version: 0.13.11(typescript@5.9.3)(zod@4.5.4)
@@ -194,6 +201,9 @@ importers:
 
   web:
     dependencies:
+      '@sanalys/brand':
+        specifier: workspace:*
+        version: link:../packages/brand
       '@t3-oss/env-nextjs':
         specifier: 0.13.11
         version: 0.13.11(typescript@5.9.3)(zod@4.5.4)

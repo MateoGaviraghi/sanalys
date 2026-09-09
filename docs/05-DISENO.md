@@ -51,8 +51,9 @@ Scale (fluid, Utopia-style, mobile 375 → desktop 1440):
 
 - Isotype (drop + line + smile) always with `®`. Never without it, never recoloured outside verde / fluo / blanco.
 - Three lockups from the PDF: horizontal (isotype + wordmark), stacked, isotype alone (favicon, app icon, Drip labels).
-- Minimum clear space and minimum size: `{{PENDIENTE}}` — pages 11, 13, 14 and 20 of the PDF are image-only and must be checked at unit 3; until then use the isotype's own height as clear space on all sides.
-- The pattern (tiled isotypes) is allowed as a texture on verde grounds at ≤ 8 % opacity (gift card and IG post reference), never behind text.
+- Minimum clear space and minimum size (checked at WU-03, 2026-09-09): **the PDF prints no rule** — pages 4, 8–11, 13, 14 and 20 are construction grid, colourways, slogan, lockup and pattern only. The margins it actually uses were measured on the vectors (≥ 0.57 × the isotype height around the horizontal lockup on p.11, ≥ 0.4 × around the stacked lockup, 1.09 × on p.14) and the rule adopted is stricter than all of them (D-015): **clear space = the isotype height on all four sides** (apex of the drop to the bottom of the smile; 100 units in the horizontal file, 57.11 in the stacked file); **minimum size on screen** horizontal lockup 120 px wide, stacked 64 px, isotype alone 24 px, favicon 16 px as the only exception. The isotype→wordmark gap is fixed by the lockup files (0.25 × isotype height horizontal, 0.165 × stacked) and is never rebuilt from the isotype file.
+- Files: `packages/brand/assets/` — `isotype-*`, `logo-horizontal-*`, `logo-stacked-*` in the three colourways, `favicon.svg`, `pattern-tile.svg`; geometry and colourway-per-ground table in `packages/brand/README.md` §4.
+- The pattern (tiled isotypes) is allowed as a texture on verde grounds at ≤ 8 % opacity (gift card and IG post reference), never behind text. One repeat cell is `assets/pattern-tile.svg` (glyph 52.54 × 51.79, pitch 95.5 × 76, second row offset +52.5, from p.20).
 
 ## 4. Photography
 

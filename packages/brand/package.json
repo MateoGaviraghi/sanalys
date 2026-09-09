@@ -2,5 +2,21 @@
   "name": "@sanalys/brand",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./fonts/fonts.css": "./fonts/fonts.css",
+    "./fonts/*": "./fonts/*",
+    "./assets/*": "./assets/*",
+    "./tailwind.preset": "./tailwind.preset.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
 }

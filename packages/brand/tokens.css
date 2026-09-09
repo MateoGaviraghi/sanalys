@@ -1,0 +1,233 @@
+/*
+  @sanalys/brand — tokens.css
+  The single source of the brand tokens for web/ and sistema/. Values come from docs/05-DISENO.md §2
+  (colour, type, space, radius, shadow, motion) and the identity PDF (Nov 2025, canonical); the `--sys-*`
+  block copies the inherited system theme (sistema-interno/sistema/theme.css, docs/05 §8) verbatim.
+
+  Consume:   @import "tailwindcss";  @import "@sanalys/brand/tokens.css";
+  Mirror:    packages/brand/tailwind.preset.ts carries the same values for JavaScript — edit both together.
+  Tailwind:  the `@theme inline` block exposes colours, fonts, the type scale, radii, the shadow and the
+             easing as utilities (bg-verde, font-display, text-step-3, rounded-2, shadow-card, ease-brand).
+             The space scale is NOT mapped to Tailwind's numeric spacing on purpose: use p-(--space-5).
+*/
+@import "./fonts/fonts.css";
+
+:root {
+  /* ── 2.1 Colour — OKLCH computed from the PDF hex values (p.16) ─────────────────────────────── */
+  --verde: oklch(0.325 0.055 176);                 /* #0A3D33 · PANTONE 560 C · primary ground; text on fluo and blanco */
+  --verde-deep: oklch(0.218 0.032 177);            /* #071F1A · internal system page ground */
+  --fluo: oklch(0.936 0.202 123);                  /* #D0FF4E · PANTONE 374 C · the only accent */
+  --negro: oklch(0 0 0);                           /* #000000 · PANTONE Black C · body on fluo when verde is too soft */
+  --gris: oklch(0.689 0.003 265);                  /* #9A9B9D · PANTONE Cool Gray 7 C · ground and dividers, never text */
+  --blanco: oklch(1 0 90);                         /* #FFFFFF */
+  --verde-ink-soft: oklch(0.325 0.055 176 / 0.72); /* secondary text on light grounds */
+  --fluo-soft: oklch(0.936 0.202 123 / 0.12);      /* hover wash on verde */
+
+  /* ── 2.2 Typography ─────────────────────────────────────────────────────────────────────────── */
+  /* Display is Borna (client licence, CI-08). Until it arrives both roles use Roboto Flex (D-016). */
+  --font-display: "Roboto Flex Variable", "Roboto Flex Fallback", Arial, sans-serif;
+  --font-body: "Roboto Flex Variable", "Roboto Flex Fallback", Arial, sans-serif;
+  --wght-display-regular: 400; /* the identity pairs Borna Regular … */
+  --wght-display-bold: 700;    /* … with Borna Bold in the same headline (PDF p.12–14) */
+  --wght-body: 400;
+  --wght-body-medium: 500;
+  --wght-body-semibold: 600;
+  --opsz-display: 144;         /* Roboto Flex optical size at its maximum on headlines */
+  --leading-display: 0.95;
+  --tracking-display: -0.02em;
+  --leading-body: 1.5;
+  --measure: 65ch;             /* 55–70 characters */
+
+  /* Fluid scale, Utopia-style, 375 px → 1440 px (docs/05 §2.2 endpoints) */
+  --step--1: clamp(0.83rem, 0.8054rem + 0.1052vw, 0.9rem);
+  --step-0: clamp(1rem, 0.956rem + 0.1878vw, 1.125rem);
+  --step-1: clamp(1.25rem, 1.162rem + 0.3756vw, 1.5rem);
+  --step-2: clamp(1.56rem, 1.3699rem + 0.8113vw, 2.1rem);
+  --step-3: clamp(1.95rem, 1.5979rem + 1.5023vw, 2.95rem);
+  --step-4: clamp(2.44rem, 1.8555rem + 2.4939vw, 4.1rem);
+  --step-5: clamp(3.05rem, 2.0817rem + 4.1315vw, 5.8rem);
+
+  /* ── 2.3 Space, radius, shadow, motion ──────────────────────────────────────────────────────── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 5rem;
+  --space-9: 8rem;
+  --space-section: clamp(3rem, 8vw, 8rem);
+
+  --r-0: 0;    /* highlighter, Drip labels, CTA band — sharp is the brand */
+  --r-1: 4px;  /* inputs, small chips */
+  --r-2: 12px; /* public cards */
+
+  --shadow: 0 16px 40px oklch(0 0 0 / 0.25);
+
+  --dur-1: 140ms; /* state changes */
+  --dur-2: 240ms; /* hover, reveals */
+  --dur-3: 440ms; /* page-level reveals */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ── Ground context — default blanco; the ground-* utilities below re-set these four ─────────── */
+  --ground: var(--blanco);
+  --ink: var(--verde);
+  --hl-bg: var(--fluo);
+  --hl-fg: var(--verde);
+
+  /* ── Internal system — inherited theme, verbatim (theme.css, index.html, docs/08 agenda) ──────── */
+  --sys-ground: #071f1a;
+  --sys-glass: rgba(255, 255, 255, 0.03);
+  --sys-border: rgba(255, 255, 255, 0.06);
+  --sys-border-2: rgba(255, 255, 255, 0.1);
+  --sys-border-hover: rgba(255, 255, 255, 0.12);
+  --sys-fluo-dim: rgba(208, 255, 78, 0.08);
+  --sys-input-bg: rgba(255, 255, 255, 0.04);
+  --sys-input-border: rgba(255, 255, 255, 0.12);
+  --sys-input-focus-bg: rgba(255, 255, 255, 0.06);
+  --sys-input-focus-border: rgba(208, 255, 78, 0.5);
+  --sys-input-focus-ring: 0 0 0 3px rgba(208, 255, 78, 0.08);
+  --sys-modal-bg: #0f2d27;
+  --sys-modal-border: rgba(255, 255, 255, 0.08);
+  --sys-th-bg: #0a3d33;
+  --sys-r-card: 18px;    /* theme.css overrides every card to 18 px; modals keep 20 px */
+  --sys-r-modal: 20px;
+  --sys-r-control: 10px; /* inputs, buttons, tabs */
+  --sys-r-badge: 6px;
+  --sys-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  --sys-sidebar-w: 72px;
+  --sys-ok: #4ade80;
+  --sys-ok-bg: rgba(74, 222, 128, 0.12);
+  --sys-ok-border: rgba(74, 222, 128, 0.25);
+  --sys-warn: #fbbf24;
+  --sys-warn-bg: rgba(251, 191, 36, 0.12);
+  --sys-warn-border: rgba(251, 191, 36, 0.25);
+  --sys-danger: #f87171;
+  --sys-danger-bg: rgba(248, 113, 113, 0.12);
+  --sys-danger-border: rgba(248, 113, 113, 0.25);
+  --sys-turno-pendiente: #9ca3af;
+  --sys-turno-confirmado: #3b82f6;
+  --sys-turno-espera: #f97316;
+  --sys-turno-tratamiento: #22c55e;
+  --sys-turno-finalizado: #8b5cf6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-1: 0ms;
+    --dur-2: 0ms;
+    --dur-3: 0ms;
+  }
+}
+
+/* Tailwind utilities generated from the tokens above (Tailwind 4, CSS-first; docs/02 §2) */
+@theme inline {
+  --color-verde: var(--verde);
+  --color-verde-deep: var(--verde-deep);
+  --color-fluo: var(--fluo);
+  --color-negro: var(--negro);
+  --color-gris: var(--gris);
+  --color-blanco: var(--blanco);
+  --color-verde-ink-soft: var(--verde-ink-soft);
+  --color-fluo-soft: var(--fluo-soft);
+  --color-ground: var(--ground);
+  --color-ink: var(--ink);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --default-font-family: var(--font-body);
+
+  --text-step--1: var(--step--1);
+  --text-step-0: var(--step-0);
+  --text-step-1: var(--step-1);
+  --text-step-2: var(--step-2);
+  --text-step-3: var(--step-3);
+  --text-step-4: var(--step-4);
+  --text-step-5: var(--step-5);
+
+  --radius-0: var(--r-0);
+  --radius-1: var(--r-1);
+  --radius-2: var(--r-2);
+
+  --shadow-card: var(--shadow);
+
+  --ease-brand: var(--ease);
+  --default-transition-timing-function: var(--ease);
+  --default-transition-duration: var(--dur-2);
+}
+
+/*
+  The highlighter — the signature device of the brand (docs/05 §1.1): a solid rectangle behind the key
+  words, sharp corners, bold weight. Colours come from the ground. The box is painted as a background
+  gradient of explicit height, anchored to the bottom of the content area, so its geometry does not
+  depend on the ascent of whichever font is active (Roboto Flex today, Borna after CI-08):
+  --hl-h box height; --hl-b distance from the content-area bottom to the box bottom (font descent minus
+  the 0.16em the box extends below the baseline: Roboto Flex 0.244 → 0.084em; Borna 0.2 → 0.04em).
+  The PDF slogan (p.13) uses a 1.25em box (0.94em above the baseline, 0.31em below) on a 1.2 line pitch;
+  with the 0.95 headline leading of docs/05 §2.2 that box would cover the previous line, so the web box is
+  1.05em (0.89em above the baseline, 0.16em below) and keeps the measured 0.17em inline padding.
+*/
+@utility highlight {
+  --hl-h: 1.05em;
+  --hl-b: 0.084em;
+  background-color: transparent; /* <mark> has a yellow UA background */
+  background-image: linear-gradient(var(--hl-bg), var(--hl-bg));
+  background-repeat: no-repeat;
+  background-size: 100% var(--hl-h);
+  background-position: 0 calc(100% - var(--hl-b));
+  color: var(--hl-fg);
+  font-weight: var(--wght-display-bold);
+  padding-inline: 0.17em;
+  border-radius: var(--r-0);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Headline setting: display face, regular weight (bold comes from <strong> or .highlight), tight leading */
+@utility type-display {
+  font-family: var(--font-display);
+  font-weight: var(--wght-display-regular);
+  font-variation-settings: "opsz" var(--opsz-display);
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  text-box: trim-both cap alphabetic;
+}
+
+/* The three grounds plus gris (docs/05 §1.2). Each sets ground, ink and the highlighter pair. */
+@utility ground-verde {
+  --ground: var(--verde);
+  --ink: var(--blanco);
+  --hl-bg: var(--fluo);
+  --hl-fg: var(--verde);
+  background-color: var(--ground);
+  color: var(--ink);
+}
+
+@utility ground-fluo {
+  --ground: var(--fluo);
+  --ink: var(--verde);
+  --hl-bg: var(--verde);
+  --hl-fg: var(--fluo);
+  background-color: var(--ground);
+  color: var(--ink);
+}
+
+@utility ground-blanco {
+  --ground: var(--blanco);
+  --ink: var(--verde);
+  --hl-bg: var(--fluo);
+  --hl-fg: var(--verde);
+  background-color: var(--ground);
+  color: var(--ink);
+}
+
+/* Gris carries labels and cards; its ink is verde (4.4:1, large text only) and fluo is decorative here */
+@utility ground-gris {
+  --ground: var(--gris);
+  --ink: var(--verde);
+  --hl-bg: var(--fluo);
+  --hl-fg: var(--verde);
+  background-color: var(--ground);
+  color: var(--ink);
+}

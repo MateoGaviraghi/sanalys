@@ -6,13 +6,13 @@
 
 | Field | Value |
 |---|---|
-| Current unit | WU-02 · Database — **done** |
-| Status | Neon `sanalys` live with 28 tables, its invariants, the 13 config keys and the 8 Drips. Critical test 1 green. Daily encrypted backup ran once and the restore drill passed the same day. Everything pushed; CI green. |
-| Last chat | 2026-09-09 · WU-01a and WU-02 (same chat, by Mateo's decision) |
-| Waiting on Mateo | **Rotate the `sanalys_owner` password** — it was pasted into a chat on 2026-09-09 · move the age private key off the Desktop into the password manager · pick the next unit |
-| Waiting on the client | `docs/00-BRIEF.md` §8, all `PENDIENTE`. CI-05 blocks WU-01b. OQ-13 (salas and session timeout) blocks the booking calendar of WU-08 |
-| Next action | WU-03 · Brand package, or WU-01b when CI-05 arrives |
-| Do not touch | `sistema-interno/` (parity reference) · `brandign-sanalys/` (source material) · any decision `D-001`–`D-014` |
+| Current unit | WU-03 · Brand package — **done** |
+| Status | `@sanalys/brand` live: `tokens.css` (docs/05 §2 verbatim + Tailwind mapping + `highlight` / `type-display` / `ground-*` utilities + inherited `--sys-*`), Roboto Flex self-hosted with a metric-matched Arial fallback, 11 SVG assets traced from the PDF, `tailwind.preset.ts`, README. Both apps import it and render a sample page; build, typecheck, lint and test green; CLS 0 on four views. `docs/05` §3 closed (D-015). Borna stays out until CI-08 (D-016). Committed and pushed; CI status in the entry below. |
+| Last chat | 2026-09-09 · WU-03 |
+| Waiting on Mateo | **Rotate the `sanalys_owner` password** (carried from WU-02) · move the age private key off the Desktop into the password manager (carried) · pick the next unit · say whether `docs/05` §2.2 gets the one-line amendment that points to D-016 (G-033) |
+| Waiting on the client | `docs/00-BRIEF.md` §8, all `PENDIENTE`. CI-05 blocks WU-01b. **CI-08 (Borna web licence — atipo, pay what you want)** blocks Borna in the brand package. OQ-13 (salas and session timeout) blocks the booking calendar of WU-08 |
+| Next action | WU-04 · Design (client approves look and structure in writing), or WU-01b when CI-05 arrives |
+| Do not touch | `sistema-interno/` (parity reference) · `brandign-sanalys/` (source material) · any decision `D-001`–`D-016` |
 
 ## 2. Entries (append-only, newest at the bottom)
 
@@ -52,6 +52,19 @@
 - **Failed / cut:** nothing cut. The database was wiped and re-applied three times to keep it identical to the file.
 - **Appended to 10-MEMORY:** G-026 to G-032, TD-006, OQ-12, OQ-13, D-014, and the restore drill record.
 - **Next:** WU-03 · Brand package. WU-01b (Vercel) stays blocked on CI-05.
+
+### 2026-09-09 · WU-03 · Brand package
+- **Plan stated:** the unit cut into six steps (toolchain, tokens + fonts + preset, SVG assets, README + docs/05 §3, sample pages + gates + screenshots, close), each approved separately · **GO-AHEAD:** yes (Mateo, 2026-09-09, step by step; three questions answered before it: install pnpm 12.3.4 globally — yes; display weights — the ones the branding folder uses (D-016); `tailwind.preset.ts` as a typed token export — yes)
+- **Built:** `packages/brand/tokens.css`, `packages/brand/tailwind.preset.ts`, `packages/brand/fonts/{fonts.css, roboto-flex-latin-opsz.woff2, OFL.txt}`, `packages/brand/assets/` (11 SVG: `isotype-*`, `logo-horizontal-*`, `logo-stacked-*` × verde/fluo/blanco, `favicon.svg`, `pattern-tile.svg`), `packages/brand/README.md` · **Outside the list:** `packages/brand/package.json` (exports, typecheck) and `packages/brand/tsconfig.json` (new) — workspace wiring; `web/package.json`, `sistema/package.json`, `pnpm-lock.yaml` — `@sanalys/brand: workspace:*`; `web/src/app/{globals.css,page.tsx}`, `sistema/src/app/{globals.css,page.tsx}` — the sample pages the unit's Done asks for; `docs/05-DISENO.md` §3 — the `{{PENDIENTE}}` it asks to close. Every one named in the plan and approved before writing.
+- **Sources read:** identity PDF, all 40 pages (colour values p.16, typography p.18, slogan p.12–14, lockups p.5/8/11, pattern p.20, Drip labels p.28); the OKLCH values of docs/05 §2.1 recomputed from the PDF hex values and found identical; the seven documented contrasts recomputed and found identical; Fontsource 5.3.0 checked on the registry (OFL-1.1, published 2026-07-19); Borna's OTF name table read (atipo, 2023, four weights, no Light).
+- **Parity check (sistema/ only):** the `--sys-*` block copies `theme.css` literally (glass .03, borders .06/.1/.12, `--fluo-dim` .08, modal `#0f2d27`, radii 18/20/10/6, shadow `0 16px 40px rgba(0,0,0,.4)`, sidebar 72 px, badge and turno-state colours from docs/08). Deviation from the doc, not from the code: G-034 (cards are 18 px in the code, "20 px" in docs/05).
+- **Design check (web/ only):** tokens exactly as docs/05 §2 (values, names, scale endpoints, radii, durations, easing); three grounds + gris + highlighter implemented as `ground-*` / `highlight`; no motion added (none in this unit's inventory); screenshots at 1440 and 375 for both apps sent to Mateo as files (not committed). CLS measured 0 on the four views in production mode; Roboto Flex loaded with the size-adjusted fallback; no horizontal scroll at 375.
+- **Tests:** no critical test belongs to this unit; `pnpm test` green (3 passing, from WU-02).
+- **Gates:** `pnpm install --frozen-lockfile` · `pnpm build` (both apps static) · `pnpm typecheck` (now four packages) · `pnpm lint` (0/0) · `pnpm test` — green locally. Secret grep of `.next/static`: nothing to find (no secret exists in this unit).
+- **Found while building:** the global pnpm had drifted back to 9.15.4 (G-035); Borna has no Light and the PDF pairs Regular + Bold (G-033 → D-016); the inherited cards are 18 px, not 20 (G-034); the PDF highlighter box overlaps the previous line at the 0.95 headline leading, fixed with a font-independent box and left for WU-04 to settle (G-036); what Next 16 + Turbopack + Tailwind 4 accept from a workspace package (G-037); Edge headless clamps its window to ~500 px, so the 375 px screenshots were taken through the DevTools protocol with device-metrics emulation (scratch script, not in the repo).
+- **Failed / cut:** nothing cut. Borna not wired (CI-08 pending, by design). Font preload `<link>` is left to WU-05/WU-12, whose declared lists own the root layouts. A `.claude/launch.json` (web 3000 / sistema 3001 with `next start`) was used for the previews and deleted afterwards to keep the tree at the declared list; add it to `docs/07-REPO.md` if wanted.
+- **Appended to 10-MEMORY:** D-015, D-016, G-033, G-034, G-035, G-036, G-037
+- **Next:** WU-04 · Design. WU-01b (Vercel) stays blocked on CI-05. When CI-08 arrives, D-016 lists the four edits that bring Borna in.
 
 <!-- Template for every chat — copy, fill, append:
 
