@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:seed": "node --experimental-strip-types seeds/index.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.1.0",

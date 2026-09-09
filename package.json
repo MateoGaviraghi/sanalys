@@ -10,7 +10,10 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "pnpm --filter @sanalys/db exec drizzle-kit generate",
+    "db:migrate": "pnpm --filter @sanalys/db exec drizzle-kit migrate",
+    "db:seed": "pnpm --filter @sanalys/db run db:seed"
   },
   "devDependencies": {
     "@types/node": "22.20.1",

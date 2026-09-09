@@ -10,10 +10,10 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import { createdAt, id, tstz, updatedAt } from "./columns"
-import { turnoEstado } from "./enums"
-import { pacientes } from "./pacientes"
-import { personas } from "./usuarios"
+import { createdAt, id, tstz, updatedAt } from "./columns.ts"
+import { turnoEstado } from "./enums.ts"
+import { pacientes } from "./pacientes.ts"
+import { personas } from "./usuarios.ts"
 
 /** One franja of a day: the inherited `{ desde: "09:00", hasta: "13:00" }`. */
 export type Franja = { desde: string; hasta: string }

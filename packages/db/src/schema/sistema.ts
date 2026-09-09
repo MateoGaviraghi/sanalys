@@ -9,8 +9,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import { createdAt, id, tstz, updatedAt } from "./columns"
-import { personas } from "./usuarios"
+import { createdAt, id, tstz, updatedAt } from "./columns.ts"
+import { personas } from "./usuarios.ts"
 
 /**
  * News, written in the internal system and read by the public site through ISR (D-009).

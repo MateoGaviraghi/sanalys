@@ -1,10 +1,10 @@
 import { sql } from "drizzle-orm"
 import { check, integer, jsonb, numeric, pgTable, text, uuid } from "drizzle-orm/pg-core"
 
-import { createdAt, id, tstz, updatedAt } from "./columns"
-import { turnos } from "./agenda"
-import { pacientes } from "./pacientes"
-import { insumos } from "./stock"
+import { createdAt, id, tstz, updatedAt } from "./columns.ts"
+import { turnos } from "./agenda.ts"
+import { pacientes } from "./pacientes.ts"
+import { insumos } from "./stock.ts"
 
 export type Signos = { ta?: string; fc?: number; sato2?: number; temp?: number; peso?: number }
 

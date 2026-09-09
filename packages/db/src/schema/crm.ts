@@ -1,9 +1,9 @@
 import { sql } from "drizzle-orm"
 import { boolean, check, date, index, pgTable, text, uuid } from "drizzle-orm/pg-core"
 
-import { createdAt, id, tstz, updatedAt } from "./columns"
-import { leadEtapa } from "./enums"
-import { pacientes } from "./pacientes"
+import { createdAt, id, tstz, updatedAt } from "./columns.ts"
+import { leadEtapa } from "./enums.ts"
+import { pacientes } from "./pacientes.ts"
 
 /**
  * Commercial pipeline (docs/08-REGLAS-SISTEMA.md section 11). Converting a lead creates a

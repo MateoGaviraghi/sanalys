@@ -15,8 +15,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import { createdAt, id, tstz, updatedAt } from "./columns"
-import { cajaTipo } from "./enums"
+import { createdAt, id, tstz, updatedAt } from "./columns.ts"
+import { cajaTipo } from "./enums.ts"
 
 /** `CIERRE` rows carry the inherited arqueo: counted cash, system total, difference, bills. */
 export type Arqueo = {

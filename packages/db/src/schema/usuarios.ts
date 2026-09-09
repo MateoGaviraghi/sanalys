@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm"
 import { boolean, check, numeric, pgTable, text } from "drizzle-orm/pg-core"
 
-import { createdAt, id, updatedAt } from "./columns"
+import { createdAt, id, updatedAt } from "./columns.ts"
 
 /** The closed permission list of docs/06-SEGURIDAD.md section 4. */
 export const PERMISOS = [

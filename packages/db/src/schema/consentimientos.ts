@@ -1,7 +1,7 @@
 import { boolean, inet, index, integer, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core"
 
-import { createdAt, id, tstz, updatedAt } from "./columns"
-import { pacientes } from "./pacientes"
+import { createdAt, id, tstz, updatedAt } from "./columns.ts"
+import { pacientes } from "./pacientes.ts"
 
 /** Every text a patient signs is versioned; a consent points at a version, never at a string. */
 export const consentimientoTextos = pgTable("consentimiento_textos", {

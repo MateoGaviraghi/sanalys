@@ -12,7 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import { createdAt, id, tstz, updatedAt } from "./columns"
+import { createdAt, id, tstz, updatedAt } from "./columns.ts"
 
 /**
  * Clinical record (docs/03-DATOS.md section 3.2). S3 data: never logged, never in a URL.

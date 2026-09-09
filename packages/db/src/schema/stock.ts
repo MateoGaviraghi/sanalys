@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm"
 import { check, date, integer, numeric, pgTable, text, uuid } from "drizzle-orm/pg-core"
 
-import { createdAt, id, tstz, updatedAt } from "./columns"
-import { insumoTipo } from "./enums"
+import { createdAt, id, tstz, updatedAt } from "./columns.ts"
+import { insumoTipo } from "./enums.ts"
 
 /**
  * Stock (docs/08-REGLAS-SISTEMA.md section 8). `stock_disp` can never go negative: the
