@@ -1,0 +1,104 @@
+name: Backup
+
+# Daily encrypted dump of the whole database to Cloudflare R2 (docs/07-REPO.md section 6).
+# Neon's free plan keeps roughly six hours of history, so this is the only real backup:
+# something deleted on Monday and noticed on Wednesday is recoverable only from here.
+#
+# The dump is encrypted with age BEFORE it leaves the runner, so R2 never holds readable
+# patient data and neither does anyone who reaches the bucket. Only the private key opens
+# it, and that key is not in this repository, not in GitHub, and not in Cloudflare.
+
+on:
+  schedule:
+    # 03:30 in America/Argentina/Buenos_Aires (UTC-3 all year) = 06:30 UTC.
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    name: pg_dump - age - R2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      # AWS CLI v2 adds integrity headers that R2 rejects; both checks are opt-out.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+    steps:
+      - name: Check that every secret is present
+        env:
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          faltan=""
+          for nombre in DATABASE_URL_DIRECT BACKUP_AGE_PUBLIC_KEY R2_ACCOUNT_ID R2_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [ -z "${!nombre:-}" ]; then faltan="$faltan $nombre"; fi
+          done
+          if [ -n "$faltan" ]; then
+            echo "Missing repository secrets:$faltan" >&2
+            echo "Names are fixed by docs/06-SEGURIDAD.md section 6." >&2
+            exit 1
+          fi
+
+      - name: Install postgresql-client 17 and age
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17 age
+          pg_dump --version
+          age --version
+
+      - name: Dump, encrypt and upload
+        env:
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          FECHA=$(TZ=America/Argentina/Buenos_Aires date +%Y/%m/%d)
+          MES=$(TZ=America/Argentina/Buenos_Aires date +%Y/%m)
+          DIA=$(TZ=America/Argentina/Buenos_Aires date +%d)
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          # Custom format: pg_restore can then restore selectively and in parallel.
+          pg_dump --format=custom --file=dump.pgc "$DATABASE_URL_DIRECT"
+
+          age -r "$BACKUP_AGE_PUBLIC_KEY" -o dump.pgc.age dump.pgc
+          rm -f dump.pgc
+
+          # daily/ and monthly/ are prefixes because R2 lifecycle rules delete by prefix:
+          # 30 days for daily, 365 for monthly (docs/07-REPO.md section 6).
+          aws s3 cp dump.pgc.age "s3://${R2_BUCKET}/daily/${FECHA}.dump.age" --endpoint-url "$ENDPOINT"
+          if [ "$DIA" = "01" ]; then
+            aws s3 cp dump.pgc.age "s3://${R2_BUCKET}/monthly/${MES}.dump.age" --endpoint-url "$ENDPOINT"
+          fi
+
+          echo "Uploaded $(du -h dump.pgc.age | cut -f1) to daily/${FECHA}.dump.age"
+
+      - name: Verify the object is in the bucket
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          FECHA=$(TZ=America/Argentina/Buenos_Aires date +%Y/%m/%d)
+          aws s3 ls "s3://${R2_BUCKET}/daily/${FECHA}.dump.age" \
+            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
