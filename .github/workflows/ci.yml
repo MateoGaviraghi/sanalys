@@ -18,14 +18,14 @@ jobs:
       # never with dummy values here (docs/06-SEGURIDAD.md section 6).
       SKIP_ENV_VALIDATION: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # corepack 0.32 (bundled with Node 22) cannot launch pnpm 12, which ships bin/pnpm.mjs.
       # The version is pinned here and in package.json#packageManager (G-020).
       - name: Install pnpm 12.3.4
         run: npm install --global pnpm@12.3.4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22.16.0
           cache: pnpm
