@@ -43,7 +43,7 @@ sanalys/
 
 | Command | Does |
 |---|---|
-| `pnpm dev --filter web` / `--filter sistema` | Dev server for one app against a Neon **dev branch** |
+| `pnpm --filter web dev` / `pnpm --filter sistema dev` | Dev server for one app against a Neon **dev branch** (pnpm 12 wants `--filter` before the script, G-022) |
 | `pnpm build` | Builds both apps (CI) |
 | `pnpm typecheck` · `pnpm lint` | Blocking gates |
 | `pnpm db:generate` · `pnpm db:migrate` | Drizzle migration files → apply with the direct connection string (manual against prod, after a green deploy) |

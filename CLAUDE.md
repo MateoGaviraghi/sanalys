@@ -68,7 +68,7 @@ Rules: no preamble, no recap of what Mateo said, no reasoning narrative, no opti
 
 ## Commands (once WU-01 creates them)
 
-`pnpm dev --filter web` · `pnpm dev --filter sistema` · `pnpm build` · `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm db:generate` · `pnpm db:migrate` · `pnpm db:seed`
+`pnpm --filter web dev` · `pnpm --filter sistema dev` · `pnpm build` · `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm db:generate` · `pnpm db:migrate` · `pnpm db:seed`
 
 ## When something is not decided
 
