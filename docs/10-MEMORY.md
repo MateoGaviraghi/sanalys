@@ -43,6 +43,9 @@ Same risk knowingly taken on presisso. The ToS forbids commercial use; the conse
 ### D-013 · 2026-09-09 · Single tenant, no `tenant_id`
 One clinic, written down. Trigger to reopen: the sentence "¿se lo podemos vender a otra clínica?" — at that point it is a new engagement (`A5→A4`), not a change request.
 
+### D-014 · 2026-09-09 · The Neon project is created on Mateo's personal org and transferred later
+`docs/11-ROADMAP.md` WU-01b allows this while CI-05 (account ownership) is unanswered. Project `sanalys` (`polished-dawn-31392247`) lives in the Neon org "Mateo" (`org-wispy-base-64115850`), region `aws-sa-east-1` (Sao Paulo, the closest to Santa Fe), Postgres 17, free plan. Alternatives: wait for the client's account (rejected: it blocks WU-02, the unit everything else depends on). **Transfer to the client's Neon account is part of WU-25 handover**, together with the Vercel projects and every rotated credential. Reopen if: the client's account arrives before WU-25 — then the transfer happens that day instead.
+
 ## Gotchas (inherited system, found 2026-09-08/09)
 
 - **G-001** · `firestore.rules`: every collection readable and writable by any authenticated user; `usuarios` included → self-promotion to admin. Authorization lives only in the UI.
@@ -72,6 +75,8 @@ One clinic, written down. Trigger to reopen: the sentence "¿se lo podemos vende
 - **G-022** · pnpm 12 only accepts `--filter` **before** the script name. `pnpm dev --filter web` — the form written in `docs/07-REPO.md` §4 and `CLAUDE.md` — goes recursive and fails with `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL`. The working form is `pnpm --filter web dev`, now written in `README.md`, `docs/07-REPO.md` §4 and `CLAUDE.md` (all three corrected in WU-01a).
 - **G-023** · pnpm 12 renamed the build-script allowlist to `allowBuilds: {<pkg>: true|false}` in `pnpm-workspace.yaml`. The pnpm 10 key `onlyBuiltDependencies` is still echoed by `pnpm config list` but does **not** clear `ERR_PNPM_IGNORED_BUILDS`, which pnpm 12 raises as an error, not a warning. Current verdict: `unrs-resolver: false` (transitive under `eslint-config-next`; its prebuilt platform binding is enough, lint verified green with the script denied).
 - **G-024** · `next-env.d.ts` in Next 16 imports `./.next/types/routes.d.ts`, which only exists after a build. On a clean clone `tsc --noEmit` therefore fails before anything is built, so each app's `typecheck` script is `next typegen && tsc --noEmit`. Do not "simplify" it back to plain `tsc`.
+
+- **G-025** · Neon free plan, read on creation day 2026-09-09 (closes the Neon half of TD-005): 512 MB logical size per branch · history retention 6 h, so the PITR window is six hours and the daily encrypted dump of `07-REPO` §6 is the only real backup · compute fixed at 0.25 CU with autosuspend (~1 s cold start) · storage and compute-hour quotas reset on the 1st of each month. Consequence for the build: no whole-table loads, bounded queries, and the restore drill is not optional.
 
 ## Technical debt (carried into the rebuild, to be paid in the named unit)
 

@@ -2,5 +2,20 @@
   "name": "@sanalys/db",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.1.0",
+    "date-fns": "4.4.0",
+    "date-fns-tz": "3.2.0",
+    "decimal.js": "10.6.0",
+    "drizzle-orm": "0.45.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "drizzle-kit": "0.31.10",
+    "typescript": "5.9.3"
+  }
 }

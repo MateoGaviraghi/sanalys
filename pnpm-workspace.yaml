@@ -7,5 +7,7 @@ packages:
 # one into an install error. Every entry is an explicit verdict (docs/02-STACK.md section 7).
 # unrs-resolver: denied — it is a transitive dependency of eslint-config-next and its
 # prebuilt platform binding is enough; lint is verified green with the script denied.
+# esbuild: allowed — drizzle-kit bundles it and its postinstall places the platform binary.
 allowBuilds:
+  esbuild: true
   unrs-resolver: false
