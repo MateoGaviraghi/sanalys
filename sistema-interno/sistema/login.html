@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys S.M.S. - Acceso Online</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root { --verde-deep: #0A3D33; --fluo: #D0FF4E; }
+        body { background-color: var(--verde-deep); color: white; font-family: 'Roboto Flex', sans-serif; }
+        .card-login { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; }
+        .input-sanalys { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 15px; border-radius: 8px; width: 100%; outline: none; color: white; }
+    </style>
+</head>
+<body class="h-screen flex items-center justify-center p-6">
+    <div class="card-login p-10 w-full max-w-md shadow-2xl text-center">
+        <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">sanalys<span style="color:var(--fluo)">.</span></h1>
+        <p class="text-[10px] uppercase tracking-[0.4em] opacity-50 mb-10">Iniciando sesión en la nube</p>
+        
+        <div class="space-y-4 text-left">
+            <div>
+                <label class="text-[10px] uppercase font-bold opacity-50 ml-1">Correo Electrónico</label>
+                <input type="email" id="user" class="input-sanalys" placeholder="socia@sanalys.com">
+            </div>
+            <div>
+                <label class="text-[10px] uppercase font-bold opacity-50 ml-1">Contraseña</label>
+                <input type="password" id="pass" class="input-sanalys" placeholder="••••••••" onkeyup="checkEnter(event)">
+            </div>
+            <button id="btnEntrar" onclick="login()" class="w-full bg-[var(--fluo)] text-[var(--verde-deep)] py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-[1.02] transition-all mt-4">Entrar al Sistema</button>
+            <button onclick="recuperarContrasena()" class="w-full bg-white/10 text-white py-2 rounded-xl font-bold text-[10px] uppercase hover:bg-white/20 transition mt-2">¿Olvidaste tu contraseña?</button>
+        </div>
+        <p id="statusMsg" class="text-[9px] mt-4 opacity-40 uppercase font-bold"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Configuración obtenida de tu consola
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA",
+            authDomain: "sanalys-2263e.firebaseapp.com",
+            projectId: "sanalys-2263e",
+            storageBucket: "sanalys-2263e.firebasestorage.app",
+            messagingSenderId: "899593881035",
+            appId: "1:899593881035:web:cd0ddfdb4f8af089e9224e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // H14: si se llegó al login por timeout de sesión, cerrar la sesión
+        // real de Firebase (no solo la visual). El parámetro ?expired=1 lo
+        // agrega sidebar.js cuando vence el timeout por inactividad.
+        if (new URLSearchParams(window.location.search).get('expired') === '1') {
+            signOut(auth).catch(() => {});
+            sessionStorage.removeItem('usuario_sanalys');
+        }
+
+        /* ── RATE LIMITING: 5 intentos → bloqueo 15 min ─────────────────
+           Almacenado en localStorage para persistir entre recargas.
+           Clave: 'sanalys_login_attempts' → { count, lockedUntil, email }
+        ────────────────────────────────────────────────────────────── */
+        const RATE_LIMIT_MAX  = 5;
+        const RATE_LIMIT_MS   = 15 * 60 * 1000; // 15 minutos
+
+        function _getRateData(email) {
+            try {
+                const raw = localStorage.getItem('sanalys_rl_' + btoa(email).slice(0, 12));
+                return raw ? JSON.parse(raw) : { count: 0, lockedUntil: 0 };
+            } catch { return { count: 0, lockedUntil: 0 }; }
+        }
+
+        function _setRateData(email, data) {
+            try {
+                localStorage.setItem('sanalys_rl_' + btoa(email).slice(0, 12), JSON.stringify(data));
+            } catch {}
+        }
+
+        function _resetRateData(email) {
+            try { localStorage.removeItem('sanalys_rl_' + btoa(email).slice(0, 12)); } catch {}
+        }
+
+        function _showLockoutUI(remainingMs) {
+            const btn    = document.getElementById('btnEntrar');
+            const status = document.getElementById('statusMsg');
+            btn.disabled = true;
+            btn.style.opacity = '0.4';
+            btn.style.cursor  = 'not-allowed';
+
+            const update = () => {
+                const remaining = Math.max(0, _getRateData(document.getElementById('user').value.trim()).lockedUntil - Date.now());
+                if (remaining <= 0) {
+                    btn.disabled = false;
+                    btn.style.opacity = '';
+                    btn.style.cursor  = '';
+                    btn.innerText = 'ENTRAR AL SISTEMA';
+                    status.textContent = '';
+                    status.style.color = '';
+                    return;
+                }
+                const mins = Math.ceil(remaining / 60000);
+                status.textContent = `🔒 Has superado el límite de intentos fallidos. Por seguridad, volvé a intentarlo en ${mins} minuto${mins !== 1 ? 's' : ''}.`;
+                status.style.color  = '#fca5a5';
+                status.style.opacity = '1';
+                btn.innerText = `BLOQUEADO — ${mins} min`;
+                setTimeout(update, 15000);
+            };
+            update();
+        }
+
+        window.login = async () => {
+            const email    = document.getElementById('user').value.trim();
+            const password = document.getElementById('pass').value.trim();
+            const btn      = document.getElementById('btnEntrar');
+            const status   = document.getElementById('statusMsg');
+
+            if (!email || !password) return alert("Por favor, completa todos los campos.");
+
+            // ── CHECK RATE LIMIT ──────────────────────────────────────
+            const rl = _getRateData(email);
+            if (rl.lockedUntil > Date.now()) {
+                _showLockoutUI(rl.lockedUntil - Date.now());
+                return;
+            }
+            // ─────────────────────────────────────────────────────────
+
+            btn.disabled = true;
+            btn.innerText = "CONECTANDO...";
+            status.textContent = '';
+            status.style.color = '';
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                
+                // Login exitoso → resetear contador
+                _resetRateData(email);
+
+                const userDoc = await getDoc(doc(db, "usuarios", email.toLowerCase()));
+                
+                if (userDoc.exists()) {
+                    if(userDoc.data().activo === false) {
+                        btn.disabled = false;
+                        btn.innerText = 'ENTRAR AL SISTEMA';
+                        alert('Tu cuenta fue desactivada. Contactá al administrador.');
+                        return;
+                    }
+                    const userData = userDoc.data();
+                    const uid = userCredential.user.uid;
+
+                    // Guardar UID en Firestore automáticamente si no está
+                    if (!userData.uid) {
+                        await setDoc(doc(db, 'usuarios', email.toLowerCase()), { uid }, { merge: true });
+                    }
+
+                    // H14: leer el timeout de sesión configurado en Admin
+                    // (config/seguridad → timeoutMinutos) y guardarlo para que
+                    // sidebar.js lo use. Si no está configurado, queda 30 min.
+                    let timeoutMin = 30;
+                    try {
+                        const segSnap = await getDoc(doc(db, 'config', 'seguridad'));
+                        if (segSnap.exists() && segSnap.data().timeoutMinutos !== undefined) {
+                            timeoutMin = Number(segSnap.data().timeoutMinutos);
+                        }
+                    } catch(e) {}
+
+                    sessionStorage.setItem('usuario_sanalys', JSON.stringify({
+                        nombre:   userData.nombre,
+                        user:     email,
+                        uid:      uid,
+                        permisos: userData.permisos,
+                        rol:      userData.rol,
+                        timeoutMin: timeoutMin
+                    }));
+
+                    // ─────────────────────────────────────────────────────────
+                    // C3 cerrado (Día 2 — remediación de seguridad):
+                    // Aquí había un bloque que auto-creaba admins si los emails
+                    // luciana_ringa@hotmail.com / sanalys.sf@gmail.com no tenían
+                    // doc en Firestore. Era un backdoor: cualquiera con acceso
+                    // a esas cuentas de Firebase Auth obtenía rol admin sin
+                    // validación de nadie.
+                    //
+                    // Nueva política: los admins se crean SOLO mediante:
+                    //   1. Módulo Admin → Usuarios (UI auditable del sistema).
+                    //   2. Firebase Console manual (Firestore → usuarios → crear
+                    //      doc con rol:'admin', permisos:['admin'], activo:true).
+                    // ─────────────────────────────────────────────────────────
+
+                    window.location.href = 'index.html';
+                } else {
+                    alert("Usuario autenticado pero no registrado en la base de datos de Sanalys.");
+                    btn.disabled = false;
+                    btn.innerText = "ENTRAR AL SISTEMA";
+                }
+            } catch (error) {
+                console.error('[LOGIN]:', error?.message || error);
+
+                // ── REGISTRAR INTENTO FALLIDO ─────────────────────────
+                const rlNow = _getRateData(email);
+                rlNow.count = (rlNow.count || 0) + 1;
+
+                if (rlNow.count >= RATE_LIMIT_MAX) {
+                    rlNow.lockedUntil = Date.now() + RATE_LIMIT_MS;
+                    _setRateData(email, rlNow);
+                    console.warn('[AUTH] Cuenta bloqueada por intentos excesivos');
+                    _showLockoutUI(RATE_LIMIT_MS);
+                    return;
+                }
+
+                _setRateData(email, rlNow);
+                const restantes = RATE_LIMIT_MAX - rlNow.count;
+                status.textContent = `Credenciales incorrectas. Te quedan ${restantes} intento${restantes !== 1 ? 's' : ''} antes del bloqueo.`;
+                status.style.color   = '#fcd34d';
+                status.style.opacity = '1';
+                // ─────────────────────────────────────────────────────
+                btn.disabled  = false;
+                btn.innerText = "ENTRAR AL SISTEMA";
+            }
+        };
+
+        window.recuperarContrasena = async () => {
+            const email = prompt('Ingresá tu email para recuperar la contraseña:');
+            if(!email || !email.includes('@')) return alert('Email inválido');
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+            } catch(error) {
+                // M1: el detalle técnico va solo a consola (para diagnóstico),
+                // nunca a pantalla, para no revelar si el email existe o no.
+                console.error('[LOGIN]:', error?.message || error);
+            }
+            // M1: SIEMPRE el mismo mensaje, exista o no el email (evita que
+            // alguien pueda averiguar qué emails están registrados probando).
+            alert('Si el email está registrado, vas a recibir un mail con instrucciones para recuperar tu contraseña. Revisá tu bandeja de entrada y la carpeta de spam.');
+        };
+
+        window.checkEnter = (e) => { if(e.key === 'Enter') window.login(); };
+    </script>
+</body>
+</html>

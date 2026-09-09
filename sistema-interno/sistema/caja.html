@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys S.M.S. - Tesorería Profesional Cloud</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="pdf-master.js?v=3.1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root { --verde-deep: #0A3D33; --fluo: #D0FF4E; }
+        body { background-color: #071f1a; color: white; font-family: 'Roboto Flex', sans-serif; }
+        .input-sanalys { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 10px; border-radius: 6px; width: 100%; outline: none; color: white; font-size: 11px; }
+        .input-sanalys:focus { border-color: var(--fluo); }
+        .card-contable { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; }
+        .active-tab { background-color: var(--fluo) !important; color: var(--verde-deep) !important; font-weight: 900; }
+        .active-egreso { background-color: #ff4e4e !important; color: white !important; font-weight: 900; }
+        .active-traspaso { background-color: #60a5fa !important; color: white !important; font-weight: 900; }
+        .active-retiro { background-color: #f97316 !important; color: white !important; font-weight: 900; }
+        select optgroup { background: #000; color: var(--fluo); font-weight: bold; }
+        select option { background: #0A3D33; color: white; font-weight: normal; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--fluo); border-radius: 10px; }
+        .btn-fluo { background: var(--fluo); color: var(--verde-deep); font-weight: 900; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        .btn-fluo:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(208,255,78,0.3); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* MODAL AYUDA */
+        .modal-ayuda-content { max-height: 70vh; overflow-y: auto; }
+        .step-ayuda { background: rgba(208,255,78,0.05); border-left: 3px solid var(--fluo); padding: 12px; margin: 10px 0; border-radius: 8px; }
+        .step-ayuda h4 { color: var(--fluo); font-weight: 900; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; }
+        .step-ayuda p { font-size: 10px; opacity: 0.9; line-height: 1.5; }
+        .warning-box { background: rgba(255,78,78,0.1); border: 1px solid rgba(255,78,78,0.3); padding: 10px; border-radius: 6px; margin: 10px 0; }
+        .success-box { background: rgba(208,255,78,0.1); border: 1px solid rgba(208,255,78,0.3); padding: 10px; border-radius: 6px; margin: 10px 0; }
+    </style>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="p-5 md:p-7" onload="init()">
+
+    <div id="modalAyuda" class="fixed inset-0 bg-black/95 hidden z-[100] flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-3xl border-t-4 border-[var(--fluo)] shadow-2xl relative">
+            <button onclick="document.getElementById('modalAyuda').classList.add('hidden')" class="absolute top-4 right-4 text-white hover:text-red-500 font-bold text-xl">✕</button>
+            
+            <h2 class="text-2xl font-black uppercase text-[var(--fluo)] mb-4 text-center tracking-widest border-b border-white/10 pb-3">
+                📚 Manual Completo de Tesorería
+            </h2>
+            
+            <div class="modal-ayuda-content custom-scroll pr-4">
+                
+                <div class="mb-8">
+                    <h3 class="text-sm font-black uppercase text-white mb-3 border-l-4 border-[var(--fluo)] pl-3">¿Qué hace este módulo?</h3>
+                    <p class="text-xs opacity-80 leading-relaxed">
+                        El módulo de <strong>Tesorería</strong> registra TODOS los movimientos de dinero de la clínica: ingresos de pacientes, egresos de gastos, traspasos entre cuentas y retiros de las socias. Cada movimiento queda sellado con fecha, hora y usuario que lo registró. <span class="text-[var(--fluo)] font-bold">NADA se borra</span>, solo se anula dejando registro.
+                    </p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>1️⃣ REGISTRAR UN INGRESO (COBRAR A UN PACIENTE)</h4>
+                    <p><strong>Paso 1:</strong> En "DNI Paciente" escribir el DNI completo (ejemplo: 12345678). <span class="text-red-400 font-bold">¡MUY IMPORTANTE!</span> El DNI es OBLIGATORIO para todos los ingresos que involucren consultas médicas o tratamientos. El sistema NO te dejará guardar si lo omitís.</p>
+                    <p><strong>Paso 2:</strong> En "Tipo de Ingreso" elegir la categoría (Consulta Médica, Suero/Fórmula, Estudio, etc.)</p>
+                    <p><strong>Paso 3:</strong> Seleccionar la Profesional que atendió (esto calcula automáticamente los honorarios)</p>
+                    <p><strong>Paso 4:</strong> Si es un suero, el sistema te pedirá elegir la fórmula del catálogo (esto descuenta stock automáticamente)</p>
+                    <p><strong>Paso 5:</strong> Escribir el precio en "Precio $"</p>
+                    <p><strong>Paso 6:</strong> Click en "+ Añadir a la lista". Podés agregar varios ítems para cobrar todo junto (ejemplo: consulta + laboratorio + suero)</p>
+                    <p><strong>Paso 7:</strong> Cuando el ticket esté completo, elegir el medio de pago (Efectivo, Banco, Billetera Virtual)</p>
+                    <p><strong>Paso 8:</strong> Click en "PROCEDER AL COBRO", revisar el resumen y confirmar</p>
+                </div>
+
+                <div class="warning-box">
+                    <p class="text-xs font-bold text-red-400">⚠️ REGLA CRÍTICA: DNI OBLIGATORIO</p>
+                    <p class="text-[10px] mt-1">Si intentás guardar un ingreso sin DNI, el sistema te bloqueará. Esto es para que TODOS los cobros queden vinculados a la historia clínica del paciente. Si es un ingreso que NO tiene paciente (ejemplo: venta de un producto suelto), podés usar DNI 00000000 como genérico.</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>2️⃣ REGISTRAR UN EGRESO (PAGAR UNA CUENTA)</h4>
+                    <p><strong>Paso 1:</strong> Click en la pestaña "EGRESO"</p>
+                    <p><strong>Paso 2:</strong> Elegir la "Clasificación Contable" (Alquiler, Servicios, Insumos Médicos, Sueldos, etc.)</p>
+                    <p><strong>Paso 3:</strong> Escribir el nombre del proveedor (ejemplo: EPE, Farmacity, Dr. Pérez)</p>
+                    <p><strong>Paso 4:</strong> (Opcional) Número de factura</p>
+                    <p><strong>Paso 5:</strong> Detalle de la compra (ejemplo: "Compra de jeringas descartables 5ml x 100 unidades")</p>
+                    <p><strong>Paso 6:</strong> Elegir desde qué cuenta se paga (Efectivo, Banco, Billetera Virtual)</p>
+                    <p><strong>Paso 7:</strong> Escribir el monto y confirmar</p>
+                </div>
+
+                <div class="success-box">
+                    <p class="text-xs font-bold text-[var(--fluo)]">💡 CONSEJO PROFESIONAL</p>
+                    <p class="text-[10px] mt-1">Los egresos están separados en <strong>Costos Fijos</strong> (alquiler, sueldos que se pagan siempre) y <strong>Costos Variables</strong> (insumos, que solo se compran si hay ventas). Esta separación la configuran las socias en Admin y sirve para calcular el EBITDA correcto en el Balance.</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>3️⃣ REALIZAR UN TRASPASO (MOVER DINERO ENTRE CUENTAS)</h4>
+                    <p><strong>Paso 1:</strong> Click en la pestaña "TRASPASO"</p>
+                    <p><strong>Paso 2:</strong> Elegir desde qué cuenta sale el dinero (Origen)</p>
+                    <p><strong>Paso 3:</strong> Elegir a qué cuenta va (Destino). Podés mover a cuentas de Socias, Banco, Fondo de Reinversión o Inversiones</p>
+                    <p><strong>Paso 4:</strong> Escribir el monto y el motivo (ejemplo: "Depósito bancario", "Pago adelanto Dra. Smith")</p>
+                    <p><strong>Paso 5:</strong> Confirmar. El sistema registra 2 movimientos (egreso de una cuenta, ingreso en otra) pero NO afecta el EBITDA porque es solo movimiento interno</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>4️⃣ REGISTRAR UN RETIRO DE SOCIAS</h4>
+                    <p><strong>Paso 1:</strong> Click en la pestaña "RETIROS"</p>
+                    <p><strong>Paso 2:</strong> Seleccionar qué socia retira</p>
+                    <p><strong>Paso 3:</strong> Elegir desde qué cuenta (normalmente será su cuenta de tránsito personal)</p>
+                    <p><strong>Paso 4:</strong> Escribir el monto a retirar</p>
+                    <p><strong>Paso 5:</strong> Motivo (ejemplo: "Retiro mensual", "Pago honorarios")</p>
+                    <p><strong>Paso 6:</strong> Confirmar. El sistema valida que la cuenta tenga saldo suficiente</p>
+                </div>
+
+                <div class="warning-box">
+                    <p class="text-xs font-bold text-orange-400">🔒 SEGURIDAD: CIERRE DE TURNO</p>
+                    <p class="text-[10px] mt-1">Al finalizar tu turno en caja, hacé click en "CIERRE DE TURNO". Te va a pedir que cuentes los billetes físicos. Si hay diferencia entre lo que contaste y lo que marca el sistema, queda registrado para auditoría. Este paso es OBLIGATORIO para que otro cajero pueda abrir turno.</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>5️⃣ ANULAR UN MOVIMIENTO (CUANDO HAY UN ERROR)</h4>
+                    <p><strong>Paso 1:</strong> En el panel derecho "Movimientos del Día", buscar el movimiento a anular</p>
+                    <p><strong>Paso 2:</strong> Click en el botón rojo "ANULAR"</p>
+                    <p><strong>Paso 3:</strong> Escribir el MOTIVO de la anulación (obligatorio para auditoría)</p>
+                    <p><strong>Paso 4:</strong> Confirmar. El movimiento queda tachado en rojo pero NO se borra. Los saldos se recalculan automáticamente</p>
+                </div>
+
+                <div class="success-box">
+                    <p class="text-xs font-bold text-[var(--fluo)]">📊 CUENTAS DISPONIBLES</p>
+                    <p class="text-[10px] mt-1"><strong>Efectivo Caja:</strong> Dinero en billetera física del mostrador<br>
+                    <strong>Bancos Sociedad:</strong> Cuenta bancaria de la clínica<br>
+                    <strong>Billetera Virtual:</strong> Mercado Pago, Ualá, etc.<br>
+                    <strong>Honorarios x Pagar:</strong> Dinero de cada médica (honorarios pendientes de retiro)<br>
+                    <strong>Fondo Reinversión:</strong> Reserva para compras grandes<br>
+                    <strong>Inversiones:</strong> Plazo Fijo, Acciones, Bonos, FCI, Dólares</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>6️⃣ GENERAR REPORTES EN PDF</h4>
+                    <p><strong>Reporte Diario:</strong> Click en "📄 PDF Reporte de Hoy". Incluye todos los movimientos del día con resumen de honorarios por médica</p>
+                    <p><strong>Arqueo de Turno:</strong> Click en "Consultar Arqueos Anteriores". Buscá por fecha y cajero, luego descargá el PDF del turno específico</p>
+                    <p><strong>Balance Contable:</strong> Andá al botón "📊 Libro Diario / Balance" arriba a la derecha. Ahí podés generar el Balance de Sumas y Saldos o el Libro Diario con filtros por fecha y cuenta</p>
+                </div>
+
+                <div class="warning-box">
+                    <p class="text-xs font-bold text-red-400">🚫 ERRORES COMUNES A EVITAR</p>
+                    <p class="text-[10px] mt-1">
+                        ❌ Olvidar cargar el DNI del paciente en un ingreso<br>
+                        ❌ No hacer cierre de turno al finalizar<br>
+                        ❌ Registrar un egreso como ingreso (o viceversa)<br>
+                        ❌ No poner un motivo claro al anular<br>
+                        ❌ Confundir "Traspaso" con "Retiro"
+                    </p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>7️⃣ HONORARIOS AUTOMÁTICOS (CÓMO FUNCIONAN)</h4>
+                    <p>Cuando cobrás una consulta o suero y seleccionás una médica, el sistema calcula AUTOMÁTICAMENTE su porcentaje de honorarios (configurado en Admin, generalmente 60%). Esto genera 3 movimientos invisibles:</p>
+                    <p class="text-[10px] mt-2">
+                        1. <strong>Ingreso en Caja:</strong> $50,000 (el pago del paciente)<br>
+                        2. <strong>Egreso automático:</strong> -$30,000 (honorario 60% de la médica)<br>
+                        3. <strong>Ingreso en cuenta de la médica:</strong> +$30,000 (va a su cuenta de tránsito)
+                    </p>
+                    <p class="text-[10px] mt-2">Resultado: EBITDA de Sanalys = $20,000. La médica tiene $30,000 disponibles para retirar cuando quiera.</p>
+                </div>
+
+                <div class="success-box">
+                    <p class="text-xs font-bold text-[var(--fluo)]">✅ REGLAS DE ORO</p>
+                    <p class="text-[10px] mt-1">
+                        1. <strong>Siempre cargá el DNI</strong> cuando el ingreso es por atención médica<br>
+                        2. <strong>Hacé el cierre de turno</strong> antes de irte<br>
+                        3. <strong>Revisá el resumen</strong> antes de confirmar un ticket<br>
+                        4. <strong>Si te equivocás, anulá</strong> con motivo claro<br>
+                        5. <strong>No borres nada</strong>, el sistema lo hace por auditoría
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-white/10">
+                <button onclick="document.getElementById('modalAyuda').classList.add('hidden')" class="btn-fluo w-full py-3 rounded-lg text-xs">
+                    ✓ ENTENDIDO, CERRAR MANUAL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal cerrar período -->
+    <div id="modalCerrarPeriodo" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-sm border-t-4 border-orange-500">
+            <h2 class="text-sm font-black uppercase text-orange-400 tracking-widest mb-2">Cerrar Período</h2>
+            <p class="text-[9px] opacity-50 mb-4">Una vez cerrado no se podrán agregar ni modificar movimientos de ese mes.</p>
+            <label class="text-[8px] uppercase font-bold opacity-50 block mb-1">Seleccioná el período a cerrar</label>
+            <select id="selectPeriodoCerrar" class="input-sanalys font-black text-white mb-4" style="background:rgba(255,255,255,.08);border:1px solid rgba(251,146,60,.3)"></select>
+            <div class="flex gap-2">
+                <button onclick="confirmarCierrePeriodo()" class="bg-orange-600 hover:bg-orange-500 text-white font-black text-[10px] uppercase flex-1 py-3 rounded-xl transition">🔒 Cerrar</button>
+                <button onclick="document.getElementById('modalCerrarPeriodo').classList.add('hidden')" class="bg-white/10 hover:bg-white/20 text-white font-black text-[10px] uppercase px-4 py-3 rounded-xl transition">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal períodos anteriores -->
+    <div id="modalPeriodos" class="fixed inset-0 bg-black/95 hidden z-50 flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-3xl border-t-4 border-orange-500 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-sm font-black uppercase text-orange-400 tracking-widest">Períodos Anteriores</h2>
+                    <p class="text-[8px] opacity-40 mt-1">Solo lectura — no se pueden modificar períodos cerrados</p>
+                </div>
+                <button onclick="document.getElementById('modalPeriodos').classList.add('hidden')" class="text-white/40 hover:text-white font-bold text-xl">✕</button>
+            </div>
+            <div class="flex gap-3 mb-4">
+                <div>
+                    <label class="text-[8px] uppercase font-bold opacity-50 block mb-1">Período</label>
+                    <input type="month" id="filtroPeriodo" class="input-sanalys text-[10px]" onchange="window.consultarPeriodo()">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="window.consultarPeriodo()" class="bg-orange-600 hover:bg-orange-500 text-white text-[9px] font-black uppercase px-4 py-2 rounded-lg transition">Ver movimientos</button>
+                </div>
+            </div>
+            <div class="flex gap-2 mb-4 flex-wrap" id="listaPeriodosCerrados"></div>
+            <div id="accionesPeriodo" class="hidden flex gap-2 mb-4">
+                <button onclick="window.exportarPeriodoPDF()" class="bg-teal-600 hover:bg-teal-500 text-white font-black text-[9px] uppercase px-4 py-2 rounded-lg transition">📄 PDF del período</button>
+                <button onclick="window.exportarPeriodoExcel()" class="bg-green-700 hover:bg-green-600 text-white font-black text-[9px] uppercase px-4 py-2 rounded-lg transition">📊 Excel del período</button>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scroll" id="movimientosPeriodo">
+                <p class="text-center opacity-30 text-sm py-8">Seleccioná un período para ver sus movimientos</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalConfirmacion" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-md border-t-4 border-[var(--fluo)] shadow-2xl relative">
+            <button onclick="document.getElementById('modalConfirmacion').classList.add('hidden')" class="absolute top-4 right-4 text-white/40 hover:text-white font-bold text-xl">✕</button>
+            <h2 class="text-xl font-black uppercase text-[var(--fluo)] mb-4 text-center tracking-widest border-b border-white/10 pb-3">Resumen de Ticket</h2>
+            <div id="resumenTicketItems" class="space-y-2 mb-4 max-h-[200px] overflow-y-auto custom-scroll text-sm"></div>
+            <div class="bg-black/50 p-4 rounded-xl border border-white/10 mb-6">
+                <div class="flex justify-between items-center text-lg font-black mb-4">
+                    <span class="text-white opacity-70">TOTAL A COBRAR:</span>
+                    <span class="text-[var(--fluo)]" id="resumenTotal">$ 0</span>
+                </div>
+                <label class="text-[9px] uppercase font-black text-white/50 tracking-widest block mb-2">¿Cómo abona el paciente?</label>
+                <select id="resumenMedioPago" class="input-sanalys font-black text-white text-sm" style="background:rgba(255,255,255,.08);border:1px solid rgba(208,255,78,.3);color:white"></select>
+            </div>
+            <button onclick="window.confirmarYGuardarTicket()" id="btnGuardarTicket" class="btn-fluo w-full py-4 rounded-xl text-xs shadow-lg">✅ Confirmar Ingreso a Caja</button>
+        </div>
+    </div>
+
+    <div id="modalCierres" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-2xl border-t-4 border-blue-500 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-sm font-black uppercase text-blue-400 tracking-widest">Consulta de Arqueos Anteriores</h2>
+                <button onclick="document.getElementById('modalCierres').classList.add('hidden')" class="text-white hover:text-red-500 font-bold text-xl">✕</button>
+            </div>
+            <div class="flex gap-3 mb-6 bg-black/30 p-4 rounded-xl border border-white/10">
+                <div class="flex-1"><label class="text-[9px] uppercase font-bold text-blue-300 ml-1">Fecha</label><input type="date" id="filtroFechaCierre" class="input-sanalys text-xs" onchange="window.filtrarCierres()"></div>
+                <div class="flex-1"><label class="text-[9px] uppercase font-bold text-blue-300 ml-1">Cajero</label><select id="filtroUsuarioCierre" class="input-sanalys text-xs" onchange="window.filtrarCierres()"><option value="">Todos los usuarios</option></select></div>
+            </div>
+            <div class="overflow-y-auto max-h-[350px] custom-scroll space-y-3 pr-2" id="listaCierresAnteriores">
+                <p class="opacity-40 text-xs text-center py-6">Seleccione una fecha para buscar cierres.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCierreTurno" class="fixed inset-0 bg-black/95 hidden z-50 flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-xl border-t-4 border-purple-500 shadow-2xl">
+            <div class="flex justify-between items-center mb-5">
+                <h2 class="text-sm font-black uppercase text-purple-400 tracking-widest">🔐 Cierre de Turno</h2>
+                <button onclick="document.getElementById('modalCierreTurno').classList.add('hidden')" class="text-white hover:text-red-500 font-bold text-xl">✕</button>
+            </div>
+
+            <!-- [FIX] Cajero activo explícito para auditoría -->
+            <div class="bg-[var(--fluo)]/10 border border-[var(--fluo)]/30 rounded-lg px-4 py-2 mb-3 flex items-center gap-2">
+                <span class="text-[9px] uppercase font-black opacity-60">Cajero registrado:</span>
+                <span class="text-[10px] font-black text-[var(--fluo)]" id="cierreCajeroNombre">—</span>
+            </div>
+
+            <div class="bg-black/30 p-4 rounded-xl border border-white/10 mb-4 flex justify-between items-center">
+                <div>
+                    <p class="text-[9px] uppercase opacity-50 font-bold">Efectivo según sistema</p>
+                    <!-- [FIX] data-raw almacena el valor numérico real para evitar bug con toLocaleString negativo -->
+                    <p class="text-2xl font-black text-white" id="cierreSistemaEfectivo" data-raw="0">$ 0</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[9px] uppercase opacity-50 font-bold">Diferencia</p>
+                    <p class="text-xl font-black" id="cierreDiferencia">—</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-[9px] uppercase font-bold text-purple-300 mb-2">Arqueo físico — Conteo de billetes</p>
+                <div id="tablaBilletes" class="space-y-1.5 bg-black/20 p-3 rounded-xl border border-white/5"></div>
+                <div class="mt-2 flex justify-between items-center bg-purple-900/20 p-3 rounded-lg border border-purple-500/30">
+                    <span class="text-[10px] font-black uppercase text-purple-300">Total físico contado:</span>
+                    <span class="text-xl font-black text-white" id="totalFisicoContado">$ 0</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="text-[9px] uppercase font-bold opacity-50 block mb-1">O ingresá el total físico directamente $</label>
+                <input type="number" id="cierreEfectivoFisico" class="input-sanalys text-xl font-black" placeholder="0" oninput="calcularDiferenciaCierre()">
+            </div>
+
+            <!-- M15: motivo obligatorio si hay diferencia (aparece solo cuando dif ≠ 0) -->
+            <div class="mb-4 hidden" id="contenedorMotivoDif">
+                <label class="text-[9px] uppercase font-bold text-amber-300 block mb-1">⚠️ Hay diferencia — Escribí el motivo (obligatorio)</label>
+                <textarea id="motivoDiferencia" class="input-sanalys text-[11px]" style="height:70px;resize:none" placeholder="Ej: vuelto mal dado, billete dañado, error de carga... (o cancelá y controlá antes de cerrar)"></textarea>
+            </div>
+
+            <button onclick="window.ejecutarCierreCaja()" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-4 rounded-xl text-[11px] font-black uppercase transition shadow-lg">
+                ✅ CONFIRMAR CIERRE DE TURNO
+            </button>
+        </div>
+    </div>
+
+    <header class="max-w-7xl mx-auto mb-8 flex justify-between items-center border-b border-white/10 pb-6 mt-6">
+        <div>
+            <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">sanalys<span style="color:var(--fluo)">.</span></h1>
+            <p style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:2px">Tesorería Multicuenta</p>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="document.getElementById('modalAyuda').classList.remove('hidden')" class="bg-[var(--fluo)] text-[var(--verde-deep)] px-6 py-2 rounded-lg text-[10px] font-black uppercase hover:scale-105 transition shadow-lg border-2 border-[var(--fluo)]">
+                📚 AYUDA COMPLETA
+            </button>
+            <button onclick="window.location.href='balance.html'" class="bg-blue-600/20 border border-blue-500/50 px-6 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-blue-600/40 transition text-blue-300">📊 Libro Diario / Balance</button>
+            <a href="index.html" class="bg-white/10 px-6 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-white/20 transition">Volver</a>
+        <div class="flex items-center gap-1 border-l border-white/10 pl-3 ml-1"><a href="pacientes.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Pacientes"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Pacientes</span></a><a href="agenda.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Agenda"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Agenda</span></a></div>
+        </div>
+    </header>
+
+    <!-- Modal cerrar período -->
+    <div id="modalCerrarPeriodo" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-sm border-t-4 border-orange-500">
+            <h2 class="text-sm font-black uppercase text-orange-400 tracking-widest mb-2">Cerrar Período</h2>
+            <p class="text-[9px] opacity-50 mb-4">Una vez cerrado no se podrán agregar ni modificar movimientos de ese mes.</p>
+            <label class="text-[8px] uppercase font-bold opacity-50 block mb-1">Seleccioná el período a cerrar</label>
+            <select id="selectPeriodoCerrar" class="input-sanalys font-black text-white mb-4" style="background:rgba(255,255,255,.08);border:1px solid rgba(251,146,60,.3)"></select>
+            <div class="flex gap-2">
+                <button onclick="confirmarCierrePeriodo()" class="bg-orange-600 hover:bg-orange-500 text-white font-black text-[10px] uppercase flex-1 py-3 rounded-xl transition">🔒 Cerrar</button>
+                <button onclick="document.getElementById('modalCerrarPeriodo').classList.add('hidden')" class="bg-white/10 hover:bg-white/20 text-white font-black text-[10px] uppercase px-4 py-3 rounded-xl transition">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal períodos anteriores -->
+    <div id="modalPeriodos" class="fixed inset-0 bg-black/95 hidden z-50 flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-3xl border-t-4 border-orange-500 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-sm font-black uppercase text-orange-400 tracking-widest">Períodos Anteriores</h2>
+                    <p class="text-[8px] opacity-40 mt-1">Solo lectura — no se pueden modificar períodos cerrados</p>
+                </div>
+                <button onclick="document.getElementById('modalPeriodos').classList.add('hidden')" class="text-white/40 hover:text-white font-bold text-xl">✕</button>
+            </div>
+            <div class="flex gap-3 mb-4">
+                <div><label class="text-[8px] uppercase font-bold opacity-50 block mb-1">Período</label><input type="month" id="filtroPeriodo" class="input-sanalys text-[10px]" onchange="window.consultarPeriodo()"></div>
+                <div class="flex items-end"><button onclick="window.consultarPeriodo()" class="bg-orange-600 hover:bg-orange-500 text-white text-[9px] font-black uppercase px-4 py-2 rounded-lg transition">Ver movimientos</button></div>
+            </div>
+            <div class="flex gap-2 mb-3 flex-wrap" id="listaPeriodosCerrados"></div>
+            <div id="accionesPeriodo" class="hidden flex gap-2 mb-3">
+                <button onclick="window.exportarPeriodoPDF()" class="bg-teal-600 hover:bg-teal-500 text-white font-black text-[9px] uppercase px-4 py-2 rounded-lg transition">📄 PDF del período</button>
+                <button onclick="window.exportarPeriodoExcel()" class="bg-green-700 hover:bg-green-600 text-white font-black text-[9px] uppercase px-4 py-2 rounded-lg transition">📊 Excel del período</button>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scroll" id="movimientosPeriodo">
+                <p class="text-center opacity-30 text-sm py-8">Seleccioná un período para ver sus movimientos</p>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <span id="periodoLabel" class="hidden"></span>
+        
+        <span id="periodoLabel" class="hidden"></span>
+        <div class="lg:col-span-12 grid grid-cols-2 md:grid-cols-7 gap-4" id="saldosContainer">
+            <div class="card-contable p-3 border-l-4 border-yellow-400 bg-yellow-400/5">
+                <p class="text-[9px] uppercase font-bold text-yellow-300 mb-1">💵 Efectivo al abrir caja</p>
+                <div class="flex items-center gap-1">
+                    <span class="text-[11px] font-black opacity-50">$</span>
+                    <input type="number" id="saldoInicialManual" class="bg-transparent text-lg font-black outline-none w-full text-yellow-200 placeholder-yellow-200/30" placeholder="0" onchange="window.guardarSaldoInicial()">
+                </div>
+                <p class="text-[7px] opacity-40 mt-1">Contá el efectivo físico al inicio del turno</p>
+            </div>
+            <!-- Saldos dinámicos por medio de pago -->
+            <div id="tEfectivo_wrap" class="card-contable p-3 border-l-4 border-[var(--fluo)] bg-[var(--fluo)]/5">
+                <p class="text-[9px] uppercase font-bold text-[var(--fluo)]" id="tEfectivo_label">Efectivo Caja</p>
+                <p class="text-xl font-black text-[var(--fluo)]" id="tEfectivo">...</p>
+            </div>
+            <div id="tBanco_wrap" class="card-contable p-3 border-l-4 border-purple-400">
+                <p class="text-[9px] uppercase opacity-50 font-bold" id="tBanco_label">Bancos Sociedad</p>
+                <p class="text-xl font-black text-purple-400" id="tBanco">...</p>
+            </div>
+            <div id="tVirtual_wrap" class="card-contable p-3 border-l-4 border-teal-400">
+                <p class="text-[9px] uppercase opacity-50 font-bold" id="tVirtual_label">Billetera Virtual</p>
+                <p class="text-xl font-black text-teal-400" id="tVirtual">...</p>
+            </div>
+            <div class="card-contable p-3 border-l-4 border-orange-400 flex flex-col justify-center">
+                <p class="text-[9px] uppercase opacity-50 font-bold">Honorarios x Pagar</p>
+                <p class="text-xl font-black text-orange-400" id="tSocias">...</p>
+                <div id="desgloseSocias" class="text-[7px] mt-1 space-y-1 text-orange-200"></div>
+            </div>
+            <div class="card-contable p-3 border-l-4 border-blue-400">
+                <p class="text-[9px] uppercase opacity-50 font-bold text-blue-300">Fondo Reinv.</p>
+                <p class="text-xl font-black text-blue-400" id="tFondo">...</p>
+            </div>
+            <div class="card-contable p-3 border-l-4 border-emerald-400">
+                <p class="text-[9px] uppercase opacity-50 font-bold text-emerald-300">Inversiones</p>
+                <p class="text-xl font-black text-emerald-400" id="tInversiones">...</p>
+            </div>
+            <!-- Cards extra para medios de pago adicionales -->
+            <div id="saldosExtra" class="contents"></div>
+        </div>
+
+        <div class="lg:col-span-5 space-y-6">
+            <section class="card-contable p-6">
+                
+                <div class="grid grid-cols-4 gap-2 mb-6">
+                    <div id="btnIngreso" onclick="window.setTipo('INGRESO')" class="p-2 rounded text-center text-[9px] font-bold border border-white/10 cursor-pointer active-tab">INGRESO</div>
+                    <div id="btnEgreso" onclick="window.setTipo('EGRESO')" class="p-2 rounded text-center text-[9px] font-bold border border-white/10 cursor-pointer">EGRESO</div>
+                    <div id="btnTraspaso" onclick="window.setTipo('TRASPASO')" class="p-2 rounded text-center text-[9px] font-bold border border-white/10 cursor-pointer">TRASPASO</div>
+                    <div id="btnRetiro" onclick="window.setTipo('RETIRO')" class="p-2 rounded text-center text-[9px] font-bold border border-orange-500/50 text-orange-400 cursor-pointer">RETIROS</div>
+                </div>
+                
+                <div id="sec-INGRESO" class="space-y-4 tab-content active">
+                    <div>
+                        <label class="text-[9px] opacity-50 uppercase ml-1 font-bold">DNI Paciente (Vinculación H.C.) <span class="text-red-400">*OBLIGATORIO</span></label>
+                        <input type="text" id="dniBusqueda" class="input-sanalys border-[var(--fluo)]/50" placeholder="Obligatorio para historiales" maxlength="8">
+                        <p class="text-[8px] text-red-400 mt-1 opacity-80">⚠️ El sistema NO permitirá guardar ingresos sin DNI</p>
+                    </div>
+
+                    <div class="p-4 bg-black/40 rounded-xl border border-white/5 space-y-3">
+                        <h3 class="text-[10px] text-[var(--fluo)] font-black uppercase tracking-widest border-b border-white/10 pb-2">Armar Ticket de Cobro</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[8px] opacity-50 uppercase text-blue-300 font-bold">Ingreso (Admin)</label>
+                                <select id="itemTipo" class="input-sanalys text-xs" onchange="window.actualizarCamposItem()"></select>
+                            </div>
+                            <div id="boxProfesional">
+                                <label class="text-[8px] text-orange-300 uppercase font-bold">Profesional Actuante</label>
+                                <select id="itemProf" class="input-sanalys text-xs border-orange-400/30"></select>
+                            </div>
+                        </div>
+
+                        <div id="boxSuero" class="hidden p-2 bg-blue-900/20 border border-blue-500/30 rounded">
+                            <label class="text-[8px] opacity-50 uppercase text-blue-300">Seleccionar Fórmula (Descuenta Stock)</label>
+                            <select id="itemFormula" class="input-sanalys text-xs" onchange="window.cargarPrecioFormula()"><option value="">Cargando fórmulas...</option></select>
+                        </div>
+
+                        <div id="boxDetalle">
+                            <label class="text-[8px] opacity-50 uppercase" id="lblDetalle">Detalle Específico (Opcional)</label>
+                            <input type="text" id="itemDetalle" class="input-sanalys text-xs" placeholder="...">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 items-end">
+                            <div>
+                                <label class="text-[8px] opacity-50 uppercase">Precio $</label>
+                                <input type="number" id="itemMonto" class="input-sanalys text-lg font-bold text-[var(--fluo)]" placeholder="0">
+                            </div>
+                            <button onclick="window.agregarAlTicket()" class="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase py-3 rounded transition border border-blue-400">+ Añadir a la lista</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/5 rounded p-2 min-h-[60px]">
+                        <table class="w-full text-[9px] uppercase text-left"><tbody id="listaTicket"><tr><td class="opacity-30 text-center py-2">Ticket vacío</td></tr></tbody></table>
+                    </div>
+
+                    <div class="pt-4 border-t border-white/10 grid grid-cols-2 gap-3 items-center">
+                        <div>
+                            <p class="text-[10px] uppercase opacity-50">Total a Cobrar</p>
+                            <p class="text-2xl font-black text-[var(--fluo)]" id="totalTicket">$ 0</p>
+                        </div>
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase">Cobrar en:</label>
+                            <select id="medioPagoIngresoMain" class="input-sanalys font-bold text-[var(--fluo)]" onchange="window.syncMedioPago()"></select>
+                        </div>
+                    </div>
+                    <button id="btnRegistrarTicket" onclick="window.abrirModalCobro()" class="btn-fluo w-full py-4 rounded-lg text-xs tracking-widest mt-2 hidden">PROCEDER AL COBRO</button>
+                </div>
+
+                <div id="sec-EGRESO" class="space-y-4 tab-content">
+                    <div class="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[9px] text-red-400 font-bold uppercase ml-1">Clasificación Contable</label>
+                                <select id="tipoGasto" class="input-sanalys border-red-500/30"></select>
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-red-400 font-bold uppercase ml-1">Proveedor / Entidad</label>
+                                <input type="text" id="provEgreso" class="input-sanalys" placeholder="Ej: EPE, FARMACITY..." oninput="this.value=this.value.toUpperCase()">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[9px] text-red-400 font-bold uppercase ml-1">Nº Factura (Opcional)</label>
+                                <input type="text" id="factEgreso" class="input-sanalys" placeholder="0001-00001234">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-red-400 font-bold uppercase ml-1">Detalle de la compra</label>
+                                <input type="text" id="conceptoEgreso" class="input-sanalys" placeholder="Ej: COMPRA DE JERINGAS..." oninput="this.value=this.value.toUpperCase()">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-red-500/20 items-end">
+                            <div>
+                                <label class="text-[9px] text-red-400 font-bold uppercase ml-1">Pagado desde:</label>
+                                <select id="medioPagoEgreso" class="input-sanalys font-bold"></select>
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-red-400 font-bold uppercase ml-1">Monto a Pagar $</label>
+                                <input type="number" id="montoEgreso" class="input-sanalys text-xl font-black text-white" placeholder="0">
+                            </div>
+                        </div>
+
+                        <button onclick="window.registrarEgreso()" class="w-full bg-red-600 hover:bg-red-500 text-white py-4 rounded-lg text-xs font-black uppercase transition shadow-lg mt-4">REGISTRAR EGRESO</button>
+                    </div>
+                </div>
+
+                <div id="sec-TRASPASO" class="space-y-4 tab-content">
+                    <div class="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[9px] text-blue-400 font-bold uppercase ml-1">Desde (Origen)</label>
+                                <select id="traspasoOrigen" class="input-sanalys font-bold border-blue-500/30"></select>
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-blue-400 font-bold uppercase ml-1">Hacia (Destino)</label>
+                                <select id="traspasoDestino" class="input-sanalys font-bold border-blue-500/30"></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-blue-400 font-bold uppercase ml-1">Motivo del Traspaso</label>
+                            <input type="text" id="traspasoMotivo" class="input-sanalys" placeholder="Ej: DEPÓSITO BANCARIO..." oninput="this.value=this.value.toUpperCase()">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-blue-400 font-bold uppercase ml-1">Monto a Transferir $</label>
+                            <input type="number" id="traspasoMonto" class="input-sanalys text-xl font-black text-white" placeholder="0">
+                        </div>
+                        <button onclick="window.registrarTraspaso()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-lg text-xs font-black uppercase transition shadow-lg">EJECUTAR TRASPASO</button>
+                    </div>
+                </div>
+
+                <div id="sec-RETIRO" class="space-y-4 tab-content">
+                    <div class="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[9px] text-orange-400 font-bold uppercase ml-1">Socia que Retira</label>
+                                <select id="retiroSocia" class="input-sanalys font-bold border-orange-500/30"></select>
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-orange-400 font-bold uppercase ml-1">Desde Cuenta</label>
+                                <select id="retiroCuenta" class="input-sanalys font-bold border-orange-500/30"></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-orange-400 font-bold uppercase ml-1">Motivo del Retiro</label>
+                            <input type="text" id="retiroMotivo" class="input-sanalys" placeholder="Ej: RETIRO MENSUAL..." oninput="this.value=this.value.toUpperCase()">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-orange-400 font-bold uppercase ml-1">Monto a Retirar $</label>
+                            <input type="number" id="retiroMonto" class="input-sanalys text-xl font-black text-white" placeholder="0">
+                        </div>
+                        <button onclick="window.registrarRetiro()" class="w-full bg-orange-600 hover:bg-orange-500 text-white py-4 rounded-lg text-xs font-black uppercase transition shadow-lg">REGISTRAR RETIRO</button>
+                    </div>
+                </div>
+
+            </section>
+
+            
+        </div>
+
+        <div class="lg:col-span-7 space-y-6">
+            <section class="card-contable p-6 border-t-4 border-[var(--fluo)] shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-[11px] font-black uppercase text-[var(--fluo)] tracking-widest">Movimientos del Día</h2>
+                    <div class="flex gap-2">
+                        <button onclick="window.refrescarMovimientos()" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-[9px] font-bold uppercase transition">🔄 Actualizar</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto"><div id="listaMovimientos" class="text-xs space-y-2 max-h-[600px] overflow-y-auto custom-scroll pr-2">Cargando...</div></div>
+            </section>
+        </div>
+
+        <!-- CIERRE Y AUDITORÍA — al fondo, full width -->
+        <div class="lg:col-span-12">
+            <section class="card-contable p-5 border-t-2 border-purple-500">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-[11px] font-black uppercase text-purple-400 tracking-widest">Cierre y Auditoría</h2>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[8px] font-black uppercase opacity-40">Período activo</span>
+                        <span id="periodoLabelBottom" class="text-[10px] font-black text-[var(--fluo)] bg-[var(--fluo)]/10 border border-[var(--fluo)]/30 px-3 py-1 rounded-lg">—</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+                    <button onclick="window.abrirCierreCaja()" class="bg-purple-600 hover:bg-purple-500 text-white font-black text-[9px] uppercase py-3 px-3 rounded-xl transition">🔒 Cierre de Turno</button>
+                    <button onclick="window.abrirModalCierres()" class="bg-blue-600 hover:bg-blue-500 text-white font-black text-[9px] uppercase py-3 px-3 rounded-xl transition">🔎 Consultar Arqueos</button>
+                    <button onclick="window.generarPDFTurnoHoy()" class="bg-teal-600 hover:bg-teal-500 text-white font-black text-[9px] uppercase py-3 px-3 rounded-xl transition">📄 PDF Hoy</button>
+                    <button onclick="window.exportarCajaExcel()" class="bg-green-700 hover:bg-green-600 text-white font-black text-[9px] uppercase py-3 px-3 rounded-xl transition">📊 Excel</button>
+                    <button onclick="window.abrirConsultaPeriodos()" class="bg-blue-700 hover:bg-blue-600 text-white font-black text-[9px] uppercase py-3 px-3 rounded-xl transition">📂 Períodos Anteriores</button>
+                    <button onclick="window.cerrarPeriodo()" class="bg-orange-600 hover:bg-orange-500 text-white font-black text-[9px] uppercase py-3 px-3 rounded-xl transition">🔐 Cerrar Período</button>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, setDoc, query, orderBy, onSnapshot, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA",
+            authDomain: "sanalys-2263e.firebaseapp.com",
+            projectId: "sanalys-2263e",
+            storageBucket: "sanalys-2263e.firebasestorage.app",
+            messagingSenderId: "899593881035",
+            appId: "1:899593881035:web:cd0ddfdb4f8af089e9224e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let SESION = null;
+        let cajaOnline = [];
+
+        // Numeración correlativa anual — formato: PREFIX-YY-NNNN
+        // Cada año el conteo reinicia automáticamente (OI-26-0001 → OI-27-0001)
+        function getNextNumero(prefix) {
+            const yy = String(new Date().getFullYear()).slice(-2);
+            const re = new RegExp('^' + prefix + '-' + yy + '-(\\d{1,4})$');
+            const nums = cajaOnline
+                .map(m => m.nroComp)
+                .filter(n => n && re.test(n))
+                .map(n => parseInt(re.exec(n)[1]));
+            const max = nums.length > 0 ? Math.max(...nums) : 0;
+            return prefix + '-' + yy + '-' + String(max + 1).padStart(4, '0');
+        }
+        let ticketActual = [];
+        let tipoActivo = 'INGRESO';
+        let insumos = [];
+        let formulas = [];
+        let cfgIngresos = [];
+        let cfgEgresos = [];
+        let profesionales = [];
+        let porcentajeMedica = 60;
+        let porcentajeSueros = 60;
+        let montoMaxOperacion = 1000000; // M4: umbral anti-error, configurable en Admin
+
+        
+        window.init = async () => {
+            const sesStr = sessionStorage.getItem('usuario_sanalys');
+            if (!sesStr) { window.location.href = 'login.html'; return; }
+            SESION = JSON.parse(sesStr);
+            if(SESION.rol !== 'admin' && !SESION.permisos?.includes('caja')) {
+                window.location.href = 'index.html'; return;
+            }
+
+            // ── Cargar todo en paralelo ────────────────────────────
+            const [snapMaestros, snapReparto, snapPersonas, mpSnap, insSnap, frmSnap] = await Promise.all([
+                getDoc(doc(db, "config", "maestros")),
+                getDoc(doc(db, "config", "reparto")),
+                getDocs(collection(db, "personas")),
+                getDoc(doc(db, "config", "mediosPago")),
+                getDocs(collection(db, "insumos")),
+                getDocs(collection(db, "formulas")),
+            ]);
+
+            if (snapMaestros.exists()) {
+                const data = snapMaestros.data();
+                cfgIngresos = data.ingresos || [];
+                cfgEgresos = [...(data.egresos || []), ...(data.egresosVariables || [])];
+            }
+
+            if (snapReparto.exists()) {
+                const r = snapReparto.data();
+                porcentajeMedica = r.porcentajeMedica !== undefined ? r.porcentajeMedica : 60;
+                porcentajeSueros = r.porcentajeSueros !== undefined ? r.porcentajeSueros : 60;
+                montoMaxOperacion = r.montoMaxOperacion !== undefined ? r.montoMaxOperacion : 1000000;
+            }
+
+            profesionales = snapPersonas.docs
+                .map(d => d.data())
+                .filter(p => p.esMedica && p.activo !== false)
+                .map(p => p.nombre)
+                .sort();
+
+            let ingHtml = cfgIngresos.map(x => `<option value="${x}">${x}</option>`).join('');
+            document.getElementById('itemTipo').innerHTML = '<option value="">Seleccionar...</option>' + ingHtml;
+
+            let profHtml = '<option value="Sanalys">Sanalys (Sin médica)</option>' + profesionales.map(p => `<option value="${p}">${p}</option>`).join('');
+            document.getElementById('itemProf').innerHTML = profHtml;
+            document.getElementById('retiroSocia').innerHTML = profesionales.map(p => `<option value="${p}">${p}</option>`).join('');
+
+            let egrHtml = cfgEgresos.map(x => `<option value="${x}">${x}</option>`).join('');
+            document.getElementById('tipoGasto').innerHTML = '<option value="">Seleccionar...</option>' + egrHtml;
+
+            let medios = ['Efectivo', 'Banco', 'Billetera Virtual'];
+            try {
+                if (mpSnap.exists() && mpSnap.data().lista) medios = mpSnap.data().lista;
+            } catch(e) { console.log('Usando medios de pago por defecto'); }
+
+            // Actualizar labels de cards fijas con nombres reales
+            const colores = ['#D0FF4E','#c084fc','#2dd4bf','#fb923c','#60a5fa','#34d399','#f472b6','#fbbf24'];
+            if (medios[0] && document.getElementById('tEfectivo_label')) document.getElementById('tEfectivo_label').textContent = medios[0];
+            if (medios[1] && document.getElementById('tBanco_label'))    document.getElementById('tBanco_label').textContent    = medios[1];
+            if (medios[2] && document.getElementById('tVirtual_label'))  document.getElementById('tVirtual_label').textContent  = medios[2];
+
+            // Crear cards extra para medios adicionales (más de 3)
+            const extra = medios.slice(3);
+            const extraDiv = document.getElementById('saldosExtra');
+            if (extraDiv) {
+                extraDiv.innerHTML = extra.map((m, i) => {
+                    const color = colores[(i + 3) % colores.length];
+                    const safeId = 'tExtra_' + m.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+                    return `<div class="card-contable p-3 border-l-4" style="border-color:${color}">
+                        <p class="text-[9px] uppercase font-bold opacity-70" style="color:${color}">${m}</p>
+                        <p class="text-xl font-black" style="color:${color}" id="${safeId}">$ 0</p>
+                    </div>`;
+                }).join('');
+            }
+
+            // Guardar medios en variable global para actualizarSaldos
+            window._mediosPago = medios;
+
+            let mediosHtml = medios.map(m => `<option value="${m}">${m}</option>`).join('');
+            document.getElementById('medioPagoIngresoMain').innerHTML = mediosHtml;
+            document.getElementById('resumenMedioPago').innerHTML = mediosHtml;
+            document.getElementById('medioPagoEgreso').innerHTML = mediosHtml;
+
+            let cuentasTrasp = [...medios, 'Fondo Reinversión', 'Inversiones'];
+            profesionales.forEach(p => cuentasTrasp.push(`Honorarios x Pagar ${p}`));
+            let traspHtml = cuentasTrasp.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('traspasoOrigen').innerHTML = traspHtml;
+            document.getElementById('traspasoDestino').innerHTML = traspHtml;
+            // Retiro: solo cuentas reales de dinero (no Honorarios x Pagar)
+            let retiroHtml = medios.map(m => `<option value="${m}">${m}</option>`).join('');
+            document.getElementById('retiroCuenta').innerHTML = retiroHtml;
+
+            insumos = insSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            formulas = frmSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            let formHtml = formulas.map(f => `<option value="${f.id}">${esc(f.nombre)} - $${f.precio || 0}</option>`).join('');
+            document.getElementById('itemFormula').innerHTML = '<option value="">Seleccionar fórmula...</option>' + formHtml;
+
+            // ── Cargar período activo ────────────────────────────────
+            const now = new Date();
+            const periodoActivo = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            window._periodoActivo = periodoActivo;
+
+            // Verificar períodos cerrados
+            const periodosSnap = await getDoc(doc(db,'config','periodosCerrados'));
+            window._periodosCerrados = periodosSnap.exists() ? (periodosSnap.data().lista || []) : [];
+
+            // Mostrar período activo en UI
+            document.getElementById('periodoLabel').textContent = `Período: ${periodoActivo}`;
+            const lb = document.getElementById('periodoLabelBottom');
+            if (lb) lb.textContent = periodoActivo;
+
+            // Cargar y filtrar en JS — sin índice compuesto en Firestore
+            const todosSnap = await getDocs(collection(db,'caja'));
+            const [yy, mm] = periodoActivo.split('-');
+
+            function filtrarPeriodo(docs) {
+                return docs.filter(m => {
+                    if (m.periodo) return m.periodo === periodoActivo;
+                    const f = m.fecha || '';
+                    if (f.includes('/')) {
+                        const parts = f.split('/');
+                        if (parts.length === 3) return parts[1].padStart(2,'0') === mm && parts[2] === yy;
+                    }
+                    return false;
+                }).sort((a,b) => (b.id||0) - (a.id||0));
+            }
+
+            cajaOnline = filtrarPeriodo(todosSnap.docs.map(d => ({ docId: d.id, ...d.data() })));
+            actualizarSaldos();
+            renderMovimientos();
+
+            // Escuchar cambios sin query compuesta
+            onSnapshot(collection(db,'caja'), (snap) => {
+                cajaOnline = filtrarPeriodo(snap.docs.map(d => ({ docId: d.id, ...d.data() })));
+                actualizarSaldos();
+                renderMovimientos();
+            });
+
+            // [CLINICA] Cargar datos reales desde admin para PDFs
+            getDoc(doc(db, 'config', 'datosClinica')).then(snap => {
+                if(snap.exists() && window.SanalysPDF) window.SanalysPDF.setClinica(snap.data());
+            }).catch(() => {});
+
+            const dniPre = sessionStorage.getItem('sanalys_caja_dni');
+            const nomPre = sessionStorage.getItem('sanalys_caja_nombre');
+            const motPre = sessionStorage.getItem('sanalys_caja_motivo');
+            const medPre = sessionStorage.getItem('sanalys_caja_medica');
+            if (dniPre) {
+                document.getElementById('dniBusqueda').value = dniPre;
+                // Mostrar nombre del paciente inmediatamente sin esperar búsqueda
+                if (nomPre) {
+                    const infoDiv = document.getElementById('pacienteInfo') || (() => {
+                        const d = document.createElement('p');
+                        d.id = 'pacienteInfo';
+                        d.style.cssText = 'font-size:10px;font-weight:800;color:var(--fluo);margin-top:4px;';
+                        document.getElementById('dniBusqueda').parentNode.appendChild(d);
+                        return d;
+                    })();
+                    infoDiv.textContent = '👤 ' + nomPre;
+                }
+                setTimeout(() => {
+                    if (motPre) {
+                        const opt = Array.from(document.getElementById('itemTipo').options).find(o => o.value.toLowerCase().includes(motPre.toLowerCase()));
+                        if (opt) document.getElementById('itemTipo').value = opt.value;
+                    }
+                    if (medPre) {
+                        const opt2 = Array.from(document.getElementById('itemProf').options).find(o => o.value === medPre);
+                        if (opt2) document.getElementById('itemProf').value = medPre;
+                    }
+                }, 300);
+                sessionStorage.removeItem('sanalys_caja_dni');
+                sessionStorage.removeItem('sanalys_caja_nombre');
+                sessionStorage.removeItem('sanalys_caja_motivo');
+                sessionStorage.removeItem('sanalys_caja_medica');
+                toast(`Paciente: ${nomPre} · DNI: ${dniPre}`, 'ok');
+            }
+        };
+
+        window.setTipo = (tipo) => {
+            tipoActivo = tipo;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('sec-' + tipo).classList.add('active');
+            
+            document.querySelectorAll('[id^="btn"]').forEach(el => {
+                el.classList.remove('active-tab', 'active-egreso', 'active-traspaso', 'active-retiro');
+            });
+            
+            if (tipo === 'INGRESO') document.getElementById('btnIngreso').classList.add('active-tab');
+            if (tipo === 'EGRESO') document.getElementById('btnEgreso').classList.add('active-egreso');
+            if (tipo === 'TRASPASO') document.getElementById('btnTraspaso').classList.add('active-traspaso');
+            if (tipo === 'RETIRO') document.getElementById('btnRetiro').classList.add('active-retiro');
+        };
+
+        window.actualizarCamposItem = () => {
+            const tipo = document.getElementById('itemTipo').value;
+            const esSuero = tipo.toLowerCase().includes('suero') || tipo.toLowerCase().includes('fórmula');
+            document.getElementById('boxSuero').classList.toggle('hidden', !esSuero);
+            document.getElementById('boxProfesional').classList.toggle('hidden', false);
+        };
+
+        window.cargarPrecioFormula = () => {
+            const formId = document.getElementById('itemFormula').value;
+            const formula = formulas.find(f => f.id === formId);
+            if (formula) document.getElementById('itemMonto').value = formula.precio || 0;
+        };
+
+        window.agregarAlTicket = () => {
+            const tipo = document.getElementById('itemTipo').value;
+            const prof = document.getElementById('itemProf').value;
+            const monto = parseFloat(document.getElementById('itemMonto').value) || 0;
+            const detalle = document.getElementById('itemDetalle').value || '';
+            const formId = document.getElementById('itemFormula').value;
+            
+            if (!tipo || monto <= 0) return toast("Completá el tipo y el precio.", 'info');
+            if (!window.confirmarMontoAlto(monto, montoMaxOperacion)) return;
+            
+            const item = {
+                tipo,
+                prof,
+                monto,
+                detalle,
+                protId: formId || null
+            };
+            
+            ticketActual.push(item);
+            renderTicket();
+            document.getElementById('itemMonto').value = '';
+            document.getElementById('itemDetalle').value = '';
+            document.getElementById('itemFormula').value = '';
+        };
+
+        window.renderTicket = () => {
+            const tbody = document.getElementById('listaTicket');
+            if (ticketActual.length === 0) {
+                tbody.innerHTML = '<tr><td class="opacity-30 text-center py-2">Ticket vacío</td></tr>';
+                document.getElementById('btnRegistrarTicket').classList.add('hidden');
+                document.getElementById('totalTicket').innerText = '$ 0';
+                return;
+            }
+            
+            let total = 0;
+            const rows = ticketActual.map((it, i) => {
+                total += it.monto;
+                return `<tr class="border-b border-white/10">
+                    <td class="py-2">${it.tipo}${it.detalle ? ' (' + it.detalle + ')' : ''}</td>
+                    <td class="text-right text-[var(--fluo)] font-bold">$${it.monto.toLocaleString()}</td>
+                    <td class="text-right"><button onclick="window.quitarItem(${i})" class="text-red-400 hover:text-red-300 text-xs">✕</button></td>
+                </tr>`;
+            }).join('');
+            
+            tbody.innerHTML = rows;
+            document.getElementById('totalTicket').innerText = `$ ${total.toLocaleString()}`;
+            document.getElementById('btnRegistrarTicket').classList.remove('hidden');
+        };
+
+        window.quitarItem = (idx) => {
+            ticketActual.splice(idx, 1);
+            renderTicket();
+        };
+
+        window.syncMedioPago = () => {
+            const medio = document.getElementById('medioPagoIngresoMain').value;
+            document.getElementById('resumenMedioPago').value = medio;
+        };
+
+        window.abrirModalCobro = () => {
+            if (ticketActual.length === 0) return toast("El ticket está vacío.", 'info');
+            
+            const resumen = ticketActual.map(it => `<div class="flex justify-between border-b border-white/10 pb-2">
+                <span>${it.tipo}</span>
+                <span class="font-bold text-[var(--fluo)]">$${it.monto.toLocaleString()}</span>
+            </div>`).join('');
+            
+            const total = ticketActual.reduce((a, b) => a + b.monto, 0);
+            document.getElementById('resumenTicketItems').innerHTML = resumen;
+            document.getElementById('resumenTotal').innerText = `$ ${total.toLocaleString()}`;
+            window.syncMedioPago();
+            document.getElementById('modalConfirmacion').classList.remove('hidden');
+        };
+
+        window.confirmarYGuardarTicket = async () => {
+            if ((window._periodosCerrados||[]).includes(window._periodoActivo)) {
+                return toast('El período actual está cerrado. No se pueden agregar movimientos.', 'error');
+            }
+            if ((window._periodosCerrados||[]).includes(window._periodoActivo)) {
+                return toast('El período actual está cerrado. No se pueden agregar movimientos.', 'error');
+            }
+            const _nroOI = getNextNumero('OI');
+            const dni = document.getElementById('dniBusqueda').value.trim();
+            const totalTicket = ticketActual.reduce((a, b) => a + b.monto, 0);
+            const medioFinal = document.getElementById('resumenMedioPago').value;
+            
+            if (!dni || dni === '') {
+                toast("⛔ ERROR CRÍTICO:\n\nEl DNI del paciente es OBLIGATORIO para todos los ingresos.\n\nSi es un ingreso sin paciente (ejemplo: venta de producto, 'error'), usá DNI genérico: 00000000");
+                return;
+            }
+            
+            const btn = document.getElementById('btnGuardarTicket');
+            btn.disabled = true;
+            btn.innerText = "GUARDANDO...";
+            
+            const timestamp = Date.now();
+            const hoy = new Date();
+            const fecha = hoy.toLocaleDateString('es-AR');
+            const hora = hoy.toLocaleTimeString('es-AR');
+            
+            try {
+                for (const item of ticketActual) {
+                    let honorario = 0;
+                    if (item.prof && item.prof !== 'Sanalys') {
+                        let porc = item.tipo.toLowerCase().includes('suero') || item.tipo.toLowerCase().includes('fórmula') ? porcentajeSueros : porcentajeMedica;
+                        honorario = Math.round(item.monto * porc) / 100;
+                    }
+                    
+                    await addDoc(collection(db, "caja"), {
+                        id: timestamp + Math.random(),
+                        ticketId: timestamp,
+                        nroComp: _nroOI,
+                        tipo: 'INGRESO',
+                        det: `${item.tipo}${item.detalle ? ' - ' + item.detalle : ''}`,
+                        mon: item.monto,
+                        med: medioFinal,
+                        dni: dni,
+                        fecha: fecha,
+                        hora: hora,
+                        usuario: SESION.nombre,
+                        profesional: item.prof,
+                        centroCosto: item.tipo,
+                        honorarioCalculado: honorario,
+                        esHonorario: false,
+                        esTraspaso: false,
+                        anulado: false,
+                        periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+                    });
+                    
+                    if (honorario > 0) {
+                        const _nroOH_item = honorario > 0 ? getNextNumero('OH') : null;
+                        await addDoc(collection(db, "caja"), {
+                            id: timestamp + Math.random() + 0.1,
+                            ticketId: timestamp,
+                            nroComp: _nroOH_item,
+                            tipo: 'EGRESO',
+                            det: `HONORARIO ${item.prof} (${item.tipo.toLowerCase().includes('suero') ? porcentajeSueros : porcentajeMedica}%) por: ${item.tipo}`,
+                            mon: honorario,
+                            med: medioFinal,
+                            fecha: fecha,
+                            hora: hora,
+                            usuario: SESION.nombre,
+                            profesional: item.prof,
+                            centroCosto: 'Honorarios Médicos',
+                            destino: `Honorarios x Pagar ${item.prof}`,
+                            esHonorario: true,
+                            esTraspaso: true,
+                            anulado: false,
+                            periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+                        });
+                        
+                        await addDoc(collection(db, "caja"), {
+                            id: timestamp + Math.random() + 0.2,
+                            ticketId: timestamp,
+                            nroComp: _nroOH_item,
+                            tipo: 'INGRESO',
+                            det: `HONORARIO ${item.prof} por: ${item.tipo}`,
+                            mon: honorario,
+                            med: `Honorarios x Pagar ${item.prof}`,
+                            fecha: fecha,
+                            hora: hora,
+                            usuario: 'Sistema',
+                            dni: dni,
+                            profesional: item.prof,
+                            centroCosto: 'Honorarios Médicos',
+                            esHonorario: true,
+                            esTraspaso: true,
+                            anulado: false,
+                            periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+                        });
+                    }
+                    
+                    // Stock: se descuenta en Enfermería al administrar, no en Caja al cobrar
+                }
+                
+                // [FIX CRÍTICO - ENFERMERÍA] hoy.toISOString() usa UTC → después de las 21hs ARG (UTC-3)
+                // devuelve la fecha del día SIGUIENTE y la query no encuentra el turno → no se actualiza a PAGADO
+                // → el paciente nunca aparece en la sala de espera de Enfermería.
+                // Solución: calcular la fecha local correcta aplicando el offset de timezone.
+                const offsetMinutos = hoy.getTimezoneOffset();
+                const fechaLocalISO = new Date(hoy.getTime() - (offsetMinutos * 60 * 1000)).toISOString().split('T')[0];
+                console.log('[CAJA→ENFERMERÍA] Turno actualizado a PAGADO');
+                const turnosHoy = await getDocs(query(collection(db, "turnos"), where("fecha", "==", fechaLocalISO), where("dni", "==", dni)));
+                turnosHoy.docs.forEach(async (d) => {
+                    await updateDoc(doc(db, "turnos", d.id), { estado: 'PAGADO' });
+                });
+                
+                ticketActual = [];
+                renderTicket();
+                document.getElementById('dniBusqueda').value = '';
+                document.getElementById('modalConfirmacion').classList.add('hidden');
+                btn.disabled = false;
+                btn.innerText = "✅ Confirmar Ingreso a Caja";
+                toast("✅ Ticket guardado correctamente", 'ok');
+            } catch (error) {
+                console.error('[CAJA]:', error?.message || error);
+                toast("Error al guardar: " + error.message, 'error');
+                btn.disabled = false;
+                btn.innerText = "✅ Confirmar Ingreso a Caja";
+            }
+        };
+
+        window.registrarEgreso = async () => {
+            const clasificacion = document.getElementById('tipoGasto').value;
+            const proveedor = document.getElementById('provEgreso').value;
+            const factura = document.getElementById('factEgreso').value;
+            const concepto = document.getElementById('conceptoEgreso').value;
+            const medio = document.getElementById('medioPagoEgreso').value;
+            const monto = parseFloat(document.getElementById('montoEgreso').value) || 0;
+            
+            if (!clasificacion || !concepto || monto <= 0) return toast("Completá la clasificación, concepto y monto.", 'info');
+            if (!window.confirmarMontoAlto(monto, montoMaxOperacion)) return;
+            
+            const hoy = new Date();
+            const fecha = hoy.toLocaleDateString('es-AR');
+            const hora = hoy.toLocaleTimeString('es-AR');
+            
+            let detalle = concepto;
+            if (proveedor) detalle = `${proveedor} - ${concepto}`;
+            if (factura) detalle += ` (Fact: ${factura})`;
+            
+            await addDoc(collection(db, "caja"), {
+                id: Date.now(),
+                nroComp: getNextNumero('OE'),
+                tipo: 'EGRESO',
+                det: detalle,
+                mon: monto,
+                med: medio,
+                fecha: fecha,
+                hora: hora,
+                usuario: SESION.nombre,
+                centroCosto: clasificacion,
+                esTraspaso: false,
+                anulado: false,
+                periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+            });
+            document.getElementById('tipoGasto').value = '';
+            document.getElementById('provEgreso').value = '';
+            document.getElementById('factEgreso').value = '';
+            document.getElementById('conceptoEgreso').value = '';
+            document.getElementById('montoEgreso').value = '';
+            toast("✅ Egreso registrado", 'info');
+        };
+
+        // Helper: calcula el saldo actual de una cuenta a partir de cajaOnline
+        function calcularSaldoCuenta(cuenta) {
+            const saldoInicial = cuenta === 'Efectivo' ? (parseFloat(document.getElementById('saldoInicialManual').value) || 0) : 0;
+            return cajaOnline
+                .filter(m => !m.anulado && m.tipo !== 'CIERRE')
+                .reduce((saldo, m) => {
+                    const v = parseFloat(m.mon) || 0;
+                    if (m.med === cuenta) {
+                        return saldo + (m.tipo === 'INGRESO' ? v : -v);
+                    }
+                    return saldo;
+                }, saldoInicial);
+        }
+
+        window.registrarTraspaso = async () => {
+            const origen = document.getElementById('traspasoOrigen').value;
+            const destino = document.getElementById('traspasoDestino').value;
+            const motivo = document.getElementById('traspasoMotivo').value;
+            const monto = parseFloat(document.getElementById('traspasoMonto').value) || 0;
+            
+            if (!origen || !destino || !motivo || monto <= 0) return toast("Completá todos los campos.", 'info');
+            if (!window.confirmarMontoAlto(monto, montoMaxOperacion)) return;
+            if (origen === destino) return toast("Origen y destino no pueden ser iguales.", 'info');
+
+            // Validar saldo suficiente en la cuenta origen
+            const saldoOrigen = calcularSaldoCuenta(origen);
+            if (saldoOrigen < monto) {
+                return toast(`Saldo insuficiente en ${origen}. Disponible: $ ${Math.round(saldoOrigen).toLocaleString()}`, 'error');
+            }
+            
+            const hoy = new Date();
+            const fecha = hoy.toLocaleDateString('es-AR');
+            const hora = hoy.toLocaleTimeString('es-AR');
+            const ts = Date.now();
+            const _nroOT = getNextNumero('OT');
+            
+            await addDoc(collection(db, "caja"), {
+                id: ts,
+                nroComp: _nroOT,
+                tipo: 'EGRESO',
+                det: `TRASPASO: ${motivo}`,
+                mon: monto,
+                med: origen,
+                fecha: fecha,
+                hora: hora,
+                usuario: SESION.nombre,
+                centroCosto: 'Traspaso Interno',
+                destino: destino,
+                esTraspaso: true,
+                anulado: false,
+                periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+            });
+            
+            await addDoc(collection(db, "caja"), {
+                id: ts + 0.5,
+                nroComp: _nroOT,
+                tipo: 'INGRESO',
+                det: `TRASPASO: ${motivo}`,
+                mon: monto,
+                med: destino,
+                fecha: fecha,
+                hora: hora,
+                usuario: SESION.nombre,
+                centroCosto: 'Traspaso Interno',
+                esTraspaso: true,
+                anulado: false,
+                periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+            });
+            
+            document.getElementById('traspasoOrigen').value = 'Efectivo';
+            document.getElementById('traspasoDestino').value = 'Banco';
+            document.getElementById('traspasoMotivo').value = '';
+            document.getElementById('traspasoMonto').value = '';
+            toast("✅ Traspaso ejecutado", 'info');
+        };
+
+        window.registrarRetiro = async () => {
+            const retiroSelect = document.getElementById('retiroSocia');
+            if(!retiroSelect || !retiroSelect.options.length) return toast("No hay profesionales cargados. Verificá Admin → Personas.", 'warn');
+            const socia  = retiroSelect.value;
+            const motivo = document.getElementById('retiroMotivo').value;
+            const monto  = parseFloat(document.getElementById('retiroMonto').value) || 0;
+            if (!socia || !motivo || monto <= 0) return toast("Completá todos los campos.", 'info');
+            if (!window.confirmarMontoAlto(monto, montoMaxOperacion)) return;
+
+            // Validar saldo suficiente en Honorarios x Pagar
+            const saldoHonorarios = calcularSaldoCuenta(`Honorarios x Pagar ${socia}`);
+            if (saldoHonorarios < monto) {
+                return toast(`Saldo insuficiente en Honorarios x Pagar ${socia}. Disponible: $ ${Math.round(saldoHonorarios).toLocaleString()}`, 'error');
+            }
+            const hoy   = new Date();
+            const fecha = hoy.toLocaleDateString('es-AR');
+            const hora  = hoy.toLocaleTimeString('es-AR');
+            const ts    = Date.now();
+            const _nroOR = getNextNumero('OR');
+            await addDoc(collection(db, "caja"), {
+                id: ts,
+                nroComp: _nroOR,
+                tipo: 'EGRESO', det: `RETIRO ${socia}: ${motivo}`,
+                mon: monto, med: 'Efectivo', fecha, hora, usuario: SESION.nombre,
+                profesional: socia, centroCosto: 'Retiro de Socias', esTraspaso: true, anulado: false,
+                periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+            });
+            await addDoc(collection(db, "caja"), {
+                id: ts + 0.5, nroComp: _nroOR,
+                tipo: 'EGRESO', det: `RETIRO ${socia}: ${motivo}`,
+                mon: monto, med: `Honorarios x Pagar ${socia}`, fecha, hora, usuario: SESION.nombre,
+                profesional: socia, centroCosto: 'Retiro de Socias', esTraspaso: true, anulado: false,
+                periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+            });
+            document.getElementById('retiroMotivo').value = '';
+            document.getElementById('retiroMonto').value  = '';
+            toast("✅ Retiro registrado.", 'info');
+        };
+
+        window.actualizarSaldos = () => {
+            const saldoInicial = parseFloat(document.getElementById('saldoInicialManual').value) || 0;
+            const medios = window._mediosPago || ['Efectivo', 'Banco', 'Billetera Virtual'];
+            const medioNombre = (idx) => medios[idx] || '';
+
+            let efectivo = saldoInicial;
+            let banco = 0;
+            let virtual = 0;
+            let fondo = 0;
+            let inversiones = 0;
+            const socias = {};
+            const extra = {}; // medios adicionales más allá de los 3 primeros
+
+            profesionales.forEach(p => socias[p] = 0);
+            medios.slice(3).forEach(m => extra[m] = 0);
+
+            cajaOnline.filter(m => !m.anulado && m.tipo !== 'CIERRE').forEach(m => {
+                const monto = parseFloat(m.mon) || 0;
+                const medio = m.med || '';
+                const sign = (m.tipo === 'INGRESO') ? 1 : (m.tipo === 'EGRESO') ? -1 : 0;
+                if (!sign) return;
+
+                if (medio === medioNombre(0) || medio === 'Efectivo') efectivo += sign * monto;
+                else if (medio === medioNombre(1) || medio === 'Banco') banco += sign * monto;
+                else if (medio === medioNombre(2) || medio === 'Billetera Virtual') virtual += sign * monto;
+                else if (medio === 'Fondo Reinversión') fondo += sign * monto;
+                else if (medio === 'Inversiones') inversiones += sign * monto;
+                else if (medio.includes('Honorarios x Pagar')) {
+                    const nom = medio.replace('Honorarios x Pagar ', '').trim();
+                    socias[nom] = (socias[nom] || 0) + sign * monto;
+                } else if (extra.hasOwnProperty(medio)) {
+                    extra[medio] += sign * monto;
+                }
+            });
+
+            const totalSocias = Object.values(socias).reduce((a, b) => a + b, 0);
+
+            document.getElementById('tEfectivo').innerText = `$ ${Math.round(efectivo).toLocaleString()}`;
+            document.getElementById('tBanco').innerText    = `$ ${Math.round(banco).toLocaleString()}`;
+            document.getElementById('tVirtual').innerText  = `$ ${Math.round(virtual).toLocaleString()}`;
+            document.getElementById('tFondo').innerText    = `$ ${Math.round(fondo).toLocaleString()}`;
+            document.getElementById('tInversiones').innerText = `$ ${Math.round(inversiones).toLocaleString()}`;
+            document.getElementById('tSocias').innerText   = `$ ${Math.round(totalSocias).toLocaleString()}`;
+
+            const desglose = Object.entries(socias).filter(([k, v]) => v !== 0).map(([k, v]) =>
+                `<div>${k}: $${Math.round(v).toLocaleString()}</div>`
+            ).join('');
+            document.getElementById('desgloseSocias').innerHTML = desglose || '<div class="opacity-50">Sin movimientos</div>';
+
+            // Actualizar cards de medios extra
+            Object.entries(extra).forEach(([m, val]) => {
+                const safeId = 'tExtra_' + m.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+                const el = document.getElementById(safeId);
+                if (el) el.innerText = `$ ${Math.round(val).toLocaleString()}`;
+            });
+        };
+
+        // ── CIERRE DE PERÍODO ─────────────────────────────────────
+        window.cerrarPeriodo = async () => {
+            // Armar lista de períodos disponibles (últimos 12 meses)
+            const opciones = [];
+            const now = new Date();
+            for (let i = 0; i < 12; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const p = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                opciones.push(p);
+            }
+            const cerrados = window._periodosCerrados || [];
+            const disponibles = opciones.filter(p => !cerrados.includes(p));
+            if (!disponibles.length) return toast('No hay períodos disponibles para cerrar.', 'warn');
+
+            // Mostrar modal de selección
+            const modal = document.getElementById('modalCerrarPeriodo');
+            const sel   = document.getElementById('selectPeriodoCerrar');
+            sel.innerHTML = disponibles.map(p => `<option value="${p}">${p}${p === window._periodoActivo ? ' (actual)' : ''}</option>`).join('');
+            modal.classList.remove('hidden');
+        };
+
+        window.confirmarCierrePeriodo = async () => {
+            const periodo = document.getElementById('selectPeriodoCerrar').value;
+            if (!periodo) return;
+            const cerrados = window._periodosCerrados || [];
+            if (cerrados.includes(periodo)) return toast('Este período ya está cerrado.', 'warn');
+            cerrados.push(periodo);
+            await setDoc(doc(db,'config','periodosCerrados'), { lista: cerrados });
+            window._periodosCerrados = cerrados;
+            document.getElementById('modalCerrarPeriodo').classList.add('hidden');
+            toast(`Período ${periodo} cerrado correctamente.`, 'ok');
+            try { await addDoc(collection(db,'auditoria'), { accion: `CIERRE DE PERÍODO: ${periodo}`, usuario: SESION?.nombre||'', fecha: new Date().toLocaleDateString('es-AR'), hora: new Date().toLocaleTimeString('es-AR') }); } catch(e) {}
+        };
+
+        window.abrirConsultaPeriodos = () => {
+            const modal = document.getElementById('modalPeriodos');
+            modal.classList.remove('hidden');
+            // Mostrar badges de períodos cerrados
+            const cerrados = window._periodosCerrados || [];
+            document.getElementById('listaPeriodosCerrados').innerHTML = cerrados.map(p =>
+                `<button onclick="document.getElementById('filtroPeriodo').value='${p}';window.consultarPeriodo()"
+                    class="bg-orange-900/30 border border-orange-500/30 text-orange-300 text-[8px] font-black px-3 py-1 rounded-lg hover:bg-orange-500/20 transition">${p} 🔒</button>`
+            ).join('') || '<p class="text-[8px] opacity-30">Sin períodos cerrados</p>';
+        };
+
+        window.consultarPeriodo = async () => {
+            const periodo = document.getElementById('filtroPeriodo').value;
+            if (!periodo) return;
+            const div = document.getElementById('movimientosPeriodo');
+            div.innerHTML = '<p class="text-center opacity-30 text-sm py-4">Cargando...</p>';
+            document.getElementById('accionesPeriodo').classList.add('hidden');
+
+            // Buscar con periodo explícito + legacy sin periodo del mismo mes
+            const [snapConPeriodo, snapTodos] = await Promise.all([
+                getDocs(query(collection(db,'caja'), where('periodo','==',periodo))),
+                getDocs(collection(db,'caja'))
+            ]);
+
+            // Parsear yyyy-mm del período seleccionado
+            const [yy, mm] = periodo.split('-');
+            const legacyMovs = snapTodos.docs
+                .map(d=>({docId:d.id,...d.data()}))
+                .filter(m => {
+                    if (m.periodo) return false; // tiene periodo, no duplicar
+                    const fecha = m.fecha || '';
+                    if (fecha.includes('/')) {
+                        const parts = fecha.split('/');
+                        if (parts.length === 3) return parts[1].padStart(2,'0') === mm && parts[2] === yy;
+                    }
+                    return false;
+                });
+
+            const conPeriodoMovs = snapConPeriodo.docs.map(d=>({docId:d.id,...d.data()}));
+            window._movsPeriodoConsulta = [...conPeriodoMovs, ...legacyMovs]
+                .filter(m=>!m.anulado)
+                .sort((a,b)=>(b.id||0)-(a.id||0));
+            const movs = window._movsPeriodoConsulta;
+
+            if (!movs.length) { div.innerHTML = '<p class="text-center opacity-30 text-sm py-8">Sin movimientos en este período</p>'; return; }
+
+            document.getElementById('accionesPeriodo').classList.remove('hidden');
+            const cerrado = (window._periodosCerrados||[]).includes(periodo);
+            const total = movs.reduce((s,m) => m.tipo==='INGRESO' ? s+parseFloat(m.mon||0) : s-parseFloat(m.mon||0), 0);
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-3 pb-3 border-b border-white/10">
+                    <span class="text-[10px] font-black">${movs.length} movimientos ${cerrado?'🔒 Cerrado':''}</span>
+                    <span class="text-[12px] font-black ${total>=0?'text-[var(--fluo)]':'text-red-400'}">Balance: $ ${Math.round(total).toLocaleString()}</span>
+                </div>
+                <div class="space-y-2">
+                ${movs.map(m => `
+                    <div class="bg-black/30 p-3 rounded-lg border border-white/6 flex justify-between items-center">
+                        <div>
+                            <span class="text-[8px] font-black px-2 py-0.5 rounded ${m.tipo==='INGRESO'?'bg-[var(--fluo)]/20 text-[var(--fluo)]':'bg-red-500/20 text-red-400'}">${m.tipo}</span>
+                            <span class="text-[10px] font-bold ml-2">${m.det||''}</span>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[11px] font-black ${m.tipo==='INGRESO'?'text-[var(--fluo)]':'text-red-400'}">$ ${parseFloat(m.mon||0).toLocaleString()}</p>
+                            <p class="text-[8px] opacity-40">${m.fecha||''} · ${m.med||''}</p>
+                        </div>
+                    </div>`).join('')}
+                </div>`;
+        };
+
+        window.exportarPeriodoExcel = () => {
+            const movs = window._movsPeriodoConsulta || [];
+            if (!movs.length) return toast('Sin movimientos para exportar.', 'warn');
+            const periodo = document.getElementById('filtroPeriodo').value;
+            const doExport = () => {
+                const rows = movs.map(m => ({
+                    Fecha: m.fecha||'', Hora: m.hora||'', Tipo: m.tipo||'',
+                    Comprobante: m.nroComp||'', Detalle: m.det||'',
+                    Monto: parseFloat(m.mon)||0, Medio: m.med||'',
+                    Profesional: m.profesional||'', Usuario: m.usuario||''
+                }));
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, periodo);
+                XLSX.writeFile(wb, `Caja_${periodo}.xlsx`);
+            };
+            if (window.XLSX) { doExport(); return; }
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            s.onload = doExport;
+            document.head.appendChild(s);
+        };
+
+        window.exportarPeriodoPDF = () => {
+            const movs = window._movsPeriodoConsulta || [];
+            if (!movs.length) return toast('Sin movimientos para exportar.', 'warn');
+            if (!window.SanalysPDF) return toast('Recargá la página con Ctrl+Shift+R.', 'warn');
+            const periodo = document.getElementById('filtroPeriodo').value;
+            const total = movs.reduce((s,m) => m.tipo==='INGRESO' ? s+parseFloat(m.mon||0) : s-parseFloat(m.mon||0), 0);
+            const { doc, startY } = SanalysPDF.crear({ titulo: `Reporte Período ${periodo}`, subtitulo: `${movs.length} movimientos · Balance: $ ${Math.round(total).toLocaleString()}` });
+            doc.autoTable(SanalysPDF.tableConfig({
+                startY,
+                head: [['Fecha','Tipo','Detalle','Medio','Monto']],
+                body: movs.map(m => [m.fecha||'', m.tipo||'', m.det||'', m.med||'', `$ ${parseFloat(m.mon||0).toLocaleString()}`]),
+            }));
+            SanalysPDF.save(doc, `Caja_${periodo}.pdf`);
+        };
+
+        window.actualizarSaldosLocal = () => {
+            actualizarSaldos();
+        };
+
+        window.renderMovimientos = () => {
+            const hoy = new Date().toLocaleDateString('es-AR');
+            const movs = cajaOnline.filter(m => m.fecha === hoy).sort((a,b) => b.id - a.id);
+
+            if (!movs.length) {
+                document.getElementById('listaMovimientos').innerHTML = '<p class="opacity-40 text-center py-4">No hay movimientos hoy</p>';
+                return;
+            }
+
+            const html = movs.map(m => {
+                const anulado   = m.anulado ? 'opacity-40 line-through' : '';
+                const colorTipo = m.tipo==='INGRESO' ? 'text-[var(--fluo)]' : m.tipo==='EGRESO' ? 'text-red-400' : 'text-blue-400';
+                const badge     = m.tipo==='INGRESO' ? 'bg-[var(--fluo)] text-[var(--verde-deep)]'
+                                : m.tipo==='EGRESO'  ? 'bg-red-500 text-white' : 'bg-blue-500 text-white';
+                const nroTag    = m.nroComp ? ` <span style="font-size:8px;font-family:monospace;opacity:.6;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:3px;padding:1px 5px">${m.nroComp}</span>` : '';
+                const docId     = (m.docId || m.id || '').toString().replace(/'/g, '');
+
+                const btnComp = m.nroComp && !m.anulado
+                    ? `<button onclick="window.generarComprobantePDF('${docId}')" class="text-[var(--fluo)] text-[9px] font-bold px-2 py-0.5 border border-[var(--fluo)]/40 rounded font-mono hover:opacity-80">📄 ${m.nroComp}</button>`
+                    : '';
+
+                const btnAnular = !m.anulado && m.tipo !== 'CIERRE'
+                    ? `<button onclick="window.anularMovimiento('${docId}')" class="text-red-400 hover:text-red-300 text-xs font-bold">ANULAR</button>`
+                    : '';
+
+                return `<div class="bg-black/20 p-3 rounded-lg border border-white/5 ${anulado}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex gap-2 items-center flex-wrap">
+                            <span class="${badge} px-2 py-1 rounded text-[9px] font-bold">${m.tipo}</span>
+                            <span class="text-[10px] opacity-60">${m.hora}</span>${nroTag}
+                        </div>
+                        <span class="${colorTipo} font-black text-sm">$${m.mon.toLocaleString()}</span>
+                    </div>
+                    <p class="text-[10px] font-bold mb-1">${m.det||''}</p>
+                    <div class="flex justify-between items-center mt-1 text-[9px]">
+                        <span class="opacity-50">${m.centroCosto||m.med||''}</span>
+                        <div class="flex gap-2 items-center">${btnComp}${btnAnular}</div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('listaMovimientos').innerHTML = html;
+        };
+
+        window.guardarSaldoInicial = async () => {
+            const monto = parseFloat(document.getElementById('saldoInicialManual').value) || 0;
+            const periodo = window._periodoActivo;
+            if (periodo) await setDoc(doc(db, 'config', `saldoInicial_${periodo}`), { monto, periodo, actualizadoPor: SESION?.nombre, fecha: new Date().toLocaleDateString('es-AR') });
+            actualizarSaldos();
+        };
+
+        window.generarPDFTurnoHoy = () => {
+            const hoy = new Date().toLocaleDateString('es-AR');
+            const movs = cajaOnline.filter(m => !m.anulado && m.fecha === hoy && m.tipo !== 'CIERRE');
+            if (!movs.length) return toast('Sin movimientos hoy.', 'warn');
+            if (!window.SanalysPDF) return toast('Recargá la página con Ctrl+Shift+R.', 'warn');
+            const totalIng = movs.filter(m=>m.tipo==='INGRESO').reduce((s,m)=>s+parseFloat(m.mon||0),0);
+            const totalEgr = movs.filter(m=>m.tipo==='EGRESO').reduce((s,m)=>s+parseFloat(m.mon||0),0);
+            const { doc: pdfdoc, startY } = SanalysPDF.crear({ titulo: 'Reporte de Caja — Hoy', subtitulo: `${hoy}  ·  ${movs.length} movimientos  ·  Ingresos: $${totalIng.toLocaleString()}  ·  Egresos: $${totalEgr.toLocaleString()}` });
+            pdfdoc.autoTable(SanalysPDF.tableConfig({
+                startY,
+                head: [['Hora','Comp.','Tipo','Detalle','Medio','Monto']],
+                body: movs.map(m => [m.hora||'', m.nroComp||'', m.tipo||'', (m.det||'').slice(0,45), m.med||'', `$ ${parseFloat(m.mon||0).toLocaleString('es-AR')}`]),
+                columnStyles: { 5: { halign:'right', fontStyle:'bold' } },
+                styles: { fontSize: 7 }
+            }));
+            SanalysPDF.save(pdfdoc, `Caja_${hoy.replace(/\//g,'-')}.pdf`);
+        };
+
+        // Helper: calcula saldo de una cuenta
+
+        window.anularMovimiento = async (docId) => {
+            const motivo = prompt("Motivo de la anulación (obligatorio para auditoría):");
+            if (!motivo || motivo.trim() === '') return toast("Debe ingresar un motivo.", 'info');
+            const mov = cajaOnline.find(m => m.docId === docId);
+            if (!mov) return toast("Movimiento no encontrado.", 'error');
+            if ((window._periodosCerrados||[]).includes(mov.periodo)) return toast(`No se puede anular: el período ${mov.periodo} está cerrado.`, 'error');
+            const camposAnulacion = { anulado: true, motivoAnulacion: motivo, anuladoPor: SESION.nombre, fechaAnulacion: new Date().toLocaleString('es-AR') };
+            await updateDoc(doc(db, "caja", docId), camposAnulacion);
+            const relacionados = cajaOnline.filter(m => m.docId !== docId && !m.anulado && ((mov.nroComp && m.nroComp === mov.nroComp) || (mov.ticketId && m.ticketId === mov.ticketId)));
+            for (const rel of relacionados) await updateDoc(doc(db, "caja", rel.docId), camposAnulacion);
+            toast(`✅ ${1 + relacionados.length} movimiento(s) anulado(s)`, 'ok');
+        };
+
+        window.refrescarMovimientos = () => {
+            renderMovimientos();
+        };
+
+        window.abrirCierreCaja = () => {
+            document.getElementById('modalCierreTurno').classList.remove('hidden');
+            
+            // [FIX] Mostrar cajero activo explícitamente para auditoría
+            const cajeroEl = document.getElementById('cierreCajeroNombre');
+            if(cajeroEl) cajeroEl.textContent = SESION.nombre || 'Usuario desconocido';
+            console.log('[ARQUEO] Cierre iniciado');
+            
+            const saldoInicial = parseFloat(document.getElementById('saldoInicialManual').value) || 0;
+            const hoy = new Date().toLocaleDateString('es-AR');
+            let efectivoSistema = saldoInicial;
+            cajaOnline.filter(m => !m.anulado && m.tipo !== 'CIERRE' && m.fecha === hoy).forEach(m => {
+                if (m.med === 'Efectivo') {
+                    if (m.tipo === 'INGRESO') efectivoSistema += parseFloat(m.mon) || 0;
+                    else if (m.tipo === 'EGRESO') efectivoSistema -= parseFloat(m.mon) || 0;
+                }
+            });
+            const saldoRedondeado = Math.round(efectivoSistema);
+            // [FIX] Guardar valor numérico en data-raw para evitar bug de parseo con locale argentino (punto de miles)
+            const elSistema = document.getElementById('cierreSistemaEfectivo');
+            elSistema.textContent = `$ ${saldoRedondeado.toLocaleString('es-AR')}`;
+            elSistema.dataset.raw = saldoRedondeado; // ← Fuente de verdad numérica
+            document.getElementById('cierreEfectivoFisico').value = '';
+            // M15: limpiar y ocultar el campo de motivo al abrir
+            const _md = document.getElementById('motivoDiferencia');
+            if (_md) _md.value = '';
+            const _cmd = document.getElementById('contenedorMotivoDif');
+            if (_cmd) _cmd.classList.add('hidden');
+            document.getElementById('cierreDiferencia').textContent = '—';
+            renderBilletes();
+        };
+
+        const BILLETES = [20000, 10000, 2000, 1000, 500, 200, 100, 50, 20, 10];
+        window.contBilletes = {}; let contBilletes = window.contBilletes;
+
+        function renderBilletes() {
+            window.contBilletes = {}; contBilletes = window.contBilletes; BILLETES.forEach(v => contBilletes[v] = 0);
+            document.getElementById('tablaBilletes').innerHTML = BILLETES.map(v => `
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-black w-20 text-right opacity-70">$ ${v.toLocaleString()}</span>
+                    <input type="number" min="0" value="0" class="input-sanalys text-center w-20 py-1.5 text-[11px]"
+                        oninput="window.contBilletes[${v}]=parseInt(this.value)||0; window.calcularTotalBilletes()">
+                    <span class="text-[9px] opacity-40 flex-1">= $ <span id="subtBillete_${v}">0</span></span>
+                </div>`).join('');
+        }
+
+        window.calcularTotalBilletes = () => {
+            let total = 0;
+            BILLETES.forEach(v => {
+                const sub = (window.contBilletes[v] || 0) * v;
+                total += sub;
+                const el = document.getElementById(`subtBillete_${v}`);
+                if (el) el.textContent = sub.toLocaleString();
+            });
+            document.getElementById('totalFisicoContado').textContent = `$ ${total.toLocaleString()}`;
+            document.getElementById('cierreEfectivoFisico').value = total;
+            calcularDiferenciaCierre();
+        };
+
+        window.calcularDiferenciaCierre = () => {
+            const fisico = parseFloat(document.getElementById('cierreEfectivoFisico').value) || 0;
+            // [FIX] Leer data-raw en lugar de parsear el textContent con locale (evita bug $ -12.345 → -12.345 en lugar de -12345)
+            const sistema = parseFloat(document.getElementById('cierreSistemaEfectivo').dataset.raw) || 0;
+            const dif = fisico - sistema;
+            const el = document.getElementById('cierreDiferencia');
+            el.textContent = `${dif >= 0 ? '+' : ''}$ ${dif.toLocaleString('es-AR')}`;
+            el.style.color = dif === 0 ? '#86efac' : dif > 0 ? '#fcd34d' : '#fca5a5';
+            // M15: mostrar el campo de motivo solo si hay diferencia
+            const cont = document.getElementById('contenedorMotivoDif');
+            if (cont) cont.classList.toggle('hidden', dif === 0);
+        };
+
+        window.ejecutarCierreCaja = async () => {
+            const fisico = parseFloat(document.getElementById('cierreEfectivoFisico').value) || 0;
+            // [FIX] Usar data-raw para evitar bug de parseo con locale argentino (punto de miles en negativos)
+            const sistema = parseFloat(document.getElementById('cierreSistemaEfectivo').dataset.raw) || 0;
+            const diferencia = fisico - sistema;
+
+            // M15: si hay diferencia, el motivo es obligatorio (obliga a controlar
+            // antes de cerrar, o a justificar por qué se dio la diferencia).
+            let motivoDif = '';
+            if (diferencia !== 0) {
+                motivoDif = (document.getElementById('motivoDiferencia').value || '').trim();
+                if (!motivoDif) {
+                    toast('Hay una diferencia. Escribí el motivo o cancelá para controlar antes de cerrar.', 'warn');
+                    document.getElementById('motivoDiferencia').focus();
+                    return;
+                }
+            }
+
+            const hoy = new Date();
+            const fecha = hoy.toLocaleDateString('es-AR');
+            const hora = hoy.toLocaleTimeString('es-AR');
+
+            const billetesArr = BILLETES.filter(v => contBilletes[v] > 0).map(v => ({ valor: v, cantidad: contBilletes[v] }));
+
+            const resumen = `Cierre de turno. Efectivo sistema: $${sistema.toLocaleString('es-AR')} | Físico contado: $${fisico.toLocaleString('es-AR')} | Diferencia: ${diferencia >= 0 ? '+' : ''}$${diferencia.toLocaleString('es-AR')}${motivoDif ? ' | Motivo: ' + motivoDif : ''}`;
+            
+            // [LOG] Auditoría de cierre de caja
+            console.log('[ARQUEO] Ejecutando cierre');
+
+            await addDoc(collection(db, "caja"), {
+                id: Date.now(),
+                nroComp: getNextNumero('CC'),
+                tipo: 'CIERRE',
+                det: resumen,
+                mon: fisico,
+                med: 'Efectivo',
+                fecha, hora,
+                usuario: SESION.nombre,
+                arqueoFisico: fisico,
+                arqueoSistema: sistema,
+                diferencia,
+                motivoDiferencia: motivoDif,
+                billetes: billetesArr,
+                centroCosto: 'Cierre de Turno',
+                esTraspaso: false,
+                anulado: false,
+                periodo: window._periodoActivo || new Date().toISOString().slice(0,7)
+            });
+
+            document.getElementById('modalCierreTurno').classList.add('hidden');
+
+            if (diferencia !== 0) {
+                toast(`Cierre registrado. Diferencia de $ ${diferencia.toLocaleString()} — quedo registrada para auditoria.`, 'warn');
+            } else {
+                toast('✅ Cierre de turno registrado. Caja cuadrada.', 'info');
+            }
+        };
+
+        window.abrirModalCierres = () => {
+            document.getElementById('modalCierres').classList.remove('hidden');
+            const hoy = new Date();
+            const offset = hoy.getTimezoneOffset();
+            document.getElementById('filtroFechaCierre').value = new Date(hoy.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+            window.filtrarCierres();
+        };
+
+        window.filtrarCierres = () => {
+            const fechaRaw = document.getElementById('filtroFechaCierre').value;
+            const usuarioFiltro = document.getElementById('filtroUsuarioCierre').value;
+            let fechaFiltro = "";
+            if (fechaRaw) {
+                const p = fechaRaw.split('-');
+                if (p.length === 3) fechaFiltro = `${parseInt(p[2])}/${parseInt(p[1])}/${p[0]}`;
+            }
+            
+            const cierres = cajaOnline.filter(m => m.tipo === 'CIERRE');
+            const filtrados = cierres.filter(c => {
+                const matchFecha = fechaFiltro ? (c.fecha.split('/').map(n => parseInt(n)).join('/') === fechaFiltro.split('/').map(n => parseInt(n)).join('/')) : true;
+                const matchUsu = usuarioFiltro ? (c.usuario === usuarioFiltro) : true;
+                return matchFecha && matchUsu;
+            });
+            
+            const div = document.getElementById('listaCierresAnteriores');
+            if (filtrados.length === 0) {
+                div.innerHTML = `<p class="opacity-40 text-xs text-center py-6">No se encontraron arqueos para esta fecha.</p>`;
+                return;
+            }
+            
+            div.innerHTML = filtrados.map(c => `
+                <div class="bg-blue-900/20 p-4 rounded-xl border-l-4 border-blue-400">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-[10px] font-black uppercase text-blue-300">${c.fecha} - ${c.hora}</p>
+                            <p class="text-xs font-bold text-white uppercase mt-1">Cajero: ${c.usuario}</p>
+                        </div>
+                        <span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold">ARQUEO</span>
+                    </div>
+                    <div class="bg-black/40 p-3 rounded mt-2 border border-white/5">
+                        <p class="text-[10px] text-white italic">${c.det}</p>
+                    </div>
+                    <button onclick="window.generarPDFHistorico('${c.docId}')" class="mt-3 w-full border border-blue-400 text-blue-300 py-2 rounded text-[9px] font-bold uppercase hover:bg-blue-500 hover:text-white transition shadow-lg">📄 Descargar Reporte del Turno</button>
+                </div>
+            `).join('');
+        };
+
+        window.generarPDFHistorico = (docIdStr) => {
+
+            try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Error: librería PDF no cargada. Recargá la página.', 'error'); return; }
+            const cierre = cajaOnline.find(m => m.docId == docIdStr);
+            if (!cierre) return toast("Cierre no encontrado", 'info');
+            
+            const cAnt = cajaOnline.filter(m => m.tipo === 'CIERRE' && m.usuario === cierre.usuario && m.fecha === cierre.fecha && m.id < cierre.id);
+            const idInf = cAnt.length > 0 ? Math.max(...cAnt.map(c => c.id)) : 0;
+            
+            const movs = cajaOnline.filter(m => 
+                m.fecha === cierre.fecha && 
+                m.usuario === cierre.usuario && 
+                m.id > idInf && 
+                m.id < cierre.id && 
+                m.tipo !== 'CIERRE' &&
+                !m.esTraspaso
+            );
+            
+            // ── Template maestro ────────────────────────────────────────────
+            const { doc: _jdoc, startY } = SanalysPDF.crear({
+                titulo:    'Arqueo de Caja',
+                subtitulo: `Turno: ${cierre.fecha}  ·  Cajero: ${cierre.usuario}`,
+                emisor:    SESION?.nombre || cierre.usuario,
+            });
+            const T = SanalysPDF.T;
+            
+            const rows = movs.map(m => [
+                m.nroComp || '-',
+                (m.hora||'').split(':').slice(0,2).join(':'),
+                (m.anulado ? '(ANULADO) ' : '') + (m.det||''),
+                m.centroCosto || m.med || '',
+                (m.tipo === 'INGRESO') ? '$' + m.mon.toLocaleString('es-AR') : '-',
+                (m.tipo === 'EGRESO') ? '$' + m.mon.toLocaleString('es-AR') : '-'
+            ]);;
+            
+            _jdoc.autoTable(SanalysPDF.tableConfig({
+                head: [['N°', 'Hora', 'Detalle', 'Categoría', 'Ingreso (+)', 'Egreso (-)']],
+                body: rows,
+                startY,
+                columnStyles: {
+                    0: { cellWidth: 20, fontStyle: 'bold' },
+                    1: { cellWidth: 18, halign: 'center' },
+                    2: { cellWidth: 65 },
+                    3: { cellWidth: 35 },
+                    4: { cellWidth: 22, textColor: T.VERDE_OK, fontStyle: 'bold', halign: 'right' },
+                    5: { cellWidth: 22, textColor: T.ROJO, fontStyle: 'bold', halign: 'right' },
+                },
+            }));
+
+            let fY = _jdoc.lastAutoTable.finalY + 14;
+
+            const honorariosPorMedica = {};
+            movs.filter(m => m.esHonorario === true && m.tipo === 'EGRESO' && !m.anulado)
+                .forEach(m => { if(m.profesional) honorariosPorMedica[m.profesional] = (honorariosPorMedica[m.profesional]||0) + m.mon; });
+
+            if (Object.keys(honorariosPorMedica).length > 0) {
+                fY = SanalysPDF.sectionTitle(_jdoc, 'Resumen de Honorarios', fY);
+                _jdoc.setFontSize(9);
+                _jdoc.setFont(T.FONT, 'normal');
+                _jdoc.setTextColor(...T.GRIS_OSC);
+                Object.entries(honorariosPorMedica).forEach(([medica, total]) => {
+                    _jdoc.text(`${medica}`, 20, fY);
+                    _jdoc.text(`$${total.toLocaleString('es-AR')}`, 130, fY);
+                    fY += 6;
+                });
+                const totalHonorarios = Object.values(honorariosPorMedica).reduce((a, b) => a + b, 0);
+                fY += 2;
+                _jdoc.setFont(T.FONT, 'bold');
+                _jdoc.setTextColor(...T.NEGRO);
+                _jdoc.text(`TOTAL HONORARIOS:`, 20, fY);
+                _jdoc.text(`$${totalHonorarios.toLocaleString('es-AR')}`, 130, fY);
+                fY += 12;
+            }
+
+            fY = SanalysPDF.sectionTitle(_jdoc, 'Arqueo de Billetes Físicos', fY);
+            _jdoc.setFontSize(9);
+            _jdoc.setFont(T.FONT, 'normal');
+            _jdoc.setTextColor(...T.GRIS_OSC);
+            if (cierre.billetes && cierre.billetes.length > 0) {
+                cierre.billetes.forEach(b => {
+                    _jdoc.text(`${b.cantidad}  ×  $${b.valor.toLocaleString('es-AR')}`, 20, fY);
+                    _jdoc.text(`$${(b.cantidad*b.valor).toLocaleString('es-AR')}`, 130, fY);
+                    fY += 6;
+                });
+            } else {
+                _jdoc.text("Sin desglose de billetes registrado.", 20, fY);
+                fY += 6;
+            }
+            fY += 6;
+            _jdoc.setFont(T.FONT, 'bold');
+            _jdoc.setTextColor(...T.NEGRO);
+            _jdoc.text(`EFECTIVO FÍSICO AL CIERRE:`, 20, fY);
+            _jdoc.text(`$${(cierre.arqueoFisico || 0).toLocaleString('es-AR')}`, 130, fY);
+            fY += 7;
+            const difColor = (cierre.diferencia || 0) >= 0 ? T.VERDE_OK : T.ROJO;
+            _jdoc.setTextColor(...difColor);
+            _jdoc.text(`DIFERENCIA DE CAJA:`, 20, fY);
+            _jdoc.text(`${(cierre.diferencia||0)>=0?'+':''}$${(cierre.diferencia || 0).toLocaleString('es-AR')}`, 130, fY);
+
+            // M15: si hubo diferencia, mostrar el motivo registrado al cerrar
+            if (cierre.diferencia && cierre.diferencia !== 0 && cierre.motivoDiferencia) {
+                fY += 8;
+                _jdoc.setTextColor(...T.NEGRO);
+                _jdoc.setFont(T.FONT, 'bold');
+                _jdoc.text('MOTIVO DE LA DIFERENCIA:', 20, fY);
+                fY += 6;
+                _jdoc.setFont(T.FONT, 'normal');
+                _jdoc.setTextColor(...T.GRIS_OSC);
+                // partir el texto en líneas para que no se corte en el margen
+                const lineas = _jdoc.splitTextToSize(cierre.motivoDiferencia, 170);
+                _jdoc.text(lineas, 20, fY);
+            }
+
+            SanalysPDF.save(_jdoc, `Arqueo_${cierre.usuario}_${cierre.fecha.replace(/\//g, '-')}.pdf`,
+                { disclaimer: 'Sanalys Clínica Ortomolecular  ·  Documento interno de auditoría  ·  Confidencial' });
+        
+            } catch(err) { console.error("[CAJA/PDF]:", err?.message || err); toast("❌ Error al generar PDF: " + err.message, 'error'); }
+            };
+
+        window.generarReportePDF = () => {
+
+            try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Error: librería PDF no cargada. Recargá la página.', 'error'); return; }
+            const hoy = new Date().toLocaleDateString('es-AR');
+
+            const movs = cajaOnline.filter(m => {
+                if (m.tipo === 'CIERRE' || m.anulado) return false;
+                if (m.esTraspaso === true) return false;
+                return m.fecha === hoy;
+            });
+
+            if (movs.length === 0) { toast('No hay movimientos para hoy', 'info'); return; }
+
+            // ── Template maestro ────────────────────────────────────────────
+            const { doc: _jdoc, startY } = SanalysPDF.crear({
+                titulo:    'Reporte de Caja',
+                subtitulo: `Día: ${hoy}`,
+                emisor:    SESION?.nombre,
+            });
+            const T = SanalysPDF.T;
+
+            const rows = movs.map(m => [
+                m.nroComp || '-',
+                (m.hora||'').split(':').slice(0,2).join(':'),
+                (m.anulado ? '(ANULADO) ' : '') + (m.det||''),
+                m.centroCosto || m.med || '',
+                (m.tipo === 'INGRESO') ? '$' + m.mon.toLocaleString('es-AR') : '-',
+                (m.tipo === 'EGRESO') ? '$' + m.mon.toLocaleString('es-AR') : '-'
+            ]);
+
+            _jdoc.autoTable(SanalysPDF.tableConfig({
+                head: [['N°', 'HORA', 'DETALLE', 'CATEGORÍA', 'INGRESO (+)', 'EGRESO (-)']],
+                body: rows,
+                startY,
+                styles: {
+                    fontSize: 7.5,
+                    overflow: 'ellipsize',
+                    cellPadding: { top: 3, right: 4, bottom: 3, left: 4 },
+                },
+                headStyles: {
+                    fontSize: 7,
+                    cellPadding: { top: 3.5, right: 4, bottom: 3.5, left: 4 },
+                },
+                columnStyles: {
+                    0: { cellWidth: 30, halign: 'center' },
+                    1: { cellWidth: 13, halign: 'center' },
+                    2: { cellWidth: 58, overflow: 'ellipsize' },
+                    3: { cellWidth: 40, overflow: 'ellipsize' },
+                    4: { cellWidth: 22, textColor: T.VERDE_OK, fontStyle: 'bold', halign: 'right' },
+                    5: { cellWidth: 22, textColor: T.ROJO, fontStyle: 'bold', halign: 'right' }
+                },
+            }));
+
+            const totalIng = movs.filter(m=>m.tipo==='INGRESO').reduce((s,m)=>s+(m.mon||0),0);
+            const totalEgr = movs.filter(m=>m.tipo==='EGRESO').reduce((s,m)=>s+(m.mon||0),0);
+            let yT = _jdoc.lastAutoTable.finalY + 10;
+
+            // KPI boxes
+            let xK = T.M;
+            xK = SanalysPDF.kpiBox(_jdoc, xK, yT, 54, 18, 'Total Ingresos',  `$${totalIng.toLocaleString('es-AR')}`, T.VERDE_OK);
+            xK = SanalysPDF.kpiBox(_jdoc, xK, yT, 54, 18, 'Total Egresos',   `$${totalEgr.toLocaleString('es-AR')}`, T.ROJO);
+            const neto = totalIng - totalEgr;
+            SanalysPDF.kpiBox(_jdoc, xK, yT, 54, 18, 'Resultado Neto', `${neto>=0?'+':''}$${neto.toLocaleString('es-AR')}`, neto >= 0 ? T.VERDE_OK : T.ROJO);
+            yT += 26;
+
+            const honorariosPorMedica = {};
+            cajaOnline.filter(m => m.fecha===hoy && m.esHonorario===true && m.tipo==='EGRESO' && !m.anulado)
+                .forEach(m => { if(m.profesional) honorariosPorMedica[m.profesional] = (honorariosPorMedica[m.profesional]||0) + m.mon; });
+
+            if (Object.keys(honorariosPorMedica).length > 0) {
+                yT = SanalysPDF.sectionTitle(_jdoc, 'Honorarios por Profesional', yT);
+                _jdoc.setFontSize(9); _jdoc.setFont(T.FONT, 'normal'); _jdoc.setTextColor(...T.GRIS_OSC);
+                Object.entries(honorariosPorMedica).forEach(([med, tot]) => {
+                    _jdoc.text(med, 20, yT);
+                    _jdoc.text(`$${tot.toLocaleString('es-AR')}`, 130, yT);
+                    yT += 6;
+                });
+                _jdoc.setFont(T.FONT, 'bold'); _jdoc.setTextColor(...T.NEGRO);
+                _jdoc.text('TOTAL:', 20, yT);
+                _jdoc.text(`$${Object.values(honorariosPorMedica).reduce((a,b)=>a+b,0).toLocaleString('es-AR')}`, 130, yT);
+            }
+
+            SanalysPDF.save(_jdoc, `Caja_${new Date().toISOString().split('T')[0]}.pdf`,
+                { disclaimer: 'Sanalys Clínica Ortomolecular  ·  Reporte de Caja  ·  Confidencial' });
+        
+            } catch(err) { console.error("[CAJA/PDF]:", err?.message || err); toast("❌ Error al generar PDF: " + err.message, 'error'); }
+            };
+
+        // ── Comprobante individual por movimiento ────────────────────────────
+        window.generarComprobantePDF = (docId) => {
+            try {
+                if (!window.SanalysPDF || !window.jspdf) { toast('Error: librería PDF no cargada. Recargá la página.', 'error'); return; }
+
+                const m = cajaOnline.find(x => x.docId === docId);
+                if (!m) { toast('Movimiento no encontrado.', 'info'); return; }
+
+                const T = SanalysPDF.T;
+                const W = 210, M = T.M;
+
+                const tipoMeta = {
+                    INGRESO: { label: 'ORDEN DE INGRESO', color: T.VERDE_OK    },
+                    EGRESO:  { label: 'ORDEN DE EGRESO',  color: T.ROJO        },
+                    RETIRO:  { label: 'ORDEN DE RETIRO',  color: [180, 83, 9]  },
+                    CIERRE:  { label: 'CIERRE DE CAJA',   color: [109, 40, 217]},
+                };
+                const meta = tipoMeta[m.tipo] || { label: 'COMPROBANTE', color: T.NEGRO };
+
+                const { doc: _d, startY } = SanalysPDF.crear({
+                    titulo:    meta.label,
+                    subtitulo: m.nroComp || '',
+                    emisor:    SESION?.nombre,
+                });
+
+                let y = startY + 4;
+
+                // HERO: barra color + tipo + N° grande
+                _d.setFillColor(...meta.color);
+                _d.rect(M, y, 3, 18, 'F');
+
+                _d.setFont(T.FONT, 'bold'); _d.setFontSize(7);
+                _d.setTextColor(...meta.color);
+                _d.text(meta.label, M + 7, y + 5);
+
+                _d.setFont(T.FONT, 'bold'); _d.setFontSize(20);
+                _d.setTextColor(...T.NEGRO);
+                _d.text(m.nroComp || '-', M + 7, y + 16);
+
+                _d.setFont(T.FONT, 'normal'); _d.setFontSize(8);
+                _d.setTextColor(...T.GRIS);
+                _d.text(m.fecha || '', W - M, y + 6, { align: 'right' });
+                _d.setFont(T.FONT, 'bold'); _d.setFontSize(8);
+                _d.setTextColor(...T.GRIS_OSC);
+                _d.text((m.hora || '').split(':').slice(0, 2).join(':'), W - M, y + 14, { align: 'right' });
+
+                y += 26;
+
+                _d.setDrawColor(...T.GRIS_CLARO); _d.setLineWidth(0.25);
+                _d.line(M, y, W - M, y);
+                y += 8;
+
+                // CONCEPTO
+                _d.setFont(T.FONT, 'normal'); _d.setFontSize(6);
+                _d.setTextColor(...T.GRIS);
+                _d.text('CONCEPTO', M, y);
+                y += 5;
+                _d.setFont(T.FONT, 'bold'); _d.setFontSize(13);
+                _d.setTextColor(...T.NEGRO);
+                const detLines = _d.splitTextToSize(m.det || '-', W - M * 2 - 55);
+                _d.text(detLines, M, y);
+                y += detLines.length * 7 + 5;
+
+                _d.setDrawColor(...T.GRIS_CLARO); _d.setLineWidth(0.25);
+                _d.line(M, y, W - M, y);
+                y += 7;
+
+                // GRILLA 2 COLUMNAS
+                const fields = [];
+                fields.push({ k: 'CATEGORIA',     v: m.centroCosto || '-' });
+                fields.push({ k: 'MEDIO DE PAGO', v: m.med || '-' });
+                if (m.profesional)                 fields.push({ k: 'PROFESIONAL',    v: m.profesional });
+                if (m.destino)                     fields.push({ k: 'DESTINO',        v: m.destino });
+                if (m.dni && m.dni !== '00000000') fields.push({ k: 'DNI PACIENTE',   v: m.dni });
+                fields.push({ k: 'REGISTRADO POR', v: m.usuario || '-' });
+
+                const C1L = M;
+                const C2L = 112;
+                const ROW_H = 13;
+                const half  = Math.ceil(fields.length / 2);
+                const col1f = fields.slice(0, half);
+                const col2f = fields.slice(half);
+                const maxR  = Math.max(col1f.length, col2f.length);
+
+                for (let i = 0; i < maxR; i++) {
+                    const ry = y + i * ROW_H;
+                    if (col1f[i]) {
+                        _d.setFont(T.FONT, 'normal'); _d.setFontSize(6); _d.setTextColor(...T.GRIS);
+                        _d.text(col1f[i].k, C1L, ry);
+                        _d.setFont(T.FONT, 'bold'); _d.setFontSize(8.5); _d.setTextColor(...T.NEGRO);
+                        _d.text(col1f[i].v, C1L, ry + 6, { maxWidth: 90 });
+                    }
+                    if (col2f[i]) {
+                        _d.setFont(T.FONT, 'normal'); _d.setFontSize(6); _d.setTextColor(...T.GRIS);
+                        _d.text(col2f[i].k, C2L, ry);
+                        _d.setFont(T.FONT, 'bold'); _d.setFontSize(8.5); _d.setTextColor(...T.NEGRO);
+                        _d.text(col2f[i].v, C2L, ry + 6, { maxWidth: 80 });
+                    }
+                }
+
+                y += maxR * ROW_H + 8;
+
+                _d.setDrawColor(...T.GRIS_CLARO); _d.setLineWidth(0.25);
+                _d.line(M, y, W - M, y);
+                y += 10;
+
+                // TOTAL: texto plano, negro, sin cuadro
+                _d.setFont(T.FONT, 'normal'); _d.setFontSize(7);
+                _d.setTextColor(...T.GRIS);
+                _d.text('TOTAL', M, y);
+
+                const signo = m.tipo === 'INGRESO' ? '+' : '-';
+                const mStr  = `${signo}$${(m.mon || 0).toLocaleString('es-AR')}`;
+                _d.setFont(T.FONT, 'bold'); _d.setFontSize(20);
+                _d.setTextColor(...T.NEGRO);
+                _d.text(mStr, M, y + 10);
+
+                SanalysPDF.save(_d, `Comprobante_${m.nroComp || docId}.pdf`,
+                    { disclaimer: 'Sanalys Clinica Ortomolecular · Comprobante de Movimiento · Confidencial' });
+
+            } catch(err) { console.error("[CAJA/COMPROBANTE]:", err?.message || err); toast("Error al generar comprobante: " + err.message, 'error'); }
+        };
+
+        // ── PERÍODOS ─────────────────────────────────────────────
+        window.cerrarPeriodo = async () => {
+            const opciones = [];
+            const now = new Date();
+            for (let i = 0; i < 12; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                opciones.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+            }
+            const cerrados = window._periodosCerrados || [];
+            const disponibles = opciones.filter(p => !cerrados.includes(p));
+            if (!disponibles.length) return toast('No hay períodos disponibles para cerrar.', 'warn');
+            const sel = document.getElementById('selectPeriodoCerrar');
+            sel.innerHTML = disponibles.map(p => `<option value="${p}">${p}${p === window._periodoActivo ? ' (actual)' : ''}</option>`).join('');
+            document.getElementById('modalCerrarPeriodo').classList.remove('hidden');
+        };
+
+        window.confirmarCierrePeriodo = async () => {
+            const periodo = document.getElementById('selectPeriodoCerrar').value;
+            if (!periodo) return;
+            const cerrados = window._periodosCerrados || [];
+            if (cerrados.includes(periodo)) return toast('Este período ya está cerrado.', 'warn');
+            cerrados.push(periodo);
+            await setDoc(doc(db,'config','periodosCerrados'), { lista: cerrados });
+            window._periodosCerrados = cerrados;
+            document.getElementById('modalCerrarPeriodo').classList.add('hidden');
+            const lb = document.getElementById('periodoLabelBottom');
+            if (lb) lb.textContent = window._periodoActivo;
+            toast(`Período ${periodo} cerrado correctamente.`, 'ok');
+            try { await addDoc(collection(db,'auditoria'), { accion: `CIERRE DE PERÍODO: ${periodo}`, usuario: SESION?.nombre||'', fecha: new Date().toLocaleDateString('es-AR'), hora: new Date().toLocaleTimeString('es-AR') }); } catch(e) {}
+        };
+
+        window.abrirConsultaPeriodos = () => {
+            const modal = document.getElementById('modalPeriodos');
+            modal.classList.remove('hidden');
+            const cerrados = window._periodosCerrados || [];
+            document.getElementById('listaPeriodosCerrados').innerHTML = cerrados.map(p =>
+                `<button onclick="document.getElementById('filtroPeriodo').value='${p}';window.consultarPeriodo()" class="bg-orange-900/30 border border-orange-500/30 text-orange-300 text-[8px] font-black px-3 py-1 rounded-lg hover:bg-orange-500/20 transition">${p} 🔒</button>`
+            ).join('') || '<p class="text-[8px] opacity-30">Sin períodos cerrados</p>';
+        };
+
+        window.consultarPeriodo = async () => {
+            const periodo = document.getElementById('filtroPeriodo').value;
+            if (!periodo) return;
+            const div = document.getElementById('movimientosPeriodo');
+            div.innerHTML = '<p class="text-center opacity-30 text-sm py-4">Cargando...</p>';
+            document.getElementById('accionesPeriodo').classList.add('hidden');
+            const [yy2, mm2] = periodo.split('-');
+            const snapAll = await getDocs(collection(db,'caja'));
+            window._movsPeriodoConsulta = snapAll.docs.map(d=>({docId:d.id,...d.data()})).filter(m => {
+                if (m.anulado) return false;
+                if (m.periodo) return m.periodo === periodo;
+                const f = m.fecha || '';
+                if (f.includes('/')) { const p = f.split('/'); if (p.length===3) return p[1].padStart(2,'0')===mm2 && p[2]===yy2; }
+                return false;
+            }).sort((a,b)=>(b.id||0)-(a.id||0));
+            const movs = window._movsPeriodoConsulta;
+            if (!movs.length) { div.innerHTML = '<p class="text-center opacity-30 text-sm py-8">Sin movimientos en este período</p>'; return; }
+            document.getElementById('accionesPeriodo').classList.remove('hidden');
+            const cerrado = (window._periodosCerrados||[]).includes(periodo);
+            const total = movs.reduce((s,m) => m.tipo==='INGRESO' ? s+parseFloat(m.mon||0) : s-parseFloat(m.mon||0), 0);
+            div.innerHTML = `<div class="flex justify-between items-center mb-3 pb-3 border-b border-white/10">
+                <span class="text-[10px] font-black">${movs.length} movimientos ${cerrado?'🔒 Cerrado':''}</span>
+                <span class="text-[12px] font-black ${total>=0?'text-[var(--fluo)]':'text-red-400'}">Balance: $ ${Math.round(total).toLocaleString()}</span>
+            </div><div class="space-y-2">${movs.map(m=>`<div class="bg-black/30 p-3 rounded-lg border border-white/6 flex justify-between items-center">
+                <div><span class="text-[8px] font-black px-2 py-0.5 rounded ${m.tipo==='INGRESO'?'bg-[var(--fluo)]/20 text-[var(--fluo)]':'bg-red-500/20 text-red-400'}">${m.tipo}</span><span class="text-[10px] font-bold ml-2">${m.det||''}</span></div>
+                <div class="text-right"><p class="text-[11px] font-black ${m.tipo==='INGRESO'?'text-[var(--fluo)]':'text-red-400'}">$ ${parseFloat(m.mon||0).toLocaleString()}</p><p class="text-[8px] opacity-40">${m.fecha||''} · ${m.med||''}</p></div>
+            </div>`).join('')}</div>`;
+        };
+
+        window.exportarPeriodoExcel = () => {
+            const movs = window._movsPeriodoConsulta || [];
+            if (!movs.length) return toast('Sin movimientos para exportar.', 'warn');
+            const periodo = document.getElementById('filtroPeriodo').value;
+            const doExport = () => {
+                const rows = movs.map(m => ({ Fecha: m.fecha||'', Hora: m.hora||'', Tipo: m.tipo||'', Comprobante: m.nroComp||'', Detalle: m.det||'', Monto: parseFloat(m.mon)||0, Medio: m.med||'', Profesional: m.profesional||'', Usuario: m.usuario||'' }));
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, periodo);
+                XLSX.writeFile(wb, `Caja_${periodo}.xlsx`);
+            };
+            if (window.XLSX) { doExport(); return; }
+            const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = doExport; document.head.appendChild(s);
+        };
+
+        window.exportarPeriodoPDF = () => {
+            const movs = window._movsPeriodoConsulta || [];
+            if (!movs.length) return toast('Sin movimientos para exportar.', 'warn');
+            if (!window.SanalysPDF) return toast('Recargá la página con Ctrl+Shift+R.', 'warn');
+            const periodo = document.getElementById('filtroPeriodo').value;
+            const total = movs.reduce((s,m) => m.tipo==='INGRESO' ? s+parseFloat(m.mon||0) : s-parseFloat(m.mon||0), 0);
+            const { doc: pdfdoc, startY } = SanalysPDF.crear({ titulo: `Reporte Período ${periodo}`, subtitulo: `${movs.length} movimientos · Balance: $ ${Math.round(total).toLocaleString()}` });
+            pdfdoc.autoTable(SanalysPDF.tableConfig({ startY, head: [['Fecha','Tipo','Detalle','Medio','Monto']], body: movs.map(m => [m.fecha||'', m.tipo||'', m.det||'', m.med||'', `$ ${parseFloat(m.mon||0).toLocaleString()}`]), styles: { fontSize: 7 } }));
+            SanalysPDF.save(pdfdoc, `Caja_${periodo}.pdf`);
+        };
+
+        window.exportarCajaExcel = () => {
+            const movs = cajaOnline.filter(m => !m.anulado && m.tipo !== 'CIERRE');
+            if (!movs.length) { toast('No hay movimientos para exportar.', 'warn'); return; }
+
+            const doExport = () => {
+                const filas = movs
+                    .sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || b.id - a.id)
+                    .map(m => ({
+                        'N°':            m.numero || m.id || '',
+                        'Fecha':         m.fecha  || '',
+                        'Tipo':          m.tipo   || '',
+                        'Concepto':      m.concepto || '',
+                        'Categoria':     m.categoria || '',
+                        'Monto':         m.monto  || 0,
+                        'Medio de Pago': m.medioPago || '',
+                        'Profesional':   m.profesional || '',
+                        'Usuario':       m.usuario || '',
+                        'Observaciones': m.obs || '',
+                    }));
+                const ws = XLSX.utils.json_to_sheet(filas);
+                ws['!cols'] = [{wch:14},{wch:12},{wch:10},{wch:35},{wch:22},{wch:12},{wch:16},{wch:20},{wch:18},{wch:30}];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Caja');
+                XLSX.writeFile(wb, `Caja_Sanalys_${new Date().toISOString().split('T')[0]}.xlsx`);
+                toast('Excel exportado correctamente.', 'ok');
+            };
+
+            if (window.XLSX) { doExport(); return; }
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            s.onload = doExport;
+            s.onerror = () => toast('Error al cargar la libreria. Verificá tu conexión.', 'error');
+            document.head.appendChild(s);
+        };
+    </script>
+<script src="sidebar.js"></script>
+</body>
+</html>

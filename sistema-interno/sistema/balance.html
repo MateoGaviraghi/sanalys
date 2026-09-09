@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys S.M.S. - Balance General y Finanzas</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="pdf-master.js?v=3.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root { --verde-deep: #0A3D33; --fluo: #D0FF4E; }
+        body { background-color: #071f1a; color: white; font-family: 'Roboto Flex', sans-serif; overflow-x: hidden; }
+        .card-contable { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; }
+        .input-sanalys { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 10px; border-radius: 6px; width: 100%; outline: none; color: white; font-size: 11px; }
+        .btn-fluo { background: var(--fluo); color: var(--verde-deep); font-weight: 900; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        .btn-fluo:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(208,255,78,0.3); }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--fluo); border-radius: 10px; }
+        select optgroup { background: #000; color: var(--fluo); font-weight: bold; }
+        select option { background: #0A3D33; color: white; font-weight: normal; }
+        
+        /* MODAL AYUDA */
+        .modal-ayuda-content { max-height: 70vh; overflow-y: auto; }
+        .step-ayuda { background: rgba(208,255,78,0.05); border-left: 3px solid var(--fluo); padding: 12px; margin: 10px 0; border-radius: 8px; }
+        .step-ayuda h4 { color: var(--fluo); font-weight: 900; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; }
+        .step-ayuda p { font-size: 10px; opacity: 0.9; line-height: 1.5; }
+    </style>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="p-5 md:p-7" onload="init()">
+
+    <div id="modalAyuda" class="fixed inset-0 bg-black/95 hidden z-[100] flex items-center justify-center p-4">
+        <div class="card-contable p-6 w-full max-w-3xl border-t-4 border-[var(--fluo)] shadow-2xl relative max-h-[90vh] overflow-hidden flex flex-col">
+            <button onclick="document.getElementById('modalAyuda').classList.add('hidden')" class="absolute top-4 right-4 text-white hover:text-red-500 font-bold text-xl z-10">✕</button>
+            
+            <h2 class="text-2xl font-black uppercase text-[var(--fluo)] mb-4 text-center tracking-widest border-b border-white/10 pb-3">
+                📊 Manual de Balance y Finanzas
+            </h2>
+            
+            <div class="modal-ayuda-content custom-scroll pr-4 flex-1">
+                
+                <div class="mb-6">
+                    <h3 class="text-sm font-black uppercase text-white mb-3 border-l-4 border-[var(--fluo)] pl-3">¿Para qué sirve este módulo?</h3>
+                    <p class="text-xs opacity-80 leading-relaxed">
+                        El módulo de <strong>Balance y Finanzas</strong> te permite analizar la salud financiera de la clínica con reportes profesionales, gráficos en tiempo real y cálculos automáticos de rentabilidad. Es el cerebro contable del sistema.
+                    </p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>📈 BUSINESS INTELLIGENCE (Gráficos en Tiempo Real)</h4>
+                    <p>La sección superior muestra 3 gráficos que se actualizan automáticamente:</p>
+                    <p class="mt-2"><strong>Ingresos por Mes:</strong> Línea de tendencia para ver crecimiento mes a mes</p>
+                    <p><strong>Top Tratamientos:</strong> Gráfico de torta con las categorías que más facturan</p>
+                    <p><strong>Recaudación por Día:</strong> Barras que muestran qué días de la semana venden más</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>📄 EXPORTACIÓN CONTABLE (PDFs Profesionales)</h4>
+                    <p><strong>Paso 1:</strong> Elegir período usando el <span class="text-[var(--fluo)] font-bold">Selector Rápido</span> (Este Mes, Este Año, etc.) o fechas personalizadas</p>
+                    <p><strong>Paso 2:</strong> Elegir filtro de cuenta (todas o una específica)</p>
+                    <p><strong>Paso 3:</strong> Click en el botón según lo que necesites:</p>
+                    <p class="ml-4 mt-1">• <strong>PDF Sumas y Saldos:</strong> Balance contable por cuenta (Ingresos, Egresos, Saldo Neto)</p>
+                    <p class="ml-4">• <strong>PDF Libro Diario:</strong> Listado completo de movimientos con fecha, hora y usuario</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>💰 MANAGEMENT ACCOUNTING (Contabilidad Gerencial)</h4>
+                    <p>Esta sección calcula automáticamente la rentabilidad real de la clínica:</p>
+                    <p class="mt-2"><strong>Estado de Resultados (P&L):</strong></p>
+                    <p class="ml-4 text-[9px] mt-1">
+                        1. <strong>Ingresos Brutos</strong> → Todo lo que se cobró<br>
+                        2. <strong>(-) Honorarios Médicas</strong> → Costo variable automático (60% o el % configurado)<br>
+                        3. <strong>(-) Costos Variables</strong> → Insumos que solo se compran si hay ventas<br>
+                        4. <strong>(=) MARGEN DE CONTRIBUCIÓN</strong> → Lo que queda para cubrir gastos fijos<br>
+                        5. <strong>(-) Costos Fijos</strong> → Alquiler, sueldos, servicios (se pagan siempre)<br>
+                        6. <strong>(=) EBITDA</strong> → <span class="text-[var(--fluo)] font-bold">Utilidad Operativa Pura de Sanalys</span>
+                    </p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>🎯 PUNTO DE EQUILIBRIO (Break-Even)</h4>
+                    <p>El Punto de Equilibrio es el monto mínimo que hay que facturar para NO perder dinero.</p>
+                    <p class="mt-2"><strong>Cálculo:</strong> Costos Fijos ÷ Margen de Contribución %</p>
+                    <p class="mt-2"><strong>Ejemplo:</strong></p>
+                    <p class="ml-4 text-[9px]">
+                        - Costos Fijos del mes: $500,000<br>
+                        - Margen de Contribución: 40% (de cada $100 vendidos, quedan $40 después de honorarios e insumos)<br>
+                        - Punto de Equilibrio: $500,000 ÷ 0.40 = <strong>$1,250,000</strong><br>
+                        → Hay que facturar $1,250,000 para cubrir todos los gastos. Todo lo que se facture después de eso es ganancia.
+                    </p>
+                    <p class="mt-2 text-[var(--fluo)] font-bold">La barra de progreso muestra qué % del punto de equilibrio ya se alcanzó.</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>👥 UTILIDAD NETA SANALYS (Distribución)</h4>
+                    <p>El EBITDA no es todo para las socias. Primero se descuenta:</p>
+                    <p class="ml-4 mt-2">
+                        1. <strong>Fondo Reserva:</strong> Un % que se guarda para emergencias (configurable en Admin)<br>
+                        2. <strong>Utilidad Neta:</strong> Lo que queda se divide entre las socias según su participación
+                    </p>
+                    <p class="mt-2"><strong>Dividendo x Socia:</strong> Si hay 3 socias con partes iguales, se divide en 3.</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>💼 HONORARIOS A COBRAR (Staff)</h4>
+                    <p>Muestra cuánto le debe la clínica a cada médica en concepto de honorarios.</p>
+                    <p class="mt-2"><strong>Cálculo:</strong> Honorarios generados - Retiros realizados = Saldo a favor</p>
+                    <p class="mt-1 text-orange-400 text-[9px]">Si una médica tiene $100,000 a favor, puede hacer un retiro desde Caja por ese monto.</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>🔍 AUDITORÍA DE ARQUEOS DE CAJA</h4>
+                    <p>El botón "🔍 Ver Arqueos de Caja" arriba a la derecha permite consultar los cierres de turno históricos.</p>
+                    <p class="mt-2"><strong>Paso 1:</strong> Seleccionar fecha</p>
+                    <p><strong>Paso 2:</strong> Filtrar por cajero (opcional)</p>
+                    <p><strong>Paso 3:</strong> Descargar el PDF del arqueo para ver movimientos del turno, billetes contados y diferencias</p>
+                </div>
+
+                <div class="step-ayuda">
+                    <h4>📅 SELECTOR RÁPIDO DE PERÍODOS</h4>
+                    <p>Para no tener que poner fechas manualmente, usá los botones rápidos:</p>
+                    <p class="ml-4 mt-2 text-[9px]">
+                        • <strong>Hoy:</strong> Solo movimientos de hoy<br>
+                        • <strong>Ayer:</strong> Solo movimientos de ayer<br>
+                        • <strong>Esta Semana:</strong> Lunes a domingo de esta semana<br>
+                        • <strong>Este Mes:</strong> Desde el día 1 hasta hoy<br>
+                        • <strong>Mes Pasado:</strong> Todo el mes anterior completo<br>
+                        • <strong>Este Año:</strong> Desde el 1 de enero hasta hoy<br>
+                        • <strong>Último Trimestre:</strong> Los últimos 3 meses<br>
+                        • <strong>Todo:</strong> Todos los movimientos desde siempre
+                    </p>
+                </div>
+
+                <div class="bg-red-500/10 border border-red-500/30 p-4 rounded-lg mt-6">
+                    <p class="text-xs font-bold text-red-400">⚠️ CONCEPTOS CLAVE PARA ENTENDER</p>
+                    <p class="text-[9px] mt-2 leading-relaxed">
+                        <strong>EBITDA:</strong> Es la ganancia operativa de la clínica (sin contar honorarios de médicas).<br>
+                        <strong>Margen de Contribución:</strong> Lo que queda después de pagar costos variables (honorarios + insumos).<br>
+                        <strong>Costos Fijos:</strong> Gastos que se pagan siempre, haya o no ventas (alquiler, sueldos).<br>
+                        <strong>Costos Variables:</strong> Gastos que solo ocurren si hay ventas (honorarios, insumos médicos).
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-white/10">
+                <button onclick="document.getElementById('modalAyuda').classList.add('hidden')" class="btn-fluo w-full py-3 rounded-lg text-xs">
+                    ✓ ENTENDIDO, CERRAR MANUAL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCierres" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4 z-[100]">
+        <div class="card-contable p-6 w-full max-w-2xl border-t-4 border-blue-500 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-sm font-black uppercase text-blue-400 tracking-widest">Auditoría de Arqueos de Caja</h2>
+                <button onclick="document.getElementById('modalCierres').classList.add('hidden')" class="text-white hover:text-red-500 font-bold text-xl">✕</button>
+            </div>
+            
+            <div class="flex gap-3 mb-6 bg-black/30 p-4 rounded-xl border border-white/10">
+                <div class="flex-1"><label class="text-[9px] uppercase font-bold text-blue-300 ml-1">Fecha</label><input type="date" id="filtroFechaCierre" class="input-sanalys text-xs" onchange="window.filtrarCierres()"></div>
+                <div class="flex-1"><label class="text-[9px] uppercase font-bold text-blue-300 ml-1">Cajero</label><select id="filtroUsuarioCierre" class="input-sanalys text-xs text-black" onchange="window.filtrarCierres()"><option value="">Todos los usuarios</option></select></div>
+            </div>
+
+            <div class="overflow-y-auto max-h-[350px] custom-scroll space-y-3 pr-2" id="listaCierresAnteriores">
+                <p class="opacity-40 text-xs text-center py-6">Seleccione una fecha.</p>
+            </div>
+        </div>
+    </div>
+
+    <header class="max-w-7xl mx-auto mb-8 flex justify-between items-center border-b border-white/10 pb-6">
+        <div>
+            <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">sanalys<span style="color:var(--fluo)">.</span></h1>
+            <p style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:2px">Contabilidad & Balance</p>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="document.getElementById('modalAyuda').classList.remove('hidden')" class="bg-[var(--fluo)] text-[var(--verde-deep)] px-6 py-2 rounded-lg text-[10px] font-black uppercase hover:scale-105 transition shadow-lg border-2 border-[var(--fluo)]">
+                📚 AYUDA COMPLETA
+            </button>
+            <button onclick="window.abrirModalCierres()" class="border border-blue-400 text-blue-300 px-6 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-blue-500 hover:text-white transition shadow-lg">🔍 Ver Arqueos de Caja</button>
+            <button onclick="window.location.href='index.html'" class="bg-white/10 px-6 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-white/20 transition">Volver al Panel</button>
+        <div class="flex items-center gap-1 border-l border-white/10 pl-3 ml-1"><a href="caja.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Caja"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Caja</span></a><a href="admin.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Config"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Config</span></a></div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto space-y-8">
+
+        <section class="card-contable p-6 border-t-4 border-[var(--fluo)] shadow-2xl">
+            <h2 class="text-[11px] font-black uppercase text-[var(--fluo)] tracking-widest mb-6 border-b border-white/10 pb-2">Business Intelligence (Métricas Globales)</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-black/40 p-4 rounded-2xl border border-white/5"><p class="text-[9px] font-bold uppercase opacity-60 text-center mb-2">Ingresos por Mes</p><canvas id="chartMeses" height="200"></canvas></div>
+                <div class="bg-black/40 p-4 rounded-2xl border border-white/5 flex flex-col justify-center items-center"><p class="text-[9px] font-bold uppercase opacity-60 text-center mb-2">Top Tratamientos</p><div class="w-full max-w-[200px]"><canvas id="chartTop" height="200"></canvas></div></div>
+                <div class="bg-black/40 p-4 rounded-2xl border border-white/5"><p class="text-[9px] font-bold uppercase opacity-60 text-center mb-2">Recaudación por Día</p><canvas id="chartDias" height="200"></canvas></div>
+            </div>
+        </section>
+
+        <section class="card-contable p-6 border-l-4 border-blue-400">
+            <h2 class="text-[11px] font-black uppercase text-blue-300 tracking-widest mb-4">Exportación Contable (Archivos PDF)</h2>
+            
+            <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl mb-4">
+                <p class="text-[9px] uppercase font-bold text-blue-300 mb-3">⚡ Selector Rápido de Período</p>
+                <div class="grid grid-cols-4 md:grid-cols-8 gap-2">
+                    <button onclick="window.setPeriodoRapido('hoy')" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-[9px] font-bold uppercase transition">Hoy</button>
+                    <button onclick="window.setPeriodoRapido('ayer')" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-[9px] font-bold uppercase transition">Ayer</button>
+                    <button onclick="window.setPeriodoRapido('semana')" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-[9px] font-bold uppercase transition">Esta Semana</button>
+                    <button onclick="window.setPeriodoRapido('mes')" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-[9px] font-bold uppercase transition">Este Mes</button>
+                    <button onclick="window.setPeriodoRapido('mesAnterior')" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-[9px] font-bold uppercase transition">Mes Pasado</button>
+                    <button onclick="window.setPeriodoRapido('anio')" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-[9px] font-bold uppercase transition">Este Año</button>
+                    <button onclick="window.setPeriodoRapido('trimestre')" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-[9px] font-bold uppercase transition">Último Trimestre</button>
+                    <button onclick="window.setPeriodoRapido('todo')" class="bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-[9px] font-bold uppercase transition">Todo</button>
+                </div>
+            </div>
+            
+            <div class="flex items-end gap-2 flex-wrap">
+                <div class="flex flex-col">
+                    <label class="text-[8px] uppercase opacity-50 ml-1 font-bold mb-1">Desde</label>
+                    <input type="date" id="filtroDesde" class="input-sanalys text-[10px]" style="width:130px" onchange="window.filtrarYCalcular()">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-[8px] uppercase opacity-50 ml-1 font-bold mb-1">Hasta</label>
+                    <input type="date" id="filtroHasta" class="input-sanalys text-[10px]" style="width:130px" onchange="window.filtrarYCalcular()">
+                </div>
+                <div class="flex flex-col flex-1" style="min-width:180px">
+                    <label class="text-[8px] uppercase opacity-50 ml-1 font-bold mb-1">Cuenta</label>
+                    <select id="filtroCuenta" class="input-sanalys font-bold text-[10px]" onchange="window.filtrarYCalcular()">
+                        <option value="TODAS">-- Todas las cuentas --</option>
+                    </select>
+                </div>
+                <button onclick="window.descargarMayorPDF()" class="bg-teal-600 hover:bg-teal-500 text-white py-2 px-3 rounded-lg text-[9px] font-black uppercase transition whitespace-nowrap">📄 Sumas y Saldos</button>
+                <button onclick="window.descargarAuditoriaPDF()" class="btn-fluo py-2 px-3 rounded-lg text-[9px] font-black uppercase transition whitespace-nowrap">📄 Libro Diario</button>
+                <button onclick="window.descargarAsientosPDF()" class="bg-purple-600 hover:bg-purple-500 text-white py-2 px-3 rounded-lg text-[9px] font-black uppercase transition whitespace-nowrap">📒 Asientos</button>
+                <button onclick="window.descargarLibroMayorPDF()" class="bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-3 rounded-lg text-[9px] font-black uppercase transition whitespace-nowrap">📘 Libro Mayor</button>
+                <button onclick="window.descargarEstadoProfesional()" class="bg-orange-600 hover:bg-orange-500 text-white py-2 px-3 rounded-lg text-[9px] font-black uppercase transition whitespace-nowrap">👩‍⚕️ Estado Profesional</button>
+            </div>
+            <p class="text-[9px] text-blue-300 opacity-80 mt-3 text-center italic">Al hacer clic se generará el documento PDF con los filtros seleccionados, separando Ingresos (+) y Egresos (-).</p>
+        </section>
+
+        <section class="card-contable p-6 border-t-4 border-indigo-500 shadow-xl">
+            <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                <h2 class="text-[11px] font-black uppercase text-indigo-400 tracking-widest">Management Accounting (Contabilidad Gerencial)</h2>
+            </div>
+            
+            <div class="bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl mb-6">
+                <p class="text-[9.5px] text-indigo-200 leading-relaxed">
+                    💡 <strong>Estado de Resultados (P&L):</strong> 
+                    Los <span class="text-[var(--fluo)] font-bold">Ingresos</span> son las ventas. 
+                    Los <span class="text-orange-400 font-bold">Costos Variables</span> incluyen Honorarios e Insumos (solo ocurren si hay ventas). 
+                    Los <span class="text-red-400 font-bold">Costos Fijos</span> son estructura (alquiler, sueldos). 
+                    El <strong>EBITDA</strong> es la rentabilidad operativa pura de Sanalys. El <strong>Punto de Equilibrio</strong> marca cuánto hay que facturar para cubrir la estructura fija.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-black/40 p-5 rounded-2xl border border-white/5">
+                    <h3 class="text-[10px] font-bold uppercase opacity-60 text-center mb-4 border-b border-white/10 pb-2">Estado de Resultados (P&L)</h3>
+                    <div class="space-y-2 text-[10px]">
+                        <div class="flex justify-between border-b border-white/5 pb-1"><span class="opacity-80">Ingresos Operativos Brutos</span><span id="plIngresos" class="font-bold text-white">$0</span></div>
+                        <div class="flex justify-between pb-1"><span class="opacity-80">(-) Costos Variables (Honorarios)</span><span id="plHonorarios" class="font-bold text-orange-400">-$0</span></div>
+                        <div class="flex justify-between border-b border-white/5 pb-1"><span class="opacity-80">(-) Costos Variables (Otros/Insumos)</span><span id="plEgresosVar" class="font-bold text-pink-400">-$0</span></div>
+                        
+                        <div class="flex justify-between border-b border-white/20 pb-1 mt-1 pt-1"><span class="font-bold text-[var(--fluo)]">(=) MARGEN DE CONTRIBUCIÓN</span><span id="plMargen" class="font-black text-[var(--fluo)]">$0</span></div>
+                        
+                        <div class="flex justify-between border-b border-white/5 pb-1 mt-2"><span class="opacity-80">(-) Costos Fijos (Egresos Estructura)</span><span id="plFijos" class="font-bold text-red-400">-$0</span></div>
+                    </div>
+                    <div class="mt-4 text-center bg-white/5 p-3 rounded-lg border border-white/10 shadow-inner">
+                        <p class="text-[9px] uppercase font-bold opacity-60">EBITDA (Utilidad Operativa)</p>
+                        <p id="plEbitda" class="text-3xl font-black text-[var(--fluo)]">$0</p>
+                    </div>
+                </div>
+
+                <div class="bg-black/40 p-4 rounded-2xl border border-white/5 flex flex-col justify-center">
+                    <h3 class="text-[10px] font-bold uppercase opacity-60 text-center mb-4">Punto de Equilibrio (Break-Even)</h3>
+                    <div class="text-center mb-4">
+                        <p class="text-[9px] uppercase opacity-50">Meta de Facturación Mínima</p>
+                        <p id="beMeta" class="text-2xl font-black text-white">$0</p>
+                    </div>
+                    <div class="w-full bg-white/10 rounded-full h-4 mb-2 relative overflow-hidden">
+                        <div id="beProgresoBarra" class="h-4 rounded-full transition-all duration-1000" style="width: 0%; background-color: #f97316;"></div>
+                    </div>
+                    <div class="flex justify-between text-[9px] font-bold mb-4">
+                        <span class="opacity-50">0%</span>
+                        <span id="beProgresoTxt" class="text-white">0%</span>
+                    </div>
+                    <div id="beStatus" class="text-center text-[10px] p-2 bg-black/50 rounded-lg">
+                        Cargando...
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-between h-full space-y-4">
+                    <div class="bg-purple-900/20 p-4 rounded-2xl border border-purple-500/30">
+                        <div class="flex justify-between items-center mb-2 border-b border-white/10 pb-2"><p class="text-[10px] uppercase font-black text-purple-300 tracking-widest">Utilidad Neta Sanalys</p><span class="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-[8px] font-bold" id="badgeSocias">3 Socias</span></div>
+                        <div class="flex justify-between items-center mb-1 text-[9px]"><span class="opacity-60">Fondo Reserva (<span id="txtPorcReserva">5</span>%)</span><span id="indReserva" class="font-bold text-blue-400">-$ 0</span></div>
+                        <p class="text-2xl font-black text-[var(--fluo)] mt-2" id="indNetaSoc">$ 0</p>
+                        <div class="mt-2 bg-black/30 p-2 rounded text-center border border-purple-500/30"><p class="text-[8px] uppercase opacity-60">Dividendo x Socia</p><p class="text-lg font-black text-purple-300" id="indDividendoSocia">$ 0</p></div>
+                    </div>
+
+                    <div class="bg-orange-900/10 p-4 rounded-2xl border border-orange-500/30 flex-1 overflow-y-auto custom-scroll max-h-[140px]">
+                        <p class="text-[10px] uppercase opacity-70 font-black text-orange-300 tracking-widest mb-3 border-b border-white/10 pb-1">Honorarios a Cobrar (Staff)</p>
+                        <div id="resumenProfesionales" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card-contable p-6 border-t-4 border-emerald-500 shadow-xl" id="seccionInversiones">
+            <div class="flex justify-between items-center mb-5 border-b border-white/10 pb-3">
+                <h2 class="text-[11px] font-black uppercase text-emerald-400 tracking-widest">Portafolio de Inversiones</h2>
+                <button onclick="window.descargarInversionesPDF()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase transition">📄 PDF Inversiones</button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-black/40 p-4 rounded-xl border border-emerald-500/20 text-center">
+                    <p class="text-[8px] uppercase opacity-50 font-bold">Capital Invertido</p>
+                    <p class="text-xl font-black text-white mt-1" id="inv_capital_total">$ 0</p>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-emerald-500/20 text-center">
+                    <p class="text-[8px] uppercase opacity-50 font-bold">Valor Actual</p>
+                    <p class="text-xl font-black text-emerald-400 mt-1" id="inv_valor_total">$ 0</p>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-emerald-500/20 text-center">
+                    <p class="text-[8px] uppercase opacity-50 font-bold">Rendimiento Neto</p>
+                    <p class="text-xl font-black mt-1" id="inv_rendimiento_total">$ 0</p>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-emerald-500/20 text-center">
+                    <p class="text-[8px] uppercase opacity-50 font-bold">Inversiones Activas</p>
+                    <p class="text-xl font-black text-white mt-1" id="inv_count_activas">0</p>
+                </div>
+            </div>
+
+            <div id="tabla_inversiones" class="space-y-3">
+                <p class="text-center opacity-30 text-xs py-6 animate-pulse">Cargando inversiones...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy, getDoc, getDocs, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA", authDomain: "sanalys-2263e.firebaseapp.com", projectId: "sanalys-2263e", storageBucket: "sanalys-2263e.firebasestorage.app", messagingSenderId: "899593881035", appId: "1:899593881035:web:cd0ddfdb4f8af089e9224e" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let todosLosMovimientos = [];
+        let movsGlobalesFiltradosPorFecha = []; 
+        let movsFiltradosPorCuenta = []; 
+        let configuracion = { porcentajeMedica: 60, porcentajeSueros: 60, porcentajeReserva: 5, divisionSociedad: 3 };
+        
+        let cfgIngresos = []; let cfgEgresosFijos = []; let cfgEgresosVariables = []; let listaProfesionales = [];
+        let SESION = null;
+
+        let chartLine, chartPie, chartBar;
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
+        Chart.defaults.font.family = "'Roboto Flex', sans-serif";
+
+        let inversiones = [];
+
+        window.init = async () => {
+            const sesionText = sessionStorage.getItem('usuario_sanalys');
+            if(!sesionText) { window.location.href = 'login.html'; return; }
+            SESION = JSON.parse(sesionText);
+            if(SESION.rol !== 'admin' && !SESION.permisos?.includes('balance')) { window.location.href = 'index.html'; return; }
+
+            // ✅ LECTURA CORRECTA DEL REPARTO DESDE ADMIN (RESPETA EL 0%)
+            try {
+                const confSnap = await getDoc(doc(db, "config", "reparto"));
+                if(confSnap.exists()) {
+                    const data = confSnap.data();
+                    if (data.porcentajeMedica !== undefined) configuracion.porcentajeMedica = data.porcentajeMedica;
+                    if (data.porcentajeSueros !== undefined) configuracion.porcentajeSueros = data.porcentajeSueros;
+                    if (data.porcentajeReserva !== undefined) configuracion.porcentajeReserva = data.porcentajeReserva;
+                    if (data.divisionSociedad !== undefined) configuracion.divisionSociedad = data.divisionSociedad;
+                }
+                document.getElementById('txtPorcReserva').innerText = configuracion.porcentajeReserva;
+                document.getElementById('badgeSocias').innerText = `${configuracion.divisionSociedad} Socias`;
+            } catch(e) {}
+
+            try {
+                const maestSnap = await getDoc(doc(db, "config", "maestros"));
+                if(maestSnap.exists()) {
+                    const data = maestSnap.data();
+                    cfgIngresos = data.ingresos || [];
+                    cfgEgresosFijos = data.egresos || [];
+                    cfgEgresosVariables = data.egresosVariables || [];
+                }
+            } catch(e) {}
+
+            try {
+                const { getDocs, collection: col } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                const personasSnap = await getDocs(col(db, "personas"));
+                listaProfesionales = personasSnap.docs
+                    .map(d => d.data())
+                    .filter(p => p.esMedica && p.activo !== false)
+                    .map(p => p.nombre)
+                    .sort();
+            } catch(e) {}
+
+            let selectHtml = '<option value="TODAS">-- Balance General (Todas las cuentas) --</option>';
+            if(cfgIngresos.length > 0) selectHtml += `<optgroup label="💰 Cuentas de Ingreso">${cfgIngresos.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
+            if(cfgEgresosFijos.length > 0) selectHtml += `<optgroup label="📉 Egresos Fijos">${cfgEgresosFijos.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
+            if(cfgEgresosVariables.length > 0) selectHtml += `<optgroup label="📉 Egresos Variables">${cfgEgresosVariables.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
+            if(listaProfesionales.length > 0) selectHtml += `<optgroup label="👩‍⚕️ Staff / Honorarios">${listaProfesionales.map(p => `<option value="STAFF_${p}">Honorarios: ${p}</option>`).join('')}</optgroup>`;
+            document.getElementById('filtroCuenta').innerHTML = selectHtml;
+            document.getElementById('filtroUsuarioCierre').innerHTML = '<option value="">Todos los usuarios</option>' + listaProfesionales.map(p => `<option value="${p}">${p}</option>`).join('');
+
+            onSnapshot(collection(db, "inversiones"), snap => {
+                inversiones = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                renderInversiones();
+            });
+
+            onSnapshot(query(collection(db, "caja"), orderBy("id", "desc")), (snap) => {
+                todosLosMovimientos = snap.docs.map(doc => ({ idDoc: doc.id, ...doc.data() }));
+                window.filtrarYCalcular();
+            });
+
+            // [CLINICA] Cargar datos de la clínica desde admin para usarlos en todos los PDFs
+            getDoc(doc(db, 'config', 'datosClinica')).then(snap => {
+                if(snap.exists() && window.SanalysPDF) window.SanalysPDF.setClinica(snap.data());
+            }).catch(() => {});
+        };
+
+        window.setPeriodoRapido = (tipo) => {
+            const hoy = new Date();
+            let desde, hasta;
+            
+            switch(tipo) {
+                case 'hoy':
+                    desde = hasta = hoy;
+                    break;
+                case 'ayer':
+                    const ayer = new Date(hoy);
+                    ayer.setDate(ayer.getDate() - 1);
+                    desde = hasta = ayer;
+                    break;
+                case 'semana':
+                    const primerDia = new Date(hoy);
+                    primerDia.setDate(hoy.getDate() - hoy.getDay() + 1);
+                    desde = primerDia;
+                    hasta = hoy;
+                    break;
+                case 'mes':
+                    desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                    hasta = hoy;
+                    break;
+                case 'mesAnterior':
+                    desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+                    hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+                    break;
+                case 'anio':
+                    desde = new Date(hoy.getFullYear(), 0, 1);
+                    hasta = hoy;
+                    break;
+                case 'trimestre':
+                    const tresMesesAtras = new Date(hoy);
+                    tresMesesAtras.setMonth(hoy.getMonth() - 3);
+                    desde = tresMesesAtras;
+                    hasta = hoy;
+                    break;
+                case 'todo':
+                    document.getElementById('filtroDesde').value = '';
+                    document.getElementById('filtroHasta').value = '';
+                    window.filtrarYCalcular();
+                    return;
+            }
+            
+            const formatFecha = (d) => d.toISOString().split('T')[0];
+            document.getElementById('filtroDesde').value = formatFecha(desde);
+            document.getElementById('filtroHasta').value = formatFecha(hasta);
+            window.filtrarYCalcular();
+        };
+
+        window.filtrarYCalcular = () => {
+            const desde = document.getElementById('filtroDesde').value;
+            const hasta = document.getElementById('filtroHasta').value;
+            const cuentaFiltro = document.getElementById('filtroCuenta').value;
+
+            movsGlobalesFiltradosPorFecha = todosLosMovimientos.filter(m => !m.anulado && m.tipo !== 'CIERRE');
+            if(desde || hasta) {
+                movsGlobalesFiltradosPorFecha = movsGlobalesFiltradosPorFecha.filter(m => {
+                    const [d, m1, a] = m.fecha.split('/'); const fechaM = `${a}-${m1.padStart(2,'0')}-${d.padStart(2,'0')}`;
+                    if(desde && fechaM < desde) return false; if(hasta && fechaM > hasta) return false; return true;
+                });
+            }
+
+            movsFiltradosPorCuenta = movsGlobalesFiltradosPorFecha;
+            const esFiltroStaff = cuentaFiltro !== "TODAS" && cuentaFiltro.startsWith("STAFF_");
+            
+            if(cuentaFiltro !== "TODAS") {
+                if(esFiltroStaff) {
+                    const prof = cuentaFiltro.replace("STAFF_", "");
+                    // [FIX] Incluir tanto INGRESO del paciente (profesional asignado) como EGRESOde honorario
+                    // El INGRESO del paciente tiene: tipo='INGRESO', profesional=prof, esTraspaso=false
+                    // El EGRESO honorario tiene:     tipo='EGRESO',  profesional=prof, esHonorario=true
+                    movsFiltradosPorCuenta = movsFiltradosPorCuenta.filter(m => m.profesional === prof);
+                    console.log('[BALANCE] Filtro Staff activo:', prof, 
+                        '| INGRESOs:', movsFiltradosPorCuenta.filter(m=>m.tipo==='INGRESO'&&!m.esTraspaso).length,
+                        '| EGRESOs honorarios:', movsFiltradosPorCuenta.filter(m=>m.esHonorario).length);
+                } else {
+                    movsFiltradosPorCuenta = movsFiltradosPorCuenta.filter(m => (m.centroCosto || m.tipo) === cuentaFiltro);
+                }
+            }
+            
+            // [FIX] Cuando el filtro es por Staff, los cálculos del P&L deben reflejar SOLO esa profesional
+            // (antes siempre usaban movsGlobalesFiltradosPorFecha ignorando el filtro de staff)
+            const movsParaCalculo = esFiltroStaff ? movsFiltradosPorCuenta : movsGlobalesFiltradosPorFecha;
+            
+            calcularManagementAccounting(movsParaCalculo);
+            calcularTricount(movsParaCalculo);
+            renderGraficosBI(movsParaCalculo);
+        };
+
+        function calcularManagementAccounting(movs) {
+            let ingresosTotales = 0;
+            let egresosFijos = 0;
+            let egresosVarCargados = 0;
+            let honorariosVariables = 0;
+
+            movs.forEach(m => {
+                const monto = parseFloat(m.mon) || 0;
+                if(m.tipo === 'INGRESO' && !m.esTraspaso) {
+                    ingresosTotales += monto;
+                    
+                    if(m.profesional && m.profesional !== 'Sanalys') {
+                        let porc = configuracion.porcentajeMedica;
+                        if(m.centroCosto && (m.centroCosto.toLowerCase().includes('suero') || m.centroCosto.toLowerCase().includes('fórmula'))) porc = configuracion.porcentajeSueros;
+                        honorariosVariables += Math.round(monto * porc) / 100;
+                    }
+                }
+                if(m.tipo === 'EGRESO' && !m.esTraspaso) {
+                    if(cfgEgresosVariables.includes(m.centroCosto)) {
+                        egresosVarCargados += monto;
+                    } else {
+                        egresosFijos += monto;
+                    }
+                }
+            });
+
+            const margenContribucion = ingresosTotales - honorariosVariables - egresosVarCargados;
+            const ebitda = margenContribucion - egresosFijos;
+            
+            let margenPorcentual = ingresosTotales > 0 ? (margenContribucion / ingresosTotales) : 0;
+            let puntoEquilibrio = margenPorcentual > 0 ? (egresosFijos / margenPorcentual) : 0;
+            
+            let progresoEquilibrio = puntoEquilibrio > 0 ? (ingresosTotales / puntoEquilibrio) * 100 : 100;
+            if(progresoEquilibrio > 100) progresoEquilibrio = 100;
+
+            document.getElementById('plIngresos').innerText = `$ ${ingresosTotales.toLocaleString()}`;
+            document.getElementById('plHonorarios').innerText = `-$ ${honorariosVariables.toLocaleString()}`;
+            document.getElementById('plEgresosVar').innerText = `-$ ${egresosVarCargados.toLocaleString()}`;
+            document.getElementById('plMargen').innerText = `$ ${margenContribucion.toLocaleString()}`;
+            document.getElementById('plFijos').innerText = `-$ ${egresosFijos.toLocaleString()}`;
+            
+            const elEbitda = document.getElementById('plEbitda');
+            elEbitda.innerText = `$ ${ebitda.toLocaleString()}`;
+            elEbitda.className = ebitda >= 0 ? "text-3xl font-black text-[var(--fluo)]" : "text-3xl font-black text-red-500";
+
+            document.getElementById('beMeta').innerText = `$ ${Math.round(puntoEquilibrio).toLocaleString()}`;
+            document.getElementById('beProgresoBarra').style.width = `${progresoEquilibrio}%`;
+            document.getElementById('beProgresoTxt').innerText = `${progresoEquilibrio.toFixed(1)}%`;
+            
+            const beStatus = document.getElementById('beStatus');
+            if(ingresosTotales >= puntoEquilibrio && puntoEquilibrio > 0) {
+                beStatus.innerHTML = '<span class="text-[var(--fluo)] font-bold animate-pulse">✅ ¡Punto de Equilibrio Alcanzado! Todo nuevo ingreso es ganancia.</span>';
+                document.getElementById('beProgresoBarra').style.backgroundColor = '#D0FF4E';
+            } else if (puntoEquilibrio === 0) {
+                beStatus.innerHTML = '<span class="text-gray-400 font-bold">Sin gastos fijos registrados.</span>';
+                document.getElementById('beProgresoBarra').style.backgroundColor = '#4B5563';
+            } else {
+                let faltante = puntoEquilibrio - ingresosTotales;
+                beStatus.innerHTML = `<span class="text-orange-400 font-bold">Faltan facturar $${Math.round(faltante).toLocaleString()} para no perder dinero.</span>`;
+                document.getElementById('beProgresoBarra').style.backgroundColor = '#f97316';
+            }
+        }
+
+        function calcularTricount(movs) {
+            let honorarios = {}; let retirosHonorarios = {}; let retirosDividendos = {};
+            listaProfesionales.forEach(p => { honorarios[p] = 0; retirosHonorarios[p] = 0; retirosDividendos[p] = 0; });
+            let ingresosSoc = 0; let egresosSoc = 0;
+
+            movs.forEach(m => {
+                const monto = parseFloat(m.mon) || 0;
+                if(m.tipo === 'INGRESO' && !m.esTraspaso) {
+                    if(m.profesional && m.profesional !== 'Sanalys') {
+                        if(honorarios[m.profesional] === undefined) { honorarios[m.profesional] = 0; retirosHonorarios[m.profesional] = 0; retirosDividendos[m.profesional] = 0; }
+                        let porcMedica = configuracion.porcentajeMedica;
+                        if(m.centroCosto && (m.centroCosto.toLowerCase().includes('suero') || m.centroCosto.toLowerCase().includes('fórmula'))) porcMedica = configuracion.porcentajeSueros;
+                        const h = Math.round(monto * porcMedica) / 100;
+                        honorarios[m.profesional] += h; ingresosSoc += (monto - h);
+                    } else { ingresosSoc += monto; }
+                } else if(m.tipo === 'EGRESO' && !m.esTraspaso) { egresosSoc += monto; }
+                else if(m.tipo === 'RETIRO') {
+                    const prof = m.profesional;
+                    if(prof) {
+                        if(honorarios[prof] === undefined) { honorarios[prof] = 0; retirosHonorarios[prof] = 0; retirosDividendos[prof] = 0; }
+                        if(m.centroCosto.includes('Dividendos')) retirosDividendos[prof] += monto; else retirosHonorarios[prof] += monto;
+                    }
+                }
+            });
+
+            const utOp = ingresosSoc - egresosSoc; let res = 0; let utRep = utOp;
+            if(utOp > 0) { res = utOp * (configuracion.porcentajeReserva / 100); utRep = utOp - res; }
+            const divSocia = utRep / (configuracion.divisionSociedad || 3);
+
+            document.getElementById('indReserva').innerText = utOp > 0 ? `-$ ${res.toLocaleString()}` : "$ 0";
+            document.getElementById('indNetaSoc').innerText = `$ ${utRep.toLocaleString()}`;
+            document.getElementById('indDividendoSocia').innerText = `$ ${divSocia.toLocaleString()}`;
+            
+            let htmlProfs = "";
+            Object.keys(honorarios).forEach(med => {
+                if(listaProfesionales.includes(med) || honorarios[med] > 0 || retirosHonorarios[med] > 0) {
+                    const sHon = honorarios[med] - retirosHonorarios[med];
+                    htmlProfs += `<div class="bg-black/30 p-2 rounded-lg border border-white/5 group mb-2"><p class="text-[10px] font-black uppercase text-white">${med}</p><div class="flex justify-between items-center bg-white/5 p-1 rounded mt-1"><span class="text-[8px] uppercase opacity-60">Honorarios Base:</span><span class="text-[9px] font-black ${sHon >= 0 ? 'text-[var(--fluo)]' : 'text-red-400'}">$${sHon.toLocaleString()}</span></div></div>`;
+                }
+            });
+            document.getElementById('resumenProfesionales').innerHTML = htmlProfs === "" ? '<p class="text-center opacity-30 text-xs py-4">No hay profesionales.</p>' : htmlProfs;
+        }
+
+        window.descargarMayorPDF = () => {
+
+            try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Error: librería PDF no cargada. Recargá la página.', 'error'); return; }
+            if(!SESION) return;
+            const desde = document.getElementById('filtroDesde').value || "Inicio";
+            const hasta = document.getElementById('filtroHasta').value || "Hoy";
+            const cuentaFiltro = document.getElementById('filtroCuenta').value;
+            const isFiltroActivo = cuentaFiltro !== "TODAS";
+            const ctaStr = isFiltroActivo ? document.getElementById('filtroCuenta').options[document.getElementById('filtroCuenta').selectedIndex].text : "Balance General Completo";
+
+            const cuentas = {};
+            if(!isFiltroActivo) {
+                cfgIngresos.forEach(c => cuentas[c] = { ing:0, egr:0, tipo:'ingreso' });
+                cfgEgresosFijos.forEach(c => cuentas[c] = { ing:0, egr:0, tipo:'fijo' });
+                cfgEgresosVariables.forEach(c => cuentas[c] = { ing:0, egr:0, tipo:'variable' });
+                listaProfesionales.forEach(p => cuentas[`Honorarios ${p}`] = { ing:0, egr:0, tipo:'honorario' });
+            }
+
+            movsGlobalesFiltradosPorFecha.forEach(m => {
+                let cta = m.centroCosto || 'Varios / Otros';
+                if(m.tipo==='RETIRO' && m.profesional) cta = `Honorarios ${m.profesional}`;
+                if(!cuentas[cta]) cuentas[cta] = { ing:0, egr:0, tipo:'otro' };
+                const monto = parseFloat(m.mon)||0;
+                if(m.tipo==='INGRESO' && !m.esTraspaso) cuentas[cta].ing += monto;
+                if(m.tipo==='EGRESO' && !m.esTraspaso) cuentas[cta].egr += monto;
+                if(m.tipo==='RETIRO') cuentas[cta].egr += monto;
+            });
+
+            const rows = [];
+            let sumIng=0, sumEgr=0;
+            let cuentasAMostrar = Object.keys(cuentas).sort();
+            if(isFiltroActivo) {
+                if(cuentaFiltro.startsWith("STAFF_")) cuentasAMostrar = [`Honorarios ${cuentaFiltro.replace("STAFF_","")}`];
+                else cuentasAMostrar = [cuentaFiltro];
+            }
+            cuentasAMostrar.forEach(nc => {
+                const data = cuentas[nc]; if(!data) return;
+                if(!isFiltroActivo || (data.ing>0||data.egr>0)) {
+                    sumIng += data.ing; sumEgr += data.egr;
+                    rows.push([nc.toUpperCase(), `$ ${data.ing.toLocaleString()}`, `$ ${data.egr.toLocaleString()}`, `$ ${(data.ing-data.egr).toLocaleString()}`, data.tipo]);
+                }
+            });
+
+            if(rows.length===0) return toast('⚠️ No hay datos contables para exportar.', 'error');
+
+            // ── Template maestro ────────────────────────────────────────────
+            const { doc: _jdoc, startY } = SanalysPDF.crear({
+                titulo:    'Libro Mayor — Sumas y Saldos',
+                subtitulo: `Período: ${desde} al ${hasta}  ·  ${ctaStr}`,
+                emisor:    SESION?.nombre,
+            });
+            const T = SanalysPDF.T;
+
+            // KPI boxes resumen
+            let xK = T.M;
+            xK = SanalysPDF.kpiBox(_jdoc, xK, startY - 8, 54, 18, 'Ingresos Totales', `$ ${sumIng.toLocaleString('es-AR')}`, T.VERDE_OK);
+            xK = SanalysPDF.kpiBox(_jdoc, xK, startY - 8, 54, 18, 'Egresos Totales',  `$ ${sumEgr.toLocaleString('es-AR')}`, T.ROJO);
+            const saldo = sumIng - sumEgr;
+            SanalysPDF.kpiBox(_jdoc, xK, startY - 8, 54, 18, 'Saldo Neto', `${saldo>=0?'+ ':'- '}$ ${Math.abs(saldo).toLocaleString('es-AR')}`, saldo >= 0 ? T.VERDE_OK : T.ROJO);
+
+            const tableRows = rows.map(r => r.slice(0,4));
+            _jdoc.autoTable(SanalysPDF.tableConfig({
+                head:[['CUENTA CONTABLE','INGRESOS (+)','EGRESOS (-)','SALDO NETO']],
+                body: tableRows,
+                startY: startY + 16,
+                columnStyles:{
+                    1:{ halign:'right' },
+                    2:{ halign:'right', fontStyle:'bold' },
+                    3:{ halign:'right', fontStyle:'bold' }
+                },
+                foot:[ ['TOTALES', `$ ${sumIng.toLocaleString('es-AR')}`, `$ ${sumEgr.toLocaleString('es-AR')}`, `${saldo>=0?'+ ':'- '}$ ${Math.abs(saldo).toLocaleString('es-AR')}`] ],
+                footStyles:{ fillColor: T.VERDE, textColor: T.FLUO, fontStyle:'bold', fontSize:8 },
+                _didParseCell(data) {
+                    if(data.section==='body' && data.column.index===3) {
+                        const raw = data.cell.raw||'';
+                        const num = parseFloat(raw.replace(/[^0-9.-]/g,'')) * (raw.includes('- ')||raw.startsWith('-')?-1:1);
+                        data.cell.styles.textColor = num >= 0 ? T.VERDE_OK : T.ROJO;
+                    }
+                    if(data.section==='body' && data.column.index===2) {
+                        data.cell.styles.textColor = T.ROJO;
+                    }
+                    if(data.section==='body' && data.column.index===1) {
+                        data.cell.styles.textColor = T.VERDE_OK;
+                    }
+                },
+            }));
+
+            SanalysPDF.save(_jdoc, `Sumas_Saldos_Sanalys_${new Date().toISOString().split('T')[0]}.pdf`,
+                { disclaimer: 'Sanalys Clínica Ortomolecular  ·  Balance contable  ·  Documento confidencial' });
+        
+            } catch(err) { console.error("[BALANCE/PDF]:", err?.message || err); toast("❌ Error al generar PDF: " + err.message, 'error'); }
+            };
+
+        window.descargarAuditoriaPDF = () => {
+
+            try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Error: librería PDF no cargada. Recargá la página.', 'error'); return; }
+            if(!SESION) return;
+            const desde = document.getElementById('filtroDesde').value || "Inicio";
+            const hasta = document.getElementById('filtroHasta').value || "Hoy";
+            if(movsFiltradosPorCuenta.length===0) return toast('⚠️ No hay movimientos registrados con este filtro.', 'error');
+
+            let totalIng=0, totalEgr=0;
+            const rows = movsFiltradosPorCuenta.map(m => {
+                const isIng = m.tipo==='INGRESO' && !m.esTraspaso;
+                const mon = parseFloat(m.mon)||0;
+                if(isIng) totalIng+=mon; else totalEgr+=mon;
+                const nComp = m.id ? String(m.id).slice(-6) : '—';
+                return [
+                    `N°${nComp}\n${m.fecha} ${m.hora||''}`,
+                    m.centroCosto||m.tipo,
+                    (m.anulado?'(ANULADO) ':'')+m.det,
+                    isIng ? `$ ${mon.toLocaleString('es-AR')}` : '-',
+                    !isIng ? `$ ${mon.toLocaleString('es-AR')}` : '-',
+                    m.usuario||'Sist.'
+                ];
+            });
+
+            // ── Template maestro (landscape) ────────────────────────────────
+            const { doc: _jdoc, startY } = SanalysPDF.crear({
+                titulo:    'Libro Diario General',
+                subtitulo: `Período: ${desde} al ${hasta}  ·  ${rows.length} movimientos`,
+                emisor:    SESION?.nombre,
+                orient:    'l',
+            });
+            const T = SanalysPDF.T;
+            const saldo = totalIng - totalEgr;
+
+            // [FIX] Anchos corregidos para landscape A4 (297-28 = 269mm disponibles)
+            // FECHA/HORA 28 + CUENTA 38 + DETALLE 85 + ING 32 + EGR 32 + CAJERO 30 = 245mm
+            // Margen sobrante (24mm) lo absorbe autoTable en DETALLE automáticamente
+            _jdoc.autoTable(SanalysPDF.tableConfig({
+                head:[['N° / FECHA','CUENTA','DETALLE','INGRESO (+)','EGRESO (-)','CAJERO']],
+                body: rows,
+                startY,
+                styles:{ fontSize:7.5, cellPadding: { top:3, right:4, bottom:3, left:4 } },
+                columnStyles:{
+                    0:{ cellWidth:28 },                                                          // [FIX] era 22 → wrapeaba "FECHA/H ORA"
+                    1:{ cellWidth:38 },
+                    2:{ cellWidth:85 },
+                    3:{ halign:'right', cellWidth:32, textColor:T.VERDE_OK, fontStyle:'bold' },  // [FIX] era 28 → números no entraban
+                    4:{ halign:'right', cellWidth:32, textColor:T.ROJO,     fontStyle:'bold' },
+                    5:{ cellWidth:30, textColor:T.GRIS }                                         // [FIX] era 22 → "+$7.147.312" wrapea
+                },
+                foot:[['','','TOTALES DEL PERÍODO',`$ ${totalIng.toLocaleString('es-AR')}`,`$ ${totalEgr.toLocaleString('es-AR')}`,`${saldo>=0?'+':''}$${Math.abs(saldo).toLocaleString('es-AR')}`]],
+                footStyles:{ fillColor:T.VERDE, textColor:T.FLUO, fontStyle:'bold', fontSize:8 },
+                _didParseCell(data) {
+                    if(data.section==='body') {
+                        const row = movsFiltradosPorCuenta[data.row.index];
+                        if(row?.anulado) { data.cell.styles.textColor = [180,180,180]; }
+                    }
+                },
+            }));
+
+            SanalysPDF.save(_jdoc, `Libro_Diario_Sanalys_${new Date().toISOString().split('T')[0]}.pdf`,
+                { disclaimer: 'Libro diario  ·  Documento contable confidencial' });
+        
+            } catch(err) { console.error("[BALANCE/PDF]:", err?.message || err); toast("❌ Error al generar PDF: " + err.message, 'error'); }
+            };
+
+        window.descargarAsientosPDF = async () => {
+            try {
+                if (!window.SanalysPDF) return toast('Recargá la página.', 'warn');
+                const desde = document.getElementById('filtroDesde').value;
+                const hasta = document.getElementById('filtroHasta').value;
+
+                // Filtrar movimientos por período
+                const movs = todosLosMovimientos.filter(m => {
+                    if (m.anulado || m.tipo === 'CIERRE') return false;
+                    if (!m.fecha) return false;
+                    // Convertir fecha dd/mm/yyyy a comparable
+                    let fechaCmp = m.fecha;
+                    if (fechaCmp.includes('/')) {
+                        const [d,mo,a] = fechaCmp.split('/');
+                        fechaCmp = `${a}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+                    }
+                    if (desde && fechaCmp < desde) return false;
+                    if (hasta && fechaCmp > hasta) return false;
+                    return true;
+                }).sort((a,b) => (a.id||0) - (b.id||0));
+
+                if (!movs.length) return toast('Sin movimientos en el período seleccionado.', 'warn');
+
+                // Construir asientos contables en partida doble
+                // Reglas contables:
+                // INGRESO → DEBE: Cuenta de cobro (Efectivo/Banco/etc) | HABER: Ingresos (tipo)
+                // EGRESO  → DEBE: Gasto (tipo) | HABER: Cuenta de pago
+                // TRASPASO→ DEBE: Destino | HABER: Origen
+                // RETIRO  → DEBE: Honorarios x Pagar (médica) | HABER: Efectivo/Banco
+
+                const asientos = [];
+                const procesados = new Set();
+
+                movs.forEach(m => {
+                    // Agrupar honorarios por ticketId + prof para no duplicar
+                    if (m.esHonorario && m.tipo === 'INGRESO') return; // se procesa junto al EGRESO
+                    if (procesados.has(m.nroComp + (m.esHonorario?'H':''))) return;
+                    procesados.add(m.nroComp + (m.esHonorario?'H':''));
+
+                    const monto = parseFloat(m.mon) || 0;
+                    const nro   = m.nroComp || '-';
+                    const det   = m.det || '';
+                    const fecha = m.fecha || '';
+                    const prof  = m.profesional || '';
+
+                    if (m.tipo === 'INGRESO' && !m.esHonorario && !m.esTraspaso) {
+                        asientos.push({
+                            nro, fecha, det,
+                            debe:  [{ cuenta: m.med || 'Caja', monto }],
+                            haber: [{ cuenta: m.centroCosto || 'Ingresos', monto }],
+                            extra: prof && prof !== 'Sanalys' ? `Prof: ${prof}` : ''
+                        });
+                    } else if (m.tipo === 'EGRESO' && m.esHonorario) {
+                        // Honorario: buscar el ingreso a tránsito del mismo comprobante
+                        const ing = movs.find(x => x.nroComp === m.nroComp && x.tipo === 'INGRESO' && x.esHonorario);
+                        asientos.push({
+                            nro, fecha,
+                            det: `HONORARIO ${prof} (${det.match(/\d+%/)?.[0]||''})`,
+                            debe:  [{ cuenta: m.med, monto }],
+                            haber: [{ cuenta: ing ? ing.med : `Honorarios x Pagar ${prof}`, monto }],
+                            extra: `Paciente DNI: ${m.dni||'-'}`
+                        });
+                    } else if (m.tipo === 'EGRESO' && !m.esTraspaso && !m.esHonorario) {
+                        asientos.push({
+                            nro, fecha, det,
+                            debe:  [{ cuenta: m.centroCosto || 'Gastos', monto }],
+                            haber: [{ cuenta: m.med, monto }],
+                            extra: ''
+                        });
+                    } else if (m.esTraspaso && !m.esHonorario) {
+                        if (m.tipo === 'EGRESO') {
+                            const ingreso = movs.find(x => x.nroComp === m.nroComp && x.tipo === 'INGRESO' && x.esTraspaso && !x.esHonorario);
+                            asientos.push({
+                                nro, fecha, det,
+                                debe:  [{ cuenta: ingreso ? ingreso.med : (m.destino || '?'), monto }],
+                                haber: [{ cuenta: m.med, monto }],
+                                extra: 'Traspaso interno'
+                            });
+                        }
+                    } else if (m.tipo === 'RETIRO') {
+                        if (m.med === 'Efectivo' || m.med === 'Banco' || m.med === 'Billetera Virtual') {
+                            asientos.push({
+                                nro, fecha, det,
+                                debe:  [{ cuenta: `Honorarios x Pagar ${prof}`, monto }],
+                                haber: [{ cuenta: m.med, monto }],
+                                extra: `Retiro: ${prof}`
+                            });
+                        }
+                    }
+                });
+
+                // Generar PDF
+                const { doc, startY } = SanalysPDF.crear({
+                    titulo: 'Libro de Asientos Contables',
+                    subtitulo: `Período: ${desde||'inicio'} al ${hasta||'hoy'}  ·  ${asientos.length} asientos`,
+                    emisor: SESION?.nombre,
+                    orient: 'l',
+                });
+                const T = SanalysPDF.T;
+
+                const rows = [];
+                asientos.forEach((a, i) => {
+                    rows.push([
+                        `${String(i+1).padStart(3,'0')} ${a.nro}`,
+                        a.fecha,
+                        a.debe[0].cuenta,
+                        `$ ${a.debe[0].monto.toLocaleString('es-AR')}`,
+                        '',
+                        a.det + (a.extra ? `\n${a.extra}` : '')
+                    ]);
+                    rows.push([
+                        '',
+                        '',
+                        `    ${a.haber[0].cuenta}`,
+                        '',
+                        `$ ${a.haber[0].monto.toLocaleString('es-AR')}`,
+                        ''
+                    ]);
+                    rows.push(['','','','','','']);
+                });
+
+                doc.autoTable(SanalysPDF.tableConfig({
+                    head: [['Asiento','Fecha','Cuenta','DEBE','HABER','Concepto']],
+                    body: rows,
+                    startY,
+                    styles: { fontSize: 7, cellPadding: { top:2, right:3, bottom:2, left:3 } },
+                    columnStyles: {
+                        0: { cellWidth: 26, fontStyle:'bold', textColor: T.GRIS },
+                        1: { cellWidth: 22 },
+                        2: { cellWidth: 80 },
+                        3: { cellWidth: 32, halign:'right', textColor: T.VERDE_OK, fontStyle:'bold' },
+                        4: { cellWidth: 32, halign:'right', textColor: T.ROJO, fontStyle:'bold' },
+                        5: { cellWidth: 77, textColor: T.GRIS },
+                    },
+                    didParseCell(data) {
+                        if (data.section === 'body') {
+                            if (!data.cell.raw && data.row.index % 3 === 2) {
+                                data.cell.styles.lineWidth = { bottom: 0.3 };
+                                data.cell.styles.lineColor = [50,80,60];
+                            }
+                        }
+                    }
+                }));
+
+                const totalDebe  = asientos.reduce((s,a) => s + a.debe[0].monto,  0);
+                const totalHaber = asientos.reduce((s,a) => s + a.haber[0].monto, 0);
+                const yFin = doc.lastAutoTable.finalY + 8;
+                doc.setFontSize(8); doc.setTextColor(180,180,180);
+                doc.text(`Total DEBE: $ ${totalDebe.toLocaleString('es-AR')}    Total HABER: $ ${totalHaber.toLocaleString('es-AR')}    Diferencia: $ ${Math.abs(totalDebe-totalHaber).toLocaleString('es-AR')}`, 14, yFin);
+
+                SanalysPDF.save(doc, `Asientos_Contables_${desde||'todo'}_${hasta||'hoy'}.pdf`,
+                    { disclaimer: 'Libro de asientos contables · Documento confidencial' });
+
+            } catch(err) { console.error('[BALANCE/ASIENTOS]:', err?.message || err); toast('Error al generar PDF: ' + err.message, 'error'); }
+        };
+
+        window.descargarLibroMayorPDF = () => {
+            try {
+                if (!window.SanalysPDF) return toast('Recargá la página.', 'warn');
+                const desde = document.getElementById('filtroDesde').value;
+                const hasta = document.getElementById('filtroHasta').value;
+
+                const movs = todosLosMovimientos.filter(m => {
+                    if (m.anulado || m.tipo === 'CIERRE') return false;
+                    if (!m.fecha) return false;
+                    let fechaCmp = m.fecha;
+                    if (fechaCmp.includes('/')) {
+                        const [d,mo,a] = fechaCmp.split('/');
+                        fechaCmp = `${a}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+                    }
+                    if (desde && fechaCmp < desde) return false;
+                    if (hasta && fechaCmp > hasta) return false;
+                    return true;
+                }).sort((a,b) => (a.id||0) - (b.id||0));
+
+                if (!movs.length) return toast('Sin movimientos en el período seleccionado.', 'warn');
+
+                const cuentas = {};
+                movs.forEach(m => {
+                    const cuenta = m.med || 'Sin cuenta';
+                    if (!cuentas[cuenta]) cuentas[cuenta] = { ingresos: [], egresos: [] };
+                    if (m.tipo === 'INGRESO') cuentas[cuenta].ingresos.push(m);
+                    else                      cuentas[cuenta].egresos.push(m);
+                });
+
+                const { doc, startY } = SanalysPDF.crear({
+                    titulo: 'Libro Mayor por Cuenta',
+                    subtitulo: `Período: ${desde||'inicio'} al ${hasta||'hoy'}  ·  ${Object.keys(cuentas).length} cuentas`,
+                    emisor: SESION?.nombre,
+                    orient: 'l',
+                });
+                const T = SanalysPDF.T;
+                const PW = 297; // landscape A4 width
+                let nextY = startY;
+
+                Object.entries(cuentas).forEach(([cuenta, data], idx) => {
+                    const totalIng = data.ingresos.reduce((s,m) => s + parseFloat(m.mon||0), 0);
+                    const totalEgr = data.egresos.reduce((s,m) => s + parseFloat(m.mon||0), 0);
+                    const saldo    = totalIng - totalEgr;
+                    const maxRows  = Math.max(data.ingresos.length, data.egresos.length);
+
+                    // Encabezado de cuenta
+                    const pageH = 210;
+                    if (nextY + 10 > pageH - 20) { doc.addPage('a4','l'); nextY = 15; }
+                    doc.setFontSize(10); doc.setFont(undefined,'bold');
+                    doc.setTextColor(0, 100, 60);
+                    doc.text(`CUENTA: ${cuenta.toUpperCase()}`, 14, nextY);
+                    nextY += 6;
+
+                    const rows = [];
+                    for (let i = 0; i < maxRows; i++) {
+                        const ing = data.ingresos[i];
+                        const egr = data.egresos[i];
+                        rows.push([
+                            ing ? ing.fecha||'' : '',
+                            ing ? (ing.det||'').slice(0,42) : '',
+                            ing ? `$ ${parseFloat(ing.mon||0).toLocaleString('es-AR')}` : '',
+                            egr ? egr.fecha||'' : '',
+                            egr ? (egr.det||'').slice(0,42) : '',
+                            egr ? `$ ${parseFloat(egr.mon||0).toLocaleString('es-AR')}` : '',
+                        ]);
+                    }
+                    rows.push([
+                        '','TOTAL INGRESOS',`$ ${totalIng.toLocaleString('es-AR')}`,
+                        '','TOTAL EGRESOS', `$ ${totalEgr.toLocaleString('es-AR')}`,
+                    ]);
+
+                    doc.autoTable(SanalysPDF.tableConfig({
+                        head: [['Fecha','Concepto (INGRESO)','Monto','Fecha','Concepto (EGRESO)','Monto']],
+                        body: rows,
+                        startY: nextY,
+                        margin: { left:14, right:14, bottom:18 },
+                        styles: { fontSize:7, cellPadding:{top:2,right:3,bottom:2,left:3}, overflow:'ellipsize' },
+                        columnStyles: {
+                            0: { cellWidth:22 },
+                            1: { cellWidth:82 },
+                            2: { cellWidth:30, halign:'right', textColor:T.VERDE_OK, fontStyle:'bold' },
+                            3: { cellWidth:22 },
+                            4: { cellWidth:82 },
+                            5: { cellWidth:30, halign:'right', textColor:T.ROJO, fontStyle:'bold' },
+                        },
+                        didParseCell(data) {
+                            if (data.section !== 'body') return;
+                            // Línea divisoria central
+                            if (data.column.index === 3) {
+                                data.cell.styles.lineWidth = { left: 1.5 };
+                                data.cell.styles.lineColor = [0, 120, 80];
+                            }
+                            // Fila de totales
+                            if (data.row.index === rows.length - 1) {
+                                data.cell.styles.fontStyle = 'bold';
+                                data.cell.styles.fillColor = [7, 60, 40];
+                                if (data.column.index === 2)      data.cell.styles.textColor = [100, 255, 150];
+                                else if (data.column.index === 5) data.cell.styles.textColor = [255, 120, 120];
+                                else                              data.cell.styles.textColor = [220, 220, 220];
+                                return;
+                            }
+                            // Montos con color
+                            if (data.column.index === 2 && String(data.cell.raw||'').startsWith('$')) {
+                                data.cell.styles.textColor = [0, 130, 70];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (data.column.index === 5 && String(data.cell.raw||'').startsWith('$')) {
+                                data.cell.styles.textColor = [200, 50, 50];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else {
+                                data.cell.styles.textColor = [30, 30, 30];
+                            }
+                        }
+                    }));
+
+                    nextY = doc.lastAutoTable.finalY + 4;
+
+                    // Saldo
+                    if (nextY > pageH - 20) { doc.addPage('a4','l'); nextY = 15; }
+                    doc.setFontSize(8); doc.setFont(undefined,'bold');
+                    doc.setTextColor(saldo >= 0 ? 0 : 180, saldo >= 0 ? 130 : 0, saldo >= 0 ? 70 : 0);
+                    doc.text(`SALDO ${saldo >= 0 ? 'POSITIVO' : 'NEGATIVO'}: $ ${Math.abs(saldo).toLocaleString('es-AR')}`, 14, nextY);
+                    nextY += 10;
+                });
+
+                SanalysPDF.save(doc, `Libro_Mayor_${desde||'todo'}_${hasta||'hoy'}.pdf`,
+                    { disclaimer: 'Libro mayor · Documento contable confidencial' });
+
+            } catch(err) { console.error('[BALANCE/LIBRO]:', err?.message || err); toast('Error: ' + err.message, 'error'); }
+        };
+
+        window.descargarEstadoProfesional = () => {
+            try {
+                if (!window.SanalysPDF) return toast('Recargá la página.', 'warn');
+                const desde = document.getElementById('filtroDesde').value;
+                const hasta = document.getElementById('filtroHasta').value;
+                const movs = todosLosMovimientos.filter(m => {
+                    if (m.anulado || m.tipo === 'CIERRE') return false;
+                    let fechaCmp = m.fecha||'';
+                    if (fechaCmp.includes('/')) { const [d,mo,a]=fechaCmp.split('/'); fechaCmp=`${a}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`; }
+                    if (desde && fechaCmp < desde) return false;
+                    if (hasta && fechaCmp > hasta) return false;
+                    return true;
+                });
+                const profesionales = {};
+                movs.forEach(m => {
+                    if (!m.profesional || m.profesional === 'Sanalys') return;
+                    const clave = m.profesionalId || m.profesional.toUpperCase().trim().replace(/\s+/g,' ');
+                    if (!profesionales[clave]) profesionales[clave] = { nombre: m.profesional, servicios: [], honorarios: 0, retiros: 0 };
+                    else if (m.profesional.length > profesionales[clave].nombre.length) profesionales[clave].nombre = m.profesional;
+                    const p = profesionales[clave];
+                    if (m.tipo === 'INGRESO' && !m.esTraspaso && !m.esHonorario) p.servicios.push(m);
+                    if (m.tipo === 'INGRESO' && m.esHonorario) p.honorarios += parseFloat(m.mon||0);
+                    if (m.tipo === 'EGRESO' && m.centroCosto === 'Retiro de Socias') p.retiros += parseFloat(m.mon||0);
+                });
+                if (!Object.keys(profesionales).length) return toast('Sin movimientos con profesional en el período.', 'warn');
+                const { doc, startY } = SanalysPDF.crear({ titulo: 'Estado de Cuenta por Profesional', subtitulo: `Período: ${desde||'inicio'} al ${hasta||'hoy'}`, emisor: SESION?.nombre });
+                const T = SanalysPDF.T;
+                let currentY = startY;
+                Object.entries(profesionales).forEach(([clave, data]) => {
+                    const totalGenerado = data.servicios.reduce((s,m) => s+parseFloat(m.mon||0),0);
+                    const pendiente = data.honorarios - data.retiros;
+                    if (currentY > 240) { doc.addPage(); currentY = 20; }
+                    doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(0,100,60);
+                    doc.text(data.nombre.toUpperCase(), 14, currentY);
+                    currentY += 7;
+                    const rows = data.servicios.map(m => {
+                        const hon = parseFloat(m.mon||0) * (configuracion.porcentajeMedica/100);
+                        return [m.fecha||'', (m.centroCosto||m.det||'').slice(0,45), m.med||'', `$ ${parseFloat(m.mon||0).toLocaleString('es-AR')}`, `$ ${Math.round(hon).toLocaleString('es-AR')}`];
+                    });
+                    doc.autoTable(SanalysPDF.tableConfig({
+                        head:[['Fecha','Servicio','Medio','Ingreso Total','Honorario']],
+                        body: rows.length ? rows : [['','Sin servicios en el período','','','']],
+                        startY: currentY, margin:{left:14,right:14},
+                        tableWidth: 176,
+                        styles:{fontSize:7,cellPadding:{top:2,right:2,bottom:2,left:2}},
+                        columnStyles:{0:{cellWidth:22},1:{cellWidth:76},2:{cellWidth:28},3:{cellWidth:28,halign:'right',textColor:[0,130,70],fontStyle:'bold'},4:{cellWidth:28,halign:'right',textColor:[200,50,50],fontStyle:'bold'}},
+                        didParseCell(data){if(data.section==='body')data.cell.styles.textColor=[30,30,30];}
+                    }));
+                    currentY = doc.lastAutoTable.finalY + 4;
+                    if (currentY > 240) { doc.addPage(); currentY = 20; }
+                    doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(60,60,60);
+                    doc.text(`Total generado: $ ${totalGenerado.toLocaleString('es-AR')}`, 14, currentY); currentY+=5;
+                    doc.setTextColor(200,50,50);
+                    doc.text(`Total honorarios acreditados: $ ${data.honorarios.toLocaleString('es-AR')}`, 14, currentY); currentY+=5;
+                    doc.text(`Retiros realizados: -$ ${data.retiros.toLocaleString('es-AR')}`, 14, currentY); currentY+=5;
+                    doc.setFontSize(9); doc.setFont(undefined,'bold');
+                    doc.setTextColor(pendiente>0?0:200, pendiente>0?130:80, 0);
+                    doc.text(`SALDO PENDIENTE: $ ${Math.abs(pendiente).toLocaleString('es-AR')}${pendiente<0?' (a favor clínica)':''}`, 14, currentY);
+                    currentY+=12;
+                });
+                SanalysPDF.save(doc, `Estado_Profesionales_${desde||'todo'}_${hasta||'hoy'}.pdf`);
+            } catch(err) { console.error('[BALANCE]:', err?.message || err); toast('Error: '+err.message,'error'); }
+        };
+
+        window.descargarLibroMayorPDF = () => {
+            try {
+                if (!window.SanalysPDF) return toast('Recargá la página.', 'warn');
+                const desde = document.getElementById('filtroDesde').value;
+                const hasta = document.getElementById('filtroHasta').value;
+                const movs = todosLosMovimientos.filter(m => {
+                    if (m.anulado || m.tipo === 'CIERRE') return false;
+                    let fechaCmp = m.fecha||'';
+                    if (fechaCmp.includes('/')) { const [d,mo,a]=fechaCmp.split('/'); fechaCmp=`${a}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`; }
+                    if (desde && fechaCmp < desde) return false;
+                    if (hasta && fechaCmp > hasta) return false;
+                    return true;
+                }).sort((a,b)=>(a.id||0)-(b.id||0));
+                if (!movs.length) return toast('Sin movimientos en el período seleccionado.','warn');
+                const cuentas = {};
+                movs.forEach(m => {
+                    const cuenta = m.med||'Sin cuenta';
+                    if (!cuentas[cuenta]) cuentas[cuenta]={ingresos:[],egresos:[]};
+                    if (m.tipo==='INGRESO') cuentas[cuenta].ingresos.push(m);
+                    else cuentas[cuenta].egresos.push(m);
+                });
+                const { doc, startY } = SanalysPDF.crear({ titulo:'Libro Mayor por Cuenta', subtitulo:`Período: ${desde||'inicio'} al ${hasta||'hoy'}  ·  ${Object.keys(cuentas).length} cuentas`, emisor:SESION?.nombre, orient:'l' });
+                const T = SanalysPDF.T;
+                let nextY = startY;
+                Object.entries(cuentas).forEach(([cuenta, data]) => {
+                    const totalIng = data.ingresos.reduce((s,m)=>s+parseFloat(m.mon||0),0);
+                    const totalEgr = data.egresos.reduce((s,m)=>s+parseFloat(m.mon||0),0);
+                    const saldo = totalIng - totalEgr;
+                    const maxRows = Math.max(data.ingresos.length, data.egresos.length);
+                    const pageH = 210;
+                    if (nextY+10>pageH-20) { doc.addPage('a4','l'); nextY=15; }
+                    doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(0,100,60);
+                    doc.text(`CUENTA: ${cuenta.toUpperCase()}`, 14, nextY);
+                    nextY+=6;
+                    const rows = [];
+                    for (let i=0;i<maxRows;i++) {
+                        const ing=data.ingresos[i], egr=data.egresos[i];
+                        rows.push([ing?ing.fecha||'':'',ing?(ing.det||'').slice(0,42):'',ing?`$ ${parseFloat(ing.mon||0).toLocaleString('es-AR')}`:'',egr?egr.fecha||'':'',egr?(egr.det||'').slice(0,42):'',egr?`$ ${parseFloat(egr.mon||0).toLocaleString('es-AR')}`:'' ]);
+                    }
+                    rows.push(['','TOTAL INGRESOS',`$ ${totalIng.toLocaleString('es-AR')}`,'','TOTAL EGRESOS',`$ ${totalEgr.toLocaleString('es-AR')}`]);
+                    doc.autoTable(SanalysPDF.tableConfig({
+                        head:[['Fecha','Concepto (INGRESO)','Monto','Fecha','Concepto (EGRESO)','Monto']],
+                        body:rows, startY:nextY, tableWidth:262, margin:{left:14,right:14,bottom:18},
+                        styles:{fontSize:7,cellPadding:{top:2,right:2,bottom:2,left:2},overflow:'ellipsize'},
+                        columnStyles:{0:{cellWidth:22},1:{cellWidth:79},2:{cellWidth:30,halign:'right'},3:{cellWidth:22},4:{cellWidth:79},5:{cellWidth:30,halign:'right'}},
+                        didParseCell(data){
+                            if(data.section!=='body')return;
+                            if(data.column.index===3){data.cell.styles.lineWidth={left:1.5};data.cell.styles.lineColor=[0,120,80];}
+                            if(data.row.index===rows.length-1){data.cell.styles.fontStyle='bold';data.cell.styles.fillColor=[7,60,40];data.cell.styles.textColor=data.column.index===2?[100,255,150]:data.column.index===5?[255,120,120]:[220,220,220];return;}
+                            if(data.column.index===2&&String(data.cell.raw||'').startsWith('$')){data.cell.styles.textColor=[0,130,70];data.cell.styles.fontStyle='bold';}
+                            else if(data.column.index===5&&String(data.cell.raw||'').startsWith('$')){data.cell.styles.textColor=[200,50,50];data.cell.styles.fontStyle='bold';}
+                            else{data.cell.styles.textColor=[30,30,30];}
+                        }
+                    }));
+                    nextY=doc.lastAutoTable.finalY+4;
+                    if(nextY>pageH-20){doc.addPage('a4','l');nextY=15;}
+                    doc.setFontSize(8);doc.setFont(undefined,'bold');
+                    doc.setTextColor(saldo>=0?0:200,saldo>=0?130:80,0);
+                    doc.text(`SALDO ${saldo>=0?'POSITIVO':'NEGATIVO'}: $ ${Math.abs(saldo).toLocaleString('es-AR')}`,14,nextY);
+                    nextY+=10;
+                });
+                SanalysPDF.save(doc,`Libro_Mayor_${desde||'todo'}_${hasta||'hoy'}.pdf`,{disclaimer:'Libro mayor · Documento contable confidencial'});
+            } catch(err){console.error('[BALANCE]:', err?.message || err);toast('Error: '+err.message,'error');}
+        };
+
+        function renderInversiones() {
+            const activas = inversiones.filter(i => i.estado === 'activa');
+            const cerradas = inversiones.filter(i => i.estado === 'cerrada');
+            const totalCapital = activas.reduce((s,i) => s+(i.capital||0), 0);
+            const totalValor   = activas.reduce((s,i) => s+(i.valorActual||0), 0);
+            const rendimiento  = totalValor - totalCapital;
+            const rendPct      = totalCapital > 0 ? ((rendimiento/totalCapital)*100).toFixed(1) : 0;
+
+            document.getElementById('inv_capital_total').textContent = `$ ${totalCapital.toLocaleString()}`;
+            document.getElementById('inv_valor_total').textContent   = `$ ${totalValor.toLocaleString()}`;
+            const rendEl = document.getElementById('inv_rendimiento_total');
+            rendEl.textContent = `${rendimiento>=0?'+':''}$ ${rendimiento.toLocaleString()} (${rendPct}%)`;
+            rendEl.className = `text-xl font-black mt-1 ${rendimiento>=0?'text-emerald-400':'text-red-400'}`;
+            document.getElementById('inv_count_activas').textContent = activas.length;
+
+            const cont = document.getElementById('tabla_inversiones');
+            if(!activas.length && !cerradas.length) {
+                cont.innerHTML = '<p class="text-center opacity-30 text-xs py-8">Sin inversiones registradas. Agregá desde Admin → Inversiones.</p>';
+                return;
+            }
+
+            const hoy = new Date();
+            const html = [...activas, ...cerradas].map(inv => {
+                const rend = (inv.valorActual||0) - (inv.capital||0);
+                const rendPctInd = inv.capital > 0 ? ((rend/inv.capital)*100).toFixed(1) : 0;
+                const esCerrada = inv.estado === 'cerrada';
+
+                let vencBadge = '';
+                if(inv.fechaVenc && !esCerrada) {
+                    const venc = new Date(inv.fechaVenc);
+                    const diasRestantes = Math.ceil((venc - hoy) / (1000*60*60*24));
+                    if(diasRestantes < 0) {
+                        vencBadge = `<span class="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[8px] font-black">VENCIDO</span>`;
+                    } else if(diasRestantes <= 7) {
+                        vencBadge = `<span class="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded text-[8px] font-black animate-pulse">⏰ ${diasRestantes}d</span>`;
+                    } else if(diasRestantes <= 30) {
+                        vencBadge = `<span class="bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded text-[8px] font-bold">${diasRestantes}d para vencer</span>`;
+                    } else {
+                        const [y,m,d] = inv.fechaVenc.split('-');
+                        vencBadge = `<span class="bg-white/5 text-white/50 px-2 py-0.5 rounded text-[8px]">Vence ${d}/${m}/${y}</span>`;
+                    }
+                }
+
+                return `<div class="bg-black/30 p-4 rounded-xl border ${esCerrada?'border-white/5 opacity-50':'border-emerald-500/20'} flex flex-col md:flex-row justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                            <p class="font-black text-[11px] uppercase text-white">${esc(inv.descripcion)}</p>
+                            ${esCerrada ? '<span class="bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded text-[8px] font-bold uppercase">CERRADA</span>' : ''}
+                            ${vencBadge}
+                        </div>
+                        <p class="text-[8px] opacity-50">${inv.tipo||'—'} · ${esc(inv.entidad||'—')} · Desde ${inv.fechaInicio||'—'}</p>
+                        ${inv.notas ? `<p class="text-[8px] opacity-40 italic mt-1">${esc(inv.notas)}</p>` : ''}
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 flex-shrink-0">
+                        <div class="text-center bg-black/20 px-3 py-2 rounded-lg">
+                            <p class="text-[7px] uppercase opacity-50">Capital</p>
+                            <p class="text-[11px] font-black text-white">$${(inv.capital||0).toLocaleString()}</p>
+                        </div>
+                        <div class="text-center bg-black/20 px-3 py-2 rounded-lg">
+                            <p class="text-[7px] uppercase opacity-50">Valor actual</p>
+                            <p class="text-[11px] font-black text-emerald-400">$${(inv.valorActual||0).toLocaleString()}</p>
+                        </div>
+                        <div class="text-center bg-black/20 px-3 py-2 rounded-lg">
+                            <p class="text-[7px] uppercase opacity-50">Rendimiento</p>
+                            <p class="text-[11px] font-black ${rend>=0?'text-emerald-400':'text-red-400'}">${rend>=0?'+':''}$${rend.toLocaleString()}<br><span class="text-[8px] opacity-60">${rendPctInd}%</span></p>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            cont.innerHTML = html;
+        }
+
+        window.descargarInversionesPDF = () => {
+
+            try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('⚠️ Recargá la página con Ctrl+Shift+R', 'warn'); return; }
+            if(!inversiones.length) return toast('Sin inversiones para exportar.', 'warn');
+            
+            // ── Template maestro ────────────────────────────────────────────
+            const { doc: _jdoc, startY } = SanalysPDF.crear({
+                titulo:    'Portafolio de Inversiones',
+                subtitulo: `Activas: ${inversiones.filter(i=>i.estado==='activa').length}  ·  Total: ${inversiones.length}`,
+                emisor:    SESION?.nombre,
+            });
+            const T = SanalysPDF.T;
+
+            const activas = inversiones.filter(i=>i.estado==='activa');
+            const totalCap = activas.reduce((s,i)=>s+(i.capital||0),0);
+            const totalVal = activas.reduce((s,i)=>s+(i.valorActual||0),0);
+            const rend = totalVal - totalCap;
+            const rendPct = totalCap > 0 ? ((rend/totalCap)*100).toFixed(1) : 0;
+
+            // KPI boxes resumen ejecutivo
+            let xK = T.M;
+            xK = SanalysPDF.kpiBox(_jdoc, xK, startY - 8, 54, 18, 'Capital Invertido', `$ ${totalCap.toLocaleString('es-AR')}`, T.NEGRO);
+            xK = SanalysPDF.kpiBox(_jdoc, xK, startY - 8, 54, 18, 'Valor Actual',      `$ ${totalVal.toLocaleString('es-AR')}`, T.VERDE_OK);
+            SanalysPDF.kpiBox(_jdoc, xK, startY - 8, 54, 18, 'Rendimiento Neto',  `${rend>=0?'+':''}$ ${rend.toLocaleString('es-AR')} (${rendPct}%)`, rend >= 0 ? T.VERDE_OK : T.ROJO);
+
+            const hoy = new Date();
+            const rows = inversiones.map(inv => {
+                const r = (inv.valorActual||0)-(inv.capital||0);
+                const rp = inv.capital>0?((r/inv.capital)*100).toFixed(1)+'%':'—';
+                let venc = inv.fechaVenc || '—';
+                if(inv.fechaVenc && inv.estado==='activa') {
+                    const diasR = Math.ceil((new Date(inv.fechaVenc)-hoy)/(1000*60*60*24));
+                    venc = `${inv.fechaVenc} (${diasR<0?'VENCIDO':diasR+'d'})`;
+                }
+                return [
+                    inv.descripcion.toUpperCase(),
+                    inv.tipo||'—',
+                    inv.entidad||'—',
+                    `$ ${(inv.capital||0).toLocaleString('es-AR')}`,
+                    `$ ${(inv.valorActual||0).toLocaleString('es-AR')}`,
+                    `${r>=0?'+':''}$ ${r.toLocaleString('es-AR')} (${rp})`,
+                    venc,
+                    (inv.estado==='activa'?'ACTIVA':'CERRADA')
+                ];
+            });
+
+            _jdoc.autoTable(SanalysPDF.tableConfig({
+                head:[['INVERSIÓN','TIPO','ENTIDAD','CAPITAL','VALOR ACT.','RENDIMIENTO','VENCIMIENTO','ESTADO']],
+                body: rows,
+                startY: startY + 16,
+                columnStyles:{
+                    5: { fontStyle:'bold' },
+                    7: { fontStyle:'bold' }
+                },
+                _didParseCell(data) {
+                    if(data.section==='body' && data.column.index===5) {
+                        const val = data.cell.raw || '';
+                        data.cell.styles.textColor = val.startsWith('+') ? T.VERDE_OK : val.startsWith('-') ? T.ROJO : T.NEGRO;
+                    }
+                    if(data.section==='body' && data.column.index===7) {
+                        data.cell.styles.textColor = data.cell.raw==='ACTIVA' ? T.VERDE_OK : T.GRIS;
+                    }
+                },
+            }));
+
+            // ─── BLOQUE RECORDATORIO DE VENCIMIENTOS (preservado, solo header actualizado)
+            const activasVenc = inversiones.filter(i => i.estado === 'activa' && i.fechaVenc);
+            const vencidas  = activasVenc.filter(i => Math.ceil((new Date(i.fechaVenc)-hoy)/(1000*60*60*24)) < 0);
+            const proximas7 = activasVenc.filter(i => { const d = Math.ceil((new Date(i.fechaVenc)-hoy)/(1000*60*60*24)); return d >= 0 && d <= 7; });
+            const proximas30= activasVenc.filter(i => { const d = Math.ceil((new Date(i.fechaVenc)-hoy)/(1000*60*60*24)); return d > 7 && d <= 30; });
+
+            if(vencidas.length || proximas7.length || proximas30.length) {
+                _jdoc.addPage();
+                SanalysPDF.T; // ensure T still in scope
+                // Header de la página de alertas usando el mismo template
+                const { jsPDF: _j } = window.jspdf; // no-op para evitar lint
+                // Redibujar header en la nueva página
+                _jdoc.setFillColor(...T.FLUO); _jdoc.rect(0,0,210,3,'F');
+                _jdoc.setFillColor(...T.VERDE); _jdoc.rect(0,3,210,33,'F');
+                _jdoc.setFont(T.FONT,'bold'); _jdoc.setFontSize(20); _jdoc.setTextColor(...T.FLUO);
+                _jdoc.text('sanalys.',14,19);
+                _jdoc.setFont(T.FONT,'normal'); _jdoc.setFontSize(11); _jdoc.setTextColor(...T.BLANCO);
+                _jdoc.text('ALERTAS DE VENCIMIENTO', 196, 16, {align:'right'});
+                _jdoc.setFontSize(6.5); _jdoc.setTextColor(155,198,160);
+                _jdoc.text(new Date().toLocaleDateString('es-AR'), 196, 22, {align:'right'});
+
+                let yA = 48;
+                const renderAlertSection = (lista, titulo, color, labelDias) => {
+                    if(!lista.length) return;
+                    _jdoc.setFillColor(...color); _jdoc.rect(14, yA-3, 182, 7, 'F');
+                    _jdoc.setFont(T.FONT,'bold'); _jdoc.setFontSize(8); _jdoc.setTextColor(...T.BLANCO);
+                    _jdoc.text(titulo, 17, yA+1.5); yA += 10;
+                    lista.forEach(inv => {
+                        const diasR = Math.ceil((new Date(inv.fechaVenc)-hoy)/(1000*60*60*24));
+                        const [y,m,d] = inv.fechaVenc.split('-');
+                        _jdoc.setFont(T.FONT,'bold'); _jdoc.setFontSize(9); _jdoc.setTextColor(...T.NEGRO);
+                        _jdoc.text(`• ${esc(inv.descripcion).toUpperCase()}`, 17, yA);
+                        _jdoc.setFont(T.FONT,'normal'); _jdoc.setFontSize(8); _jdoc.setTextColor(...T.GRIS_OSC);
+                        _jdoc.text(`Vence: ${d}/${m}/${y}   |   Capital: $${(inv.capital||0).toLocaleString('es-AR')}   |   ${labelDias(diasR)}`, 17, yA+5);
+                        yA += 13;
+                    });
+                    yA += 4;
+                };
+
+                renderAlertSection(vencidas,  'INVERSIONES VENCIDAS — Acción inmediata requerida', T.ROJO,     (d) => `VENCIDA hace ${Math.abs(d)} día${Math.abs(d)!==1?'s':''}`);
+                renderAlertSection(proximas7, 'VENCEN EN LOS PRÓXIMOS 7 DÍAS',                     T.AMARILLO, (d) => `Vence en ${d} día${d!==1?'s':''}`);
+                renderAlertSection(proximas30,'VENCEN DENTRO DE 30 DÍAS — A revisar',              T.VERDE,    (d) => `Vence en ${d} días`);
+
+                yA += 5;
+                _jdoc.setFillColor(248, 249, 250); _jdoc.setDrawColor(...T.GRIS_CLARO); _jdoc.setLineWidth(0.3);
+                _jdoc.rect(14, yA, 182, 14, 'FD');
+                _jdoc.setFont(T.FONT,'italic'); _jdoc.setFontSize(7.5); _jdoc.setTextColor(...T.GRIS_OSC);
+                _jdoc.text('Nota: Este recordatorio es generado automáticamente. Consultá con la Dirección o el área contable', 17, yA+5);
+                _jdoc.text('antes de renovar o liquidar cualquier inversión.', 17, yA+10);
+            }
+            // ─── FIN BLOQUE RECORDATORIO ─────────────────────────────────────────────
+
+            SanalysPDF.save(_jdoc, `Inversiones_Sanalys_${new Date().toISOString().split('T')[0]}.pdf`,
+                { disclaimer: 'Sanalys Clínica Ortomolecular  ·  Documento financiero confidencial' });
+        
+            } catch(err) { console.error("[BALANCE/PDF]:", err?.message || err); toast("❌ Error al generar PDF: " + err.message, 'error'); }
+            };
+
+        function renderGraficosBI(movs) {
+            const ingresos = movs.filter(m => m.tipo === 'INGRESO' && !m.esTraspaso && !m.anulado);
+
+            const mapMeses = {};
+            ingresos.forEach(m => {
+                const parts = m.fecha.split('/'); if(parts.length!==3) return;
+                const mesY = `${parts[1]}/${parts[2]}`; mapMeses[mesY] = (mapMeses[mesY] || 0) + parseFloat(m.mon);
+            });
+            const labelsMes = Object.keys(mapMeses).sort((a,b) => { let [ma,ya] = a.split('/'); let [mb,yb] = b.split('/'); return new Date(ya, ma-1) - new Date(yb, mb-1); });
+            
+            setTimeout(() => {
+                if(chartLine) chartLine.destroy();
+                chartLine = new Chart(document.getElementById('chartMeses'), { type: 'line', data: { labels: labelsMes, datasets: [{ label: 'Ingresos', data: labelsMes.map(l => mapMeses[l]), borderColor: '#D0FF4E', backgroundColor: 'rgba(208,255,78,0.2)', fill: true, tension: 0.4 }] }, options: { animation: false, responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } } });
+
+                const mapTop = {};
+                ingresos.forEach(m => { let cat = m.centroCosto || 'Varios'; if(cat.includes('Suero') || cat.includes('Fórmula')) cat = 'Sueroterapia'; mapTop[cat] = (mapTop[cat] || 0) + parseFloat(m.mon); });
+                
+                if(chartPie) chartPie.destroy();
+                chartPie = new Chart(document.getElementById('chartTop'), { type: 'doughnut', data: { labels: Object.keys(mapTop), datasets: [{ data: Object.values(mapTop), backgroundColor: ['#D0FF4E', '#3b82f6', '#ec4899', '#f97316', '#a855f7'], borderWidth: 0 }] }, options: { animation: false, responsive: true, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: {size: 9} } } } } });
+
+                const mapDias = { 'Lunes':0, 'Martes':0, 'Miércoles':0, 'Jueves':0, 'Viernes':0, 'Sábado':0 };
+                ingresos.forEach(m => { const parts = m.fecha.split('/'); if(parts.length!==3) return; const d = new Date(parts[2], parts[1]-1, parts[0]); const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']; const nomDia = dias[d.getDay()]; if(mapDias[nomDia] !== undefined) mapDias[nomDia] += parseFloat(m.mon); });
+                
+                if(chartBar) chartBar.destroy();
+                chartBar = new Chart(document.getElementById('chartDias'), { type: 'bar', data: { labels: Object.keys(mapDias), datasets: [{ label: 'Recaudación', data: Object.values(mapDias), backgroundColor: '#3b82f6', borderRadius: 4 }] }, options: { animation: false, responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } } });
+            }, 0);
+        }
+
+        window.abrirModalCierres = () => {
+            document.getElementById('modalCierres').classList.remove('hidden');
+            const hoy = new Date(); const offset = hoy.getTimezoneOffset();
+            document.getElementById('filtroFechaCierre').value = new Date(hoy.getTime() - (offset*60*1000)).toISOString().split('T')[0];
+            window.filtrarCierres();
+        };
+
+        window.filtrarCierres = () => {
+            const fechaRaw = document.getElementById('filtroFechaCierre').value; 
+            const usuarioFiltro = document.getElementById('filtroUsuarioCierre').value;
+            let fechaFiltro = "";
+            if(fechaRaw) { const p = fechaRaw.split('-'); if(p.length === 3) fechaFiltro = `${parseInt(p[2])}/${parseInt(p[1])}/${p[0]}`; }
+
+            const cierres = todosLosMovimientos.filter(m => m.tipo === 'CIERRE');
+            const filtrados = cierres.filter(c => {
+                const matchFecha = fechaFiltro ? (c.fecha.split('/').map(n=>parseInt(n)).join('/') === fechaFiltro.split('/').map(n=>parseInt(n)).join('/')) : true;
+                const matchUsu = usuarioFiltro ? (c.usuario === usuarioFiltro) : true;
+                return matchFecha && matchUsu;
+            });
+
+            const div = document.getElementById('listaCierresAnteriores');
+            if(filtrados.length === 0) { div.innerHTML = `<p class="opacity-40 text-xs text-center py-6">No se encontraron arqueos para esta fecha.</p>`; return; }
+
+            div.innerHTML = filtrados.map(c => `
+                <div class="bg-blue-900/20 p-4 rounded-xl border-l-4 border-blue-400">
+                    <div class="flex justify-between items-start mb-2"><div><p class="text-[10px] font-black uppercase text-blue-300">${c.fecha} - ${c.hora}</p><p class="text-xs font-bold text-white uppercase mt-1">Cajero: ${c.usuario}</p></div><span class="bg-blue-500 text-white px-2 py-1 rounded text-[9px] font-bold">ARQUEO</span></div>
+                    <div class="bg-black/40 p-3 rounded mt-2 border border-white/5"><p class="text-[10px] text-white italic">${c.det}</p></div>
+                    <button onclick="window.generarPDFHistorico('${c.idDoc}')" class="mt-3 w-full border border-blue-400 text-blue-300 py-2 rounded text-[9px] font-bold uppercase hover:bg-blue-500 hover:text-white transition shadow-lg">📄 Descargar Reporte del Turno</button>
+                </div>
+            `).join('');
+        };
+        
+        window.generarPDFHistorico = (idDocStr) => {
+            const cierre = todosLosMovimientos.find(m => m.idDoc == idDocStr);
+            if(!cierre) return toast("❌ Error: Cierre de caja no encontrado.", 'error');
+
+            let cierresAnt = todosLosMovimientos.filter(m => m.tipo === 'CIERRE' && m.usuario === cierre.usuario && m.fecha === cierre.fecha && m.id < cierre.id);
+            let limiteInf = cierresAnt.length > 0 ? Math.max(...cierresAnt.map(c => c.id)) : 0;
+            
+            let movsDelTurno = todosLosMovimientos.filter(m => m.fecha === cierre.fecha && m.usuario === cierre.usuario && m.id > limiteInf && m.id < cierre.id && m.tipo !== 'CIERRE' && !m.esTraspaso);
+
+            const rows = movsDelTurno.map(m => {
+                let tachado = m.anulado ? '(ANULADO) ' : '';
+                const isIngreso = m.tipo === 'INGRESO';
+                const ing = isIngreso ? `$${parseFloat(m.mon).toLocaleString('es-AR')}` : '-'; 
+                const egr = !isIngreso ? `$${parseFloat(m.mon).toLocaleString('es-AR')}` : '-';
+                return [m.hora, tachado + m.det, m.centroCosto || m.med, ing, egr];
+            });
+
+            // ── Template maestro ────────────────────────────────────────────
+            const { doc: _jdoc, startY } = SanalysPDF.crear({
+                titulo:    'Arqueo de Caja',
+                subtitulo: `Turno: ${cierre.fecha}  ·  Cajero: ${cierre.usuario}`,
+                emisor:    SESION?.nombre || cierre.usuario,
+            });
+            const T = SanalysPDF.T;
+
+            _jdoc.autoTable(SanalysPDF.tableConfig({
+                head:[['HORA','DETALLE','CUENTA/CATEGORÍA','INGRESO (+)','EGRESO (-)']],
+                body: rows,
+                startY,
+                columnStyles:{
+                    0: { cellWidth: 15 },
+                    3: { textColor: T.VERDE_OK, fontStyle:'bold', halign:'right' },
+                    4: { textColor: T.ROJO, fontStyle:'bold', halign:'right' }
+                },
+            }));
+
+            let fY = _jdoc.lastAutoTable.finalY + 12;
+            fY = SanalysPDF.sectionTitle(_jdoc, 'Arqueo de Billetes Físicos Declarado', fY);
+            _jdoc.setFont(T.FONT,'normal'); _jdoc.setFontSize(9); _jdoc.setTextColor(...T.GRIS_OSC);
+            if(cierre.billetes && cierre.billetes.length>0) {
+                cierre.billetes.forEach(b => {
+                    _jdoc.text(`${b.cantidad}  ×  $ ${b.valor.toLocaleString('es-AR')}`, 20, fY);
+                    _jdoc.text(`$ ${(b.cantidad*b.valor).toLocaleString('es-AR')}`, 130, fY);
+                    fY+=6;
+                });
+            } else { _jdoc.text("Sin desglose de billetes registrado.",20,fY); fY+=6; }
+            fY+=4;
+            _jdoc.setFont(T.FONT,'bold'); _jdoc.setTextColor(...T.NEGRO);
+            _jdoc.text(`FÍSICO AL CIERRE:`, 20, fY);
+            _jdoc.text(`$ ${(cierre.arqueoFisico||0).toLocaleString('es-AR')}`, 130, fY);
+            fY+=7;
+            const dif = cierre.diferencia||0;
+            _jdoc.setTextColor(...(dif>=0 ? T.VERDE_OK : T.ROJO));
+            _jdoc.text(`DIFERENCIA:`, 20, fY);
+            _jdoc.text(`${dif>=0?'+':''}$ ${dif.toLocaleString('es-AR')}`, 130, fY);
+
+            SanalysPDF.save(_jdoc, `Arqueo_Sanalys_${cierre.fecha.replace(/\//g,'-')}.pdf`,
+                { disclaimer: 'Sanalys Clínica Ortomolecular  ·  Documento de auditoría  ·  Confidencial' });
+        };
+    </script>
+<script src="sidebar.js"></script></body>
+</html>

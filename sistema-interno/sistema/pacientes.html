@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanalys S.M.S. - Medicina de Precisión & H.C.</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="pdf-master.js?v=3.1"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root { --verde-deep: #0A3D33; --fluo: #D0FF4E; }
+        body { background-color: #071f1a; color: white; font-family: 'Roboto Flex', sans-serif; scroll-behavior: smooth; }
+        .input-sanalys { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 12px; border-radius: 4px; width: 100%; outline: none; transition: 0.3s; color: white; font-size: 13px; }
+        .input-sanalys:focus { border-color: var(--fluo); background: rgba(255,255,255,0.1); }
+        .input-error { border-color: #ef4444 !important; background: rgba(239,68,68,0.08) !important; }
+        .input-ok    { border-color: #22c55e !important; background: rgba(34,197,94,0.08) !important; }
+        .btn-fluo { background-color: var(--fluo); color: var(--verde-deep); font-weight: 900; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        .btn-fluo:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .card-paciente { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; transition: 0.3s; }
+        .tab-btn { padding: 10px 15px; font-size: 10px; font-weight: 900; text-transform: uppercase; border-bottom: 3px solid transparent; opacity: 0.5; transition: 0.3s; cursor: pointer; white-space: nowrap; }
+        .tab-btn.active { opacity: 1; border-color: var(--fluo); color: var(--fluo); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--fluo); border-radius: 10px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .check-sanalys { accent-color: var(--fluo); width: 16px; height: 16px; cursor: pointer; }
+        /* Buscador en tiempo real */
+        #busqueda { font-size: 14px; padding: 14px 16px; }
+        .search-result-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px; background: rgba(255,255,255,0.04); transition: 0.15s; }
+        .search-result-item:hover { background: var(--fluo); color: #0A3D33; }
+        .search-result-item:hover * { color: #0A3D33 !important; }
+        /* Banner duplicado */
+        #bannerDuplicado { display: none; background: rgba(239,68,68,0.15); border: 1px solid #ef4444; border-radius: 10px; padding: 12px 16px; margin-top: 8px; }
+        /* Tag de estado del paciente */
+        .tag-estado { font-size: 8px; font-weight: 900; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+        .tag-activo { background: rgba(34,197,94,0.2); color: #86efac; }
+        .tag-inactivo { background: rgba(107,114,128,0.2); color: #9ca3af; }
+        .tag-alergia { background: rgba(239,68,68,0.2); color: #fca5a5; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+    </style>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="p-5 md:p-7" onload="init()">
+
+    <!-- MODAL PAGO CUOTA -->
+    <div id="modalPagoCuota" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-[#0A3D33] border border-[var(--fluo)] p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+            <h3 class="text-lg font-black uppercase text-[var(--fluo)] mb-4">Registrar Pago de Cuota</h3>
+            <p class="text-[10px] opacity-60 mb-4" id="txtPlanPago"></p>
+            <input type="hidden" id="pago_planId">
+            <div class="space-y-4">
+                <div><label class="text-[9px] uppercase font-bold opacity-60 mb-1 block">Monto $</label><input type="number" id="pago_monto" class="input-sanalys text-2xl font-black text-[var(--fluo)] text-center"></div>
+                <div><label class="text-[9px] uppercase font-bold opacity-60 mb-1 block">Medio de Pago</label>
+                    <select id="pago_medio" class="input-sanalys font-bold">
+                        <option value="Efectivo">Efectivo Caja</option>
+                        <option value="Banco">Banco Empresa</option>
+                        <option value="Billetera Virtual">Billetera Virtual (MP)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+                <button onclick="document.getElementById('modalPagoCuota').classList.add('hidden')" class="flex-1 bg-white/10 py-3 rounded text-[10px] font-bold">Cancelar</button>
+                <button onclick="window.confirmarPagoCuota()" class="flex-1 btn-fluo py-3 rounded text-[10px]">Ingresar a Caja</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="max-w-7xl mx-auto mb-8 flex justify-between items-center border-b border-white/10 pb-6">
+        <div>
+            <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">sanalys<span style="color:var(--fluo)">.</span></h1>
+            <p style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:2px">Historias Clínicas</p>
+        </div>
+        <div class="flex gap-3 items-center">
+            <span id="contadorPacientes" class="text-[9px] opacity-40 font-bold uppercase"></span>
+            <a href="index.html" class="bg-white/10 px-6 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-white/20 transition">Volver al Panel</a>
+        <div class="flex items-center gap-1 border-l border-white/10 pl-3 ml-1"><a href="agenda.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Agenda"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Agenda</span></a><a href="enfermeria.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Enfermería"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Enfermería</span></a><a href="caja.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Caja"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Caja</span></a></div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- ===== COLUMNA IZQUIERDA: BUSCADOR + LISTA ===== -->
+        <div class="lg:col-span-4 space-y-4">
+
+            <!-- BUSCADOR EN TIEMPO REAL -->
+            <section class="card-paciente p-5 border-l-4 border-[var(--fluo)]">
+                <div class="relative">
+                    <input type="text" id="busqueda" oninput="window.buscar()" class="input-sanalys pr-10" placeholder="🔍  Nombre, DNI, teléfono...">
+                    <span id="loadingSearch" class="absolute right-3 top-3.5 text-[var(--fluo)] hidden animate-spin text-sm">⟳</span>
+                </div>
+                <!-- FILTROS RÁPIDOS -->
+                <div class="flex gap-2 mt-3">
+                    <button onclick="window.setFiltro('todos')" id="f-todos" class="flex-1 text-[9px] font-bold uppercase py-1.5 rounded border border-white/20 bg-white/10 hover:bg-white/20 transition">Todos</button>
+                    <button onclick="window.setFiltro('alergias')" id="f-alergias" class="flex-1 text-[9px] font-bold uppercase py-1.5 rounded border border-red-500/40 text-red-300 hover:bg-red-500/20 transition">⚠ Alergias</button>
+                    <button onclick="window.setFiltro('deuda')" id="f-deuda" class="flex-1 text-[9px] font-bold uppercase py-1.5 rounded border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/20 transition">$ Deuda</button>
+                    <button onclick="window.setFiltro('archivados')" id="f-archivados" class="flex-1 text-[9px] font-bold uppercase py-1.5 rounded border border-gray-500/40 text-gray-400 hover:bg-gray-500/20 transition">📦 Archivados</button>
+                </div>
+                <button onclick="window.nuevoPaciente()" class="btn-fluo w-full py-3 rounded-lg mt-3 text-[10px] shadow-lg">+ Nuevo Expediente</button>
+                <button onclick="window.descargarListaPacientes()" class="w-full bg-white/8 hover:bg-white/15 border border-white/10 text-white/70 py-2 rounded-lg mt-2 text-[9px] font-black uppercase transition">📊 Exportar lista Excel</button>
+            </section>
+
+            <!-- LISTA DE PACIENTES -->
+            <section class="card-paciente p-4 flex flex-col" style="height: 560px;">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-[10px] font-bold uppercase opacity-50 tracking-widest">Base de Datos</h2>
+                    <span id="resultadosBusqueda" class="text-[9px] opacity-40"></span>
+                </div>
+                <div id="listaPacientes" class="space-y-1.5 overflow-y-auto flex-1 pr-1 custom-scroll">
+                    <p class="text-center opacity-30 text-xs mt-10 animate-pulse">Sincronizando...</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- ===== COLUMNA DERECHA: EXPEDIENTE ===== -->
+        <div class="lg:col-span-8 space-y-4">
+
+            <!-- BANNER ALERGIA -->
+            <div id="bannerAlergia" class="hidden bg-red-600/20 border-2 border-red-500 p-4 rounded-xl flex items-center gap-3 shadow-[0_0_20px_rgba(220,38,38,0.3)]">
+                <span class="text-3xl animate-bounce">⚠️</span>
+                <div>
+                    <h3 class="text-red-400 font-black uppercase text-[11px] tracking-widest">ALERTA MÉDICA CRÍTICA — ALERGIA DECLARADA</h3>
+                    <p class="text-white text-sm font-black mt-1" id="txtAlergia"></p>
+                </div>
+            </div>
+
+            <!-- FORMULARIO EXPEDIENTE -->
+            <section class="card-paciente p-6 md:p-8 border-t-4 border-white shadow-2xl relative">
+                <div class="absolute top-4 right-6 flex gap-2 items-center">
+                    <span id="badgeEstado" class="tag-estado tag-activo hidden">ACTIVO</span>
+                    <span id="badgeModo" class="bg-white/5 px-3 py-1 rounded-full text-[9px] font-black tracking-widest">NUEVO</span>
+                </div>
+                <input type="hidden" id="pacienteId">
+
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                    <h2 class="text-xl font-black uppercase text-[var(--fluo)]" id="tituloForm">Nuevo Expediente</h2>
+                    <div class="flex gap-2 mt-2 md:mt-0">
+                        <button onclick="window.descargarHistoriaClinicaPDF()" id="btnDescargarHC" class="hidden border border-[var(--fluo)] text-[var(--fluo)] px-4 py-2 rounded text-[10px] font-bold uppercase hover:bg-[var(--fluo)] hover:text-black transition">📄 Descargar HC</button>
+                        <button onclick="window.exportarDatosARCO()" id="btnARCO" class="hidden border border-blue-400 text-blue-300 px-4 py-2 rounded text-[10px] font-bold uppercase hover:bg-blue-400 hover:text-black transition" title="Exportar todos los datos del paciente bajo derecho de acceso (Ley 25.326)">🔒 Exportar datos (ARCO)</button>
+                    </div>
+                </div>
+
+                <!-- TABS -->
+                <div class="flex border-b border-white/10 mb-6 overflow-x-auto no-scrollbar">
+                    <div onclick="window.setTab('datos')" class="tab-btn active" id="btn-tab-datos">👤 Datos</div>
+                    <div onclick="window.setTab('hc')" class="tab-btn" id="btn-tab-hc" style="display:none;">🏥 Bio-Perfil</div>
+                    <div onclick="window.setTab('evo')" class="tab-btn" id="btn-tab-evo" style="display:none;">📈 Evolución</div>
+                    <div onclick="window.setTab('perfil')" class="tab-btn text-blue-300" id="btn-tab-perfil" style="display:none;">👤 Perfil</div>
+                    <div onclick="window.setTab('archivos')" class="tab-btn text-teal-300" id="btn-tab-archivos" style="display:none;">📁 Estudios</div>
+                    <!-- [ELIMINADO] Tab "Documentos" removido por rediseño: consentimientos → Legales, registros → Enfermería -->
+                    <!-- <div onclick="window.setTab('docs')" class="tab-btn text-orange-300" id="btn-tab-docs" style="display:none;">📄 Documentos</div> -->
+                    <div onclick="window.setTab('seg')" class="tab-btn" id="btn-tab-seg" style="display:none;">🛡️ Seguridad</div>
+                    <div onclick="window.setTab('plan')" class="tab-btn text-purple-300" id="btn-tab-plan" style="display:none;">💎 Planes</div>
+                    <div onclick="window.setTab('fin')" class="tab-btn" id="btn-tab-fin" style="display:none;">💰 Pagos</div>
+                </div>
+
+                <div id="formPaciente">
+
+                    <!-- TAB DATOS BASE -->
+                    <div id="tab-datos" class="tab-pane active space-y-4">
+
+                        <!-- DNI: campo crítico con validación en tiempo real -->
+                        <div class="bg-black/20 p-4 rounded-xl border border-white/10">
+                            <label class="text-[9px] font-black text-[var(--fluo)] uppercase block mb-1">DNI / Pasaporte <span class="text-red-400">*</span></label>
+                            <input type="text" id="dni" class="input-sanalys font-black text-[var(--fluo)] text-xl border-[var(--fluo)]/40" placeholder="Sin puntos ni espacios" oninput="window.validarDNI(this.value)" maxlength="12">
+                            <div id="bannerDuplicado">
+                                <p class="text-red-400 font-black text-[11px] uppercase">⛔ Ya existe un expediente con este DNI</p>
+                                <p class="text-white text-[10px] mt-1" id="txtDuplicado"></p>
+                                <button onclick="window.irAlDuplicado()" class="mt-2 bg-red-500 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded hover:bg-red-400 transition">Ver expediente existente →</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="text-[9px] opacity-50 uppercase ml-1">Nombre y Apellido <span class="text-red-400">*</span></label><input type="text" id="nombre" class="input-sanalys font-bold text-white" placeholder="Apellido, Nombre"></div>
+                            <div>
+                                <label class="text-[9px] opacity-50 uppercase ml-1">Sexo</label>
+                                <select id="sexo" class="input-sanalys">
+                                    <option value="F">Femenino</option><option value="M">Masculino</option><option value="O">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="text-[9px] opacity-50 uppercase ml-1">Fecha Nacimiento</label><input type="date" id="fechaNac" class="input-sanalys" onchange="window.calcularEdad()"></div>
+                            <div><label class="text-[9px] opacity-50 uppercase ml-1">Edad</label><input type="text" id="edad" class="input-sanalys bg-transparent border-none text-[var(--fluo)] font-black" readonly></div>
+                            <div><label class="text-[9px] opacity-50 uppercase ml-1">Obra Social / Prepaga</label><input type="text" id="obraSocial" class="input-sanalys" placeholder="Ej: OSDE, PAMI..."></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="text-[9px] opacity-50 uppercase ml-1">Teléfono WhatsApp</label><input type="text" id="tel" class="input-sanalys"></div>
+                            <div><label class="text-[9px] opacity-50 uppercase ml-1">Email</label><input type="email" id="email" class="input-sanalys"></div>
+                            <div><label class="text-[9px] opacity-50 uppercase ml-1">Localidad</label><input type="text" id="loc" class="input-sanalys"></div>
+                        </div>
+
+                        <!-- CONTACTO DE EMERGENCIA -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-white/3 rounded-xl border border-white/5">
+                            <div><label class="text-[9px] text-orange-300 font-bold uppercase ml-1">Contacto de Emergencia</label><input type="text" id="contactoEmergencia" class="input-sanalys" placeholder="Nombre y relación"></div>
+                            <div><label class="text-[9px] text-orange-300 font-bold uppercase ml-1">Tel. Emergencia</label><input type="text" id="telEmergencia" class="input-sanalys"></div>
+                        </div>
+
+                        <!-- ALERGIA: campo crítico -->
+                        <div class="p-3 bg-red-900/10 rounded-xl border border-red-500/30">
+                            <label class="text-[9px] text-red-400 font-black uppercase ml-1 block mb-1">⚠️ Alergias Críticas / Contraindicaciones</label>
+                            <input type="text" id="alergias" class="input-sanalys border-red-500/30 font-bold" placeholder="NINGUNA — o describir en detalle" oninput="window.checkAlergia()">
+                            <p class="text-[8px] text-red-300 opacity-70 mt-1 ml-1">Este campo aparece como banner de alerta en toda la ficha.</p>
+                        </div>
+
+                        <div class="pt-4 border-t border-white/10 flex gap-3">
+                            <button onclick="window.guardarDatosBase()" id="btnGuardarDatos" class="btn-fluo flex-1 py-4 rounded-xl text-xs tracking-widest shadow-lg">💾 Guardar Datos</button>
+                            <button onclick="window.enviarWspBienvenida()" id="btnWspBienvenida" class="hidden bg-[#25D366] text-white px-5 py-4 rounded-xl text-[9px] font-black uppercase hover:bg-green-600 transition">💬 Bienvenida</button>
+                            <button onclick="window.toggleArchivarPaciente()" id="btnArchivar" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-4 rounded-xl text-[9px] font-black uppercase transition">📦 Archivar</button>
+                        </div>
+                    </div>
+
+                    <!-- TAB BIO-PERFIL -->
+                    <div id="tab-hc" class="tab-pane space-y-6">
+                        <div class="bg-blue-900/10 p-5 rounded-xl border border-blue-500/30">
+                            <h3 class="text-blue-400 font-black uppercase text-[10px] mb-4 tracking-widest border-b border-blue-500/20 pb-2">Estilo de Vida y Tóxicos</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div><label class="text-[9px] opacity-50 uppercase">Alimentación</label>
+                                    <select id="hc_dieta" class="input-sanalys">
+                                        <option value="Omnivora">Omnívora / Tradicional</option>
+                                        <option value="Vegetariana">Vegetariana</option>
+                                        <option value="Vegana">Vegana</option>
+                                        <option value="Keto">Keto / Cetogénica</option>
+                                        <option value="Otra">Otra</option>
+                                    </select>
+                                </div>
+                                <div><label class="text-[9px] opacity-50 uppercase">Horas de Ayuno Promedio</label><input type="number" id="hc_ayuno" class="input-sanalys" placeholder="Ej: 12"></div>
+                            </div>
+                            <div class="flex flex-wrap gap-4 text-[11px] font-bold">
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="hc_tox_tabaco" class="check-sanalys"> Tabaquismo</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="hc_tox_alcohol" class="check-sanalys"> Alcohol</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="hc_tox_otros" class="check-sanalys"> Otros Tóxicos</label>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-[9px] text-[var(--fluo)] font-bold uppercase ml-1">Antecedentes Médicos</label>
+                                    <button onclick="window.dictarPorVoz(event, 'hc_antecedentes')" class="text-[9px] bg-white/10 px-2 py-1 rounded hover:bg-white/20 transition">🎤 Dictar</button>
+                                </div>
+                                <textarea id="hc_antecedentes" class="input-sanalys h-24 custom-scroll" placeholder="Patologías de base, cirugías previas, medicación habitual..."></textarea>
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-[9px] text-[var(--fluo)] font-bold uppercase ml-1">Motivo de Consulta y Expectativas</label>
+                                    <button onclick="window.dictarPorVoz(event, 'hc_expectativas')" class="text-[9px] bg-white/10 px-2 py-1 rounded hover:bg-white/20 transition">🎤 Dictar</button>
+                                </div>
+                                <textarea id="hc_expectativas" class="input-sanalys h-20 custom-scroll"></textarea>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-white/10">
+                            <button onclick="window.guardarBioPerfil()" class="btn-fluo w-full py-4 rounded-xl text-xs tracking-widest shadow-lg">Actualizar Bio-Perfil</button>
+                        </div>
+                    </div>
+
+                    <!-- TAB EVOLUCIÓN -->
+                    <div id="tab-evo" class="tab-pane space-y-6">
+                        
+                        <!-- Selector de vista -->
+                        <div class="flex gap-2 border-b border-white/10 pb-3">
+                            <button onclick="window.setVistaEvo('nueva')" id="btnVistaEvoNueva" 
+                                class="px-4 py-2 text-[9px] font-black uppercase rounded border border-[var(--fluo)] bg-[var(--fluo)] text-black transition">
+                                + Nueva Medición
+                            </button>
+                            <button onclick="window.setVistaEvo('comparativa')" id="btnVistaEvoComp" 
+                                class="px-4 py-2 text-[9px] font-black uppercase rounded border border-white/20 text-white/50 hover:border-[var(--fluo)] hover:text-[var(--fluo)] transition">
+                                📊 Vista Comparativa
+                            </button>
+                        </div>
+
+                        <!-- VISTA: Nueva Medición (default) -->
+                        <div id="vistaEvoNueva">
+                            <div class="bg-black/30 p-5 rounded-xl border border-white/10">
+                                <h3 class="text-[var(--fluo)] font-black uppercase text-[10px] mb-4 tracking-widest">Nueva Medición</h3>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                    <div><label class="text-[8px] opacity-50 uppercase">Peso (kg)</label><input type="number" id="evo_peso" class="input-sanalys" onkeyup="window.calcularIndices()" placeholder="0.0"></div>
+                                    <div><label class="text-[8px] opacity-50 uppercase">Talla (cm)</label><input type="number" id="evo_talla" class="input-sanalys" onkeyup="window.calcularIndices()" placeholder="0"></div>
+                                    <div><label class="text-[8px] text-[var(--fluo)] font-bold uppercase">IMC</label><input type="text" id="evo_imc" class="input-sanalys font-black text-[var(--fluo)] bg-white/5" readonly></div>
+                                    <div><label class="text-[8px] opacity-50 uppercase">Tensión Arterial</label><input type="text" id="evo_ta" class="input-sanalys" placeholder="120/80"></div>
+                                </div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                                    <div><label class="text-[8px] opacity-50 uppercase">Frec. Cardíaca</label><input type="number" id="evo_fc" class="input-sanalys" placeholder="lpm"></div>
+                                    <div><label class="text-[8px] opacity-50 uppercase">Saturación O2</label><input type="number" id="evo_sat" class="input-sanalys" placeholder="%"></div>
+                                    <div><label class="text-[8px] opacity-50 uppercase">Cintura (cm)</label><input type="number" id="evo_cin" class="input-sanalys" onkeyup="window.calcularIndices()"></div>
+                                    <div><label class="text-[8px] opacity-50 uppercase">Cadera (cm)</label><input type="number" id="evo_cad" class="input-sanalys" onkeyup="window.calcularIndices()"></div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                                    <div>
+                                        <label class="text-[8px] opacity-50 uppercase">Motivo de Consulta</label>
+                                        <textarea id="evo_motivo" class="input-sanalys h-14 resize-none text-[11px]" placeholder="¿Por qué viene hoy?"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="text-[8px] opacity-50 uppercase">Diagnóstico Funcional</label>
+                                        <textarea id="evo_diagnostico" class="input-sanalys h-14 resize-none text-[11px]" placeholder="Diagnóstico / hallazgos"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="text-[8px] opacity-50 uppercase">Plan de Tratamiento</label>
+                                        <textarea id="evo_plan" class="input-sanalys h-14 resize-none text-[11px]" placeholder="Próxima sesión, ajustes..."></textarea>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-[8px] opacity-50 uppercase">Notas Médicas de la Sesión</label>
+                                        <button onclick="window.dictarPorVoz(event, 'evo_notas')" class="text-[9px] bg-white/10 px-2 py-1 rounded hover:bg-white/20 transition">🎤 Dictar</button>
+                                    </div>
+                                    <textarea id="evo_notas" class="input-sanalys h-16 resize-none"></textarea>
+                                </div>
+                                <button onclick="window.agregarEvolucion()" class="mt-4 border border-[var(--fluo)] text-[var(--fluo)] w-full py-2 rounded text-[10px] font-bold uppercase hover:bg-[var(--fluo)] hover:text-black transition">+ Guardar Medición</button>
+                            </div>
+                            <div class="mt-4">
+                                <h3 class="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3">Historial Clínico</h3>
+                                <div id="listaEvoluciones" class="space-y-3 max-h-[350px] overflow-y-auto custom-scroll pr-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- VISTA: Comparativa -->
+                        <div id="vistaEvoComparativa" style="display:none;">
+                            <div class="bg-black/30 p-4 rounded-xl border border-white/10 mb-4 flex justify-between items-center">
+                                <div>
+                                    <h3 class="text-[var(--fluo)] font-black uppercase text-[10px] tracking-widest">📊 Evolución Comparativa</h3>
+                                    <p class="text-[8px] opacity-40 mt-1">Últimas 6 visitas · Verde = mejora · Rojo = retroceso</p>
+                                </div>
+                                <select id="evoMaxVisitas" onchange="window.renderComparativa()" 
+                                    class="input-sanalys text-[9px] w-24 py-1.5">
+                                    <option value="4">4 visitas</option>
+                                    <option value="6" selected>6 visitas</option>
+                                    <option value="8">8 visitas</option>
+                                    <option value="999">Todas</option>
+                                </select>
+                            </div>
+                            <div id="tablaComparativa" class="overflow-x-auto">
+                                <p class="text-center opacity-30 text-xs py-6">Sin mediciones para comparar.</p>
+                            </div>
+                            <div id="tendenciasComp" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════════════════════════════
+                         TAB PERFIL (relacional / no clínico)
+                         Bitácora cronológica + etiquetas + alerta + notas libres.
+                         Diseñado para que recepción, médica y enfermería sumen info
+                         del trato del paciente, en lenguaje profesional.
+                         ═══════════════════════════════════════════════════════════════ -->
+                    <div id="tab-perfil" class="tab-pane space-y-5">
+
+                        <!-- ALERTA DESTACADA (solo si hay algo cargado en alertaPerfil) -->
+                        <div id="alertaPerfilContainer" class="hidden bg-blue-900/30 border-2 border-blue-400 rounded-xl p-4">
+                            <div class="flex items-start gap-3">
+                                <span class="text-2xl">⚠️</span>
+                                <div class="flex-1">
+                                    <h3 class="text-[10px] font-black uppercase tracking-widest text-blue-300 mb-1">Atención especial</h3>
+                                    <p id="alertaPerfilTexto" class="text-[11px] text-blue-100"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BITÁCORA — lo más importante, va arriba -->
+                        <div class="bg-black/20 p-5 rounded-xl border border-blue-400/20">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-blue-300">📅 Bitácora del paciente</h3>
+                                <button onclick="window.abrirNuevaEntradaBitacora()" class="bg-blue-500 hover:bg-blue-400 text-white text-[9px] font-bold uppercase px-4 py-2 rounded-lg transition">+ Nueva entrada</button>
+                            </div>
+                            <p class="text-[8px] opacity-50 italic mb-3">Registro cronológico de interacciones. Cada entrada queda con autor, fecha, etiquetas y comentario. Las viejas no se pisan: ayuda a ver cómo evoluciona el trato con el paciente en el tiempo.</p>
+                            <div id="listaBitacora" class="space-y-2 max-h-[400px] overflow-y-auto custom-scroll pr-2">
+                                <p class="text-center opacity-30 text-xs py-6 italic">Sin entradas en la bitácora todavía.</p>
+                            </div>
+                        </div>
+
+                        <!-- DATOS RELACIONALES — referencia rápida -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-black/20 p-4 rounded-xl border border-white/10">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-blue-300 mb-3">📋 Contexto del paciente</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="text-[8px] opacity-50 uppercase block mb-1">Profesión / actividad</label>
+                                        <input type="text" id="perfil_profesion" class="input-sanalys text-[11px]" placeholder="Ej: Abogada, Profesora, Empresaria...">
+                                    </div>
+                                    <div>
+                                        <label class="text-[8px] opacity-50 uppercase block mb-1">Cómo nos conoció</label>
+                                        <select id="perfil_canal" class="input-sanalys text-[11px]" style="background-color: #0a2a23; color: white;">
+                                            <option value="" style="background-color: #0a2a23; color: white;">— Seleccionar —</option>
+                                            <option value="recomendacion" style="background-color: #0a2a23; color: white;">Recomendación de otro paciente</option>
+                                            <option value="instagram" style="background-color: #0a2a23; color: white;">Instagram</option>
+                                            <option value="google" style="background-color: #0a2a23; color: white;">Búsqueda en Google</option>
+                                            <option value="medico" style="background-color: #0a2a23; color: white;">Derivación médica</option>
+                                            <option value="evento" style="background-color: #0a2a23; color: white;">Evento / charla</option>
+                                            <option value="otro" style="background-color: #0a2a23; color: white;">Otro</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-[8px] opacity-50 uppercase block mb-1">¿Quién lo recomendó? <span class="opacity-40">(si aplica)</span></label>
+                                        <input type="text" id="perfil_recomendado_por" class="input-sanalys text-[11px]" placeholder="Nombre de quien lo refirió">
+                                    </div>
+                                    <div>
+                                        <label class="text-[8px] opacity-50 uppercase block mb-1">⚠️ Alerta destacada <span class="opacity-40">(aparece arriba al abrir la ficha)</span></label>
+                                        <input type="text" id="perfil_alerta" class="input-sanalys text-[11px] border-blue-400/40" placeholder="Ej: VIP — atención especial / Requiere acompañante / Sensible al frío...">
+                                        <p class="text-[7px] opacity-40 mt-1">Dejar vacío si no hay nada que destacar.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-black/20 p-4 rounded-xl border border-white/10">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-blue-300 mb-3">📝 Notas generales</h3>
+                                <p class="text-[8px] opacity-50 italic mb-2">Texto libre. Información permanente que querés tener a mano sobre el paciente (gustos, contexto familiar, preferencias). Distinto a la bitácora (que es cronológica).</p>
+                                <textarea id="perfil_notas" class="input-sanalys text-[11px]" style="height:200px;resize:vertical" placeholder="Ej: Le gusta el té de jengibre. Vino con su hija la última vez. Trabaja muchas horas, prefiere turnos temprano..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- BOTÓN GUARDAR PERFIL -->
+                        <div class="flex justify-end">
+                            <button onclick="window.guardarPerfilPaciente()" class="bg-blue-500 hover:bg-blue-400 text-white font-black px-6 py-3 rounded-lg text-[10px] uppercase transition shadow-lg">💾 Guardar Perfil</button>
+                        </div>
+                    </div>
+
+                    <!-- TAB ARCHIVOS -->
+                    <div id="tab-archivos" class="tab-pane space-y-6">
+                        <!-- Subida deshabilitada temporalmente: requiere activar Firebase Storage
+                             (probablemente con plan Blaze). Reactivar cuando esté disponible:
+                             quitar este bloque "próximamente" y descomentar el formulario de abajo. -->
+                        <div class="bg-amber-900/15 p-5 rounded-xl border border-amber-500/25">
+                            <h3 class="text-[10px] font-black uppercase text-amber-300 mb-2 tracking-widest">📎 Subir Estudios / Laboratorios</h3>
+                            <p class="text-[10px] text-amber-200/80 leading-relaxed">Esta función estará disponible próximamente. Por ahora, conservá los informes en PDF en tu carpeta habitual. Cuando se habilite el almacenamiento en la nube, vas a poder adjuntarlos acá (solo PDF, máx 5 MB).</p>
+                        </div>
+
+                        <!-- FORMULARIO ORIGINAL (reactivar al habilitar Storage):
+                        <div class="bg-teal-900/20 p-5 rounded-xl border border-teal-500/30">
+                            <h3 class="text-[10px] font-black uppercase text-teal-400 mb-4 tracking-widest">Subir Estudio / Laboratorio</h3>
+                            <div class="flex flex-col md:flex-row gap-4 items-end">
+                                <div class="flex-1 w-full">
+                                    <label class="text-[8px] opacity-50 uppercase mb-1 block">Archivo — solo PDF (máx 5 MB)</label>
+                                    <input type="file" id="archivoUpload" accept="application/pdf,.pdf" class="text-[10px] w-full text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-teal-500 file:text-white hover:file:bg-teal-600 cursor-pointer">
+                                    <p class="text-[7px] opacity-40 mt-1">📄 Subí informes de laboratorio en PDF. Si tenés el estudio en imagen o Word, convertilo a PDF primero.</p>
+                                </div>
+                                <div class="flex-1 w-full">
+                                    <label class="text-[8px] opacity-50 uppercase mb-1 block">Nombre del Estudio</label>
+                                    <input type="text" id="nombreArchivo" class="input-sanalys" placeholder="Ej: Laboratorio Sangre Mayo 2025">
+                                </div>
+                                <button id="btnSubirArchivo" onclick="window.subirArchivoEstudio()" class="bg-teal-500 hover:bg-teal-400 text-white font-black px-6 py-3 rounded transition shadow-lg w-full md:w-auto text-[10px] uppercase">Subir</button>
+                            </div>
+                        </div>
+                        -->
+                        <div>
+                            <h3 class="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3">Repositorio del Paciente</h3>
+                            <div id="listaArchivos" class="space-y-2 max-h-[300px] overflow-y-auto custom-scroll pr-2">
+                                <p class="text-center opacity-30 text-xs py-4">Sin archivos.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB SEGURIDAD -->
+                    <div id="tab-seg" class="tab-pane space-y-6">
+                        <div class="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+                            <p class="text-[10px] text-orange-300 italic">⚠️ El checklist debe ser validado por la profesional a cargo ANTES y DESPUÉS de cada terapia.</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-3">
+                                <h3 class="text-white font-black uppercase text-[11px] tracking-widest border-b border-white/10 pb-2">PRE-TERAPIA</h3>
+                                <label class="flex items-center gap-3 text-xs cursor-pointer"><input type="checkbox" id="chk_pre1" class="check-sanalys"> HC Completa y revisada</label>
+                                <label class="flex items-center gap-3 text-xs cursor-pointer"><input type="checkbox" id="chk_pre2" class="check-sanalys"> Consentimiento informado firmado</label>
+                                <label class="flex items-center gap-3 text-xs cursor-pointer"><input type="checkbox" id="chk_pre3" class="check-sanalys"> Paciente hidratado</label>
+                                <label class="flex items-center gap-3 text-xs cursor-pointer"><input type="checkbox" id="chk_pre4" class="check-sanalys"> Apirético (sin fiebre)</label>
+                                <label class="flex items-center gap-3 text-xs cursor-pointer"><input type="checkbox" id="chk_pre5" class="check-sanalys"> Vía periférica permeable y confirmada</label>
+                            </div>
+                            <div class="space-y-3">
+                                <h3 class="text-white font-black uppercase text-[11px] tracking-widest border-b border-white/10 pb-2">POST-TERAPIA</h3>
+                                <label class="flex items-center gap-3 text-xs cursor-pointer"><input type="checkbox" id="chk_pos1" class="check-sanalys"> Sin incidentes durante la infusión</label>
+                                <label class="flex items-center gap-3 text-xs cursor-pointer"><input type="checkbox" id="chk_pos2" class="check-sanalys"> Hemodinámicamente estable al alta</label>
+                                <label class="flex items-center gap-3 text-xs cursor-pointer"><input type="checkbox" id="chk_pos3" class="check-sanalys"> Indicaciones y cuidados post-terapia dados</label>
+                            </div>
+                        </div>
+                        <div class="pt-6 border-t border-white/10 text-center">
+                            <button onclick="window.firmarChecklist()" class="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-3 rounded-xl text-xs uppercase transition">✍️ Firmar y Sellar Seguridad</button>
+                            <p id="firmaSeguridadTxt" class="text-[9px] text-[var(--fluo)] font-bold mt-3"></p>
+                        </div>
+                    </div>
+
+                    <!-- TAB PLANES -->
+                    <div id="tab-plan" class="tab-pane space-y-6">
+                        <div class="bg-purple-900/20 p-5 rounded-xl border border-purple-500/30 shadow-lg">
+                            <h3 class="text-[11px] font-black uppercase text-purple-300 tracking-widest mb-1">🧾 Armador de Presupuesto</h3>
+                            <!-- [REFACTOR] Este módulo es solo para armar presupuestos. NO genera deuda ni interactúa con Caja. -->
+                            <p class="text-[9px] opacity-50 mb-4 italic">Los presupuestos son informativos y no generan cobros. Para cobrar, usá el módulo Caja.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div><label class="text-[9px] uppercase font-bold text-white mb-1 block">Nombre del Presupuesto</label><input type="text" id="plan_nombre" class="input-sanalys" placeholder="Ej: Pack 10 Sesiones Vitamina C"></div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="text-[9px] uppercase font-bold text-white mb-1 block">Sesiones</label><input type="number" id="plan_sesiones" class="input-sanalys font-black text-center" value="10"></div>
+                                    <div><label class="text-[9px] uppercase font-bold text-[var(--fluo)] mb-1 block">Total $</label><input type="number" id="plan_costo" class="input-sanalys font-black text-center text-[var(--fluo)] border-[var(--fluo)]/50" placeholder="0"></div>
+                                </div>
+                            </div>
+                            <!-- [NUEVO] Campo validez del presupuesto -->
+                            <div class="mb-4">
+                                <label class="text-[9px] uppercase font-bold text-white mb-1 block">Válido por (días)</label>
+                                <input type="number" id="plan_validez" class="input-sanalys font-black text-center w-32" value="30" min="1" placeholder="30">
+                            </div>
+                            <div id="itemsPresupuesto" class="space-y-2 mb-3"></div>
+                            <button onclick="window.agregarItemPresupuesto()" class="w-full border border-dashed border-white/20 text-white/50 py-2 rounded-lg text-[9px] font-bold hover:border-white/40 hover:text-white/70 transition mb-3">+ Agregar ítem adicional</button>
+                            <div class="flex gap-3">
+                                <button onclick="window.generarPDFPresupuesto()" class="w-1/3 bg-white/10 hover:bg-white/20 text-white font-bold text-[9px] uppercase py-3 rounded-lg transition border border-white/20">📄 PDF Presupuesto</button>
+                                <!-- [REFACTOR] "Guardar Presupuesto" reemplaza a "Activar Plan" — NO genera saldoPendiente ni deuda -->
+                                <button onclick="window.guardarPresupuesto()" class="w-2/3 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase py-3 rounded-lg transition">💾 Guardar Presupuesto</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-4 border-b border-white/10 pb-2">Presupuestos Guardados</h3>
+                            <div id="listaPlanes"><p class="text-center opacity-30 text-xs py-4">Sin presupuestos guardados.</p></div>
+                        </div>
+                    </div>
+
+                    <!-- TAB PAGOS/CAJA -->
+                    <div id="tab-fin" class="tab-pane">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-[10px] font-bold uppercase tracking-widest opacity-50">Auditoría Financiera del Paciente</h3>
+                            <div class="text-right">
+                                <p class="text-[9px] uppercase opacity-50">Inversión Total</p>
+                                <p class="text-2xl font-black text-[var(--fluo)]" id="totCajaPaciente">$ 0</p>
+                            </div>
+                        </div>
+                        <div class="bg-black/30 p-4 rounded-xl border border-white/5 overflow-x-auto">
+                            <table class="w-full text-left text-[10px] uppercase">
+                                <thead class="opacity-50 border-b border-white/10">
+                                    <tr><th class="pb-2 pr-3">Fecha</th><th class="pb-2 pr-3">Tratamiento</th><th class="pb-2 pr-3">Médica</th><th class="pb-2 pr-3">Medio</th><th class="pb-2 text-right">Monto</th></tr>
+                                </thead>
+                                <tbody id="listaCajaPaciente">
+                                    <tr><td colspan="5" class="text-center py-6 opacity-30 italic">Sin pagos registrados.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- TAB DOCUMENTOS -->
+                    <div id="tab-docs" class="tab-pane">
+                        <div class="space-y-6">
+                            
+                            <!-- CONSENTIMIENTOS INFORMADOS -->
+                            <div>
+                                <h3 class="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3">📝 Consentimientos Informados</h3>
+                                <div id="listaConsentimientos" class="space-y-2">
+                                    <p class="text-xs opacity-30 italic">Sin consentimientos registrados.</p>
+                                </div>
+                            </div>
+                            
+                            <!-- REGISTROS DE ENFERMERÍA -->
+                            <div>
+                                <h3 class="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3">💉 Registros de Enfermería</h3>
+                                <div id="listaEnfermeria" class="space-y-2">
+                                    <p class="text-xs opacity-30 italic">Sin registros de enfermería.</p>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, limit, where, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA", authDomain: "sanalys-2263e.firebaseapp.com", projectId: "sanalys-2263e", storageBucket: "sanalys-2263e.firebasestorage.app", messagingSenderId: "899593881035", appId: "1:899593881035:web:cd0ddfdb4f8af089e9224e" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let todosLosPacientes = [];
+        let cajaOnline = [];
+        let pacienteActualData = null;
+        let filtroActivo = 'todos';
+        let dniDuplicadoId = null;
+        const SESION = JSON.parse(sessionStorage.getItem('usuario_sanalys')) || {};
+        const cleanDNI = (d) => String(d || '').replace(/\D/g, '');
+
+        // Registro de auditoría — misma definición que admin.html, copiada acá
+        // porque pacientes.html también la necesita (al guardar perfil/bitácora/ARCO).
+        async function regAuditoria(accion, detalle = '') {
+            try {
+                await addDoc(collection(db, 'auditoria'), {
+                    timestamp: Date.now(),
+                    fecha: new Date().toLocaleString(),
+                    usuario: SESION.nombre || 'Sistema',
+                    accion,
+                    detalle
+                });
+            } catch (e) {
+                console.warn('[AUDITORIA] no se pudo registrar:', e?.message || e);
+                // No re-lanzamos: la auditoría no debe romper la operación principal
+            }
+        }
+
+        // =============================================
+        // INIT
+        // =============================================
+        window.init = async () => {
+            if (!SESION.nombre) { window.location.href = 'index.html'; return; }
+            const esAdmin = SESION.rol==='admin' || SESION.permisos?.includes('admin');
+            if (!esAdmin && !SESION.permisos?.includes('pacientes')) { window.location.href = 'index.html'; return; }
+
+            const busquedaPrevia = sessionStorage.getItem('sanalys_buscar_paciente');
+
+            // Cargar todo en paralelo
+            const [pacientesSnap, cajaSnap, clinicaSnap] = await Promise.all([
+                getDocs(collection(db,'pacientes')),
+                getDocs(collection(db,'caja')),
+                getDoc(doc(db,'config','datosClinica')).catch(()=>null),
+            ]);
+
+            if (clinicaSnap?.exists() && window.SanalysPDF) window.SanalysPDF.setClinica(clinicaSnap.data());
+
+            cajaOnline = cajaSnap.docs.map(d => d.data());
+
+            todosLosPacientes = pacientesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            document.getElementById('contadorPacientes').textContent = `${todosLosPacientes.length} pacientes`;
+
+            if (busquedaPrevia) {
+                document.getElementById('busqueda').value = busquedaPrevia;
+                sessionStorage.removeItem('sanalys_buscar_paciente');
+            }
+            window.buscar();
+
+            // Prefill desde CRM
+            const crmPrefill = sessionStorage.getItem('crm_prefill_paciente');
+            if (crmPrefill) {
+                sessionStorage.removeItem('crm_prefill_paciente');
+                try {
+                    const pre = JSON.parse(crmPrefill);
+                    if (pre.id) {
+                        const p = todosLosPacientes.find(x => x.id === pre.id);
+                        if (p) window.abrirPaciente(p.id);
+                    }
+                } catch(e) {}
+            }
+
+            // Abrir paciente si venía por DNI
+            if (busquedaPrevia) {
+                const match = todosLosPacientes.find(p => p.dni === busquedaPrevia);
+                if (match) window.abrirPaciente(match.id);
+            }
+
+            // Abrir paciente activo si venía desde Index
+            const dniActivo = sessionStorage.getItem('dni_paciente_activo');
+            if (dniActivo) {
+                sessionStorage.removeItem('dni_paciente_activo');
+                const match = todosLosPacientes.find(p => p.dni === dniActivo);
+                if (match) window.abrirPaciente(match.id);
+            }
+        };
+
+        // =============================================
+        // VALIDACIÓN DE DNI EN TIEMPO REAL (ANTI-DUPLICADO)
+        // =============================================
+        window.validarDNI = (valor) => {
+            const dni = cleanDNI(valor);
+            const input = document.getElementById('dni');
+            const banner = document.getElementById('bannerDuplicado');
+            const pacienteActualId = document.getElementById('pacienteId').value;
+            dniDuplicadoId = null;
+
+            if (!dni || dni.length < 6) {
+                input.classList.remove('input-error', 'input-ok');
+                banner.style.display = 'none';
+                return;
+            }
+
+            const duplicado = todosLosPacientes.find(p =>
+                cleanDNI(p.dni) === dni && p.id !== pacienteActualId
+            );
+
+            if (duplicado) {
+                input.classList.add('input-error');
+                input.classList.remove('input-ok');
+                banner.style.display = 'block';
+                document.getElementById('txtDuplicado').textContent =
+                    `Paciente: ${esc(duplicado.nombre)} · Alta: ${duplicado.fechaAlta || 'S/D'} · ${duplicado.alergias ? '⚠ ALERGIA: ' + duplicado.alergias : 'Sin alergias registradas'}`;
+                dniDuplicadoId = duplicado.id;
+                document.getElementById('btnGuardarDatos').disabled = true;
+                document.getElementById('btnGuardarDatos').classList.add('opacity-40', 'cursor-not-allowed');
+            } else {
+                input.classList.add('input-ok');
+                input.classList.remove('input-error');
+                banner.style.display = 'none';
+                document.getElementById('btnGuardarDatos').disabled = false;
+                document.getElementById('btnGuardarDatos').classList.remove('opacity-40', 'cursor-not-allowed');
+            }
+        };
+
+        window.irAlDuplicado = () => {
+            if (dniDuplicadoId) window.abrirPaciente(dniDuplicadoId);
+        };
+
+        // =============================================
+        // BÚSQUEDA EN TIEMPO REAL CON FILTROS
+        // =============================================
+        window.setFiltro = (f) => {
+            filtroActivo = f;
+            ['todos','alergias','deuda'].forEach(x => {
+                document.getElementById('f-' + x)?.classList.toggle('bg-white/20', x === f);
+            });
+            window.buscar();
+        };
+
+        window.buscar = () => {
+            const q = document.getElementById('busqueda').value.toLowerCase().trim();
+            let filtrados = [...todosLosPacientes];
+
+            // Filtro archivados vs activos
+            if (filtroActivo === 'archivados') {
+                filtrados = filtrados.filter(p => p.activo === false);
+            } else {
+                filtrados = filtrados.filter(p => p.activo !== false); // oculta archivados por defecto
+            }
+
+            // Filtros especiales
+            if (filtroActivo === 'alergias') filtrados = filtrados.filter(p => p.alergias && p.alergias.trim());
+            if (filtroActivo === 'deuda') {
+                filtrados = filtrados.filter(p => {
+                    return (p.planes || []).some(plan => plan.saldoPendiente > 0);
+                });
+            }
+
+            // Búsqueda por texto: nombre, DNI, teléfono
+            if (q) {
+                filtrados = filtrados.filter(p =>
+                    (p.nombre && p.nombre.toLowerCase().includes(q)) ||
+                    (p.dni && cleanDNI(p.dni).includes(cleanDNI(q))) ||
+                    (p.tel && p.tel.replace(/\D/g,'').includes(q.replace(/\D/g,''))) ||
+                    (p.email && p.email.toLowerCase().includes(q))
+                );
+            }
+
+            filtrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            document.getElementById('resultadosBusqueda').textContent = `${filtrados.length} resultados`;
+
+            const list = document.getElementById('listaPacientes');
+            if (!filtrados.length) {
+                list.innerHTML = `<p class='text-center opacity-30 text-xs mt-8'>Sin resultados.</p>`;
+                return;
+            }
+
+            list.innerHTML = filtrados.map(p => {
+                const tieneDeuda = (p.planes || []).some(pl => pl.saldoPendiente > 0);
+                const tags = [
+                    p.activo === false ? `<span class="tag-estado" style="background:rgba(100,100,100,.3);color:#9ca3af;">📦 archivado</span>` : '',
+                    p.alergias ? `<span class="tag-estado tag-alergia">⚠ alergia</span>` : '',
+                    tieneDeuda ? `<span class="tag-estado" style="background:rgba(251,191,36,0.2);color:#fcd34d;">$ deuda</span>` : ''
+                ].filter(Boolean).join(' ');
+                return `<div class="search-result-item" onclick="window.abrirPaciente('${p.id}')">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-black uppercase text-[11px] truncate">${esc(p.nombre)}</p>
+                        <p class="text-[9px] opacity-50 font-mono">DNI: ${p.dni || 'S/D'}</p>
+                    </div>
+                    <div class="flex flex-col items-end gap-1 ml-2">${tags}</div>
+                </div>`;
+            }).join('');
+        };
+
+        // =============================================
+        // ABRIR / NUEVO PACIENTE
+        // =============================================
+        window.nuevoPaciente = () => {
+            pacienteActualData = null;
+            ['pacienteId'].forEach(id => document.getElementById(id).value = '');
+            document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], input[type="email"], textarea').forEach(i => i.value = '');
+            document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+            document.getElementById('tituloForm').textContent = 'Nuevo Expediente';
+            document.getElementById('badgeModo').textContent = 'NUEVO';
+            document.getElementById('btnDescargarHC').classList.add('hidden');
+            { const _a = document.getElementById('btnARCO'); if(_a) _a.classList.add('hidden'); }
+            document.getElementById('btnWspBienvenida').classList.add('hidden');
+            document.getElementById('bannerDuplicado').style.display = 'none';
+            document.getElementById('bannerAlergia').classList.add('hidden');
+            document.getElementById('badgeEstado').classList.add('hidden');
+            document.getElementById('dni').classList.remove('input-error', 'input-ok');
+            document.getElementById('btnGuardarDatos').disabled = false;
+            document.getElementById('btnGuardarDatos').classList.remove('opacity-40', 'cursor-not-allowed');
+            ['hc','evo','perfil','archivos','seg','plan','fin'].forEach(t => document.getElementById('btn-tab-' + t).style.display = 'none');
+            window.setTab('datos');
+        };
+
+        window.abrirPaciente = (id) => {
+            const p = todosLosPacientes.find(x => x.id === id);
+            if (!p) return;
+            pacienteActualData = p;
+
+            document.getElementById('pacienteId').value = p.id;
+            document.getElementById('tituloForm').textContent = p.nombre;
+            document.getElementById('badgeModo').textContent = 'EDITANDO';
+            document.getElementById('btnDescargarHC').classList.remove('hidden');
+            { const _a = document.getElementById('btnARCO'); if(_a) _a.classList.remove('hidden'); }
+            document.getElementById('bannerDuplicado').style.display = 'none';
+            document.getElementById('badgeEstado').classList.remove('hidden');
+
+            // Actualizar botón archivar
+            const btnArchivar = document.getElementById('btnArchivar');
+            if (btnArchivar) {
+                const archivado = p.activo === false;
+                btnArchivar.textContent = archivado ? '✅ Desarchivar' : '📦 Archivar';
+                btnArchivar.className = archivado
+                    ? 'bg-green-700 hover:bg-green-600 text-white px-4 py-4 rounded-xl text-[9px] font-black uppercase transition'
+                    : 'bg-gray-600 hover:bg-gray-500 text-white px-4 py-4 rounded-xl text-[9px] font-black uppercase transition';
+            }
+
+            // Rellenar campos
+            document.getElementById('nombre').value       = p.nombre || '';
+            document.getElementById('dni').value          = p.dni || '';
+            document.getElementById('fechaNac').value     = p.fechaNac || '';
+            document.getElementById('sexo').value         = p.sexo || 'F';
+            document.getElementById('tel').value          = p.tel || '';
+            document.getElementById('email').value        = p.email || '';
+            document.getElementById('loc').value          = p.loc || '';
+            document.getElementById('alergias').value     = p.alergias || '';
+            document.getElementById('obraSocial').value   = p.obraSocial || '';
+            document.getElementById('contactoEmergencia').value = p.contactoEmergencia || '';
+            document.getElementById('telEmergencia').value     = p.telEmergencia || '';
+
+            // Mostrar alerta de alergias si corresponde
+            window.checkAlergia();
+
+            // Limpiar estado del DNI (es el propio paciente)
+            document.getElementById('dni').classList.remove('input-error', 'input-ok');
+            document.getElementById('btnGuardarDatos').disabled = false;
+            document.getElementById('btnGuardarDatos').classList.remove('opacity-40', 'cursor-not-allowed');
+
+            window.calcularEdad();
+            window.checkAlergia();
+
+            // Bio-perfil
+            document.getElementById('hc_dieta').value         = p.hc_dieta || 'Omnivora';
+            document.getElementById('hc_ayuno').value         = p.hc_ayuno || '';
+            document.getElementById('hc_tox_tabaco').checked  = p.hc_tox_tabaco || false;
+            document.getElementById('hc_tox_alcohol').checked = p.hc_tox_alcohol || false;
+            document.getElementById('hc_tox_otros').checked   = p.hc_tox_otros || false;
+            document.getElementById('hc_antecedentes').value  = p.hc_antecedentes || '';
+            document.getElementById('hc_expectativas').value  = p.hc_expectativas || '';
+
+            // Seguridad
+            if (p.seguridad) {
+                for (let i = 1; i <= 5; i++) document.getElementById('chk_pre' + i).checked = p.seguridad['pre' + i] || false;
+                for (let i = 1; i <= 3; i++) document.getElementById('chk_pos' + i).checked = p.seguridad['pos' + i] || false;
+                document.getElementById('firmaSeguridadTxt').textContent = p.seguridad.firma
+                    ? `Última validación: ${p.seguridad.firma} · ${p.seguridad.fecha}` : '';
+            } else {
+                document.querySelectorAll('.check-sanalys').forEach(c => c.checked = false);
+                document.getElementById('firmaSeguridadTxt').textContent = '';
+            }
+
+            // WhatsApp solo si tiene teléfono
+            if (p.tel) document.getElementById('btnWspBienvenida').classList.remove('hidden');
+            else document.getElementById('btnWspBienvenida').classList.add('hidden');
+
+            ['hc','evo','perfil','archivos','seg','plan','fin'].forEach(t => document.getElementById('btn-tab-' + t).style.display = 'block');
+            renderEvoluciones();
+            renderHistorialCaja(p.dni);
+            renderPlanes();
+            renderArchivos();
+            window.cargarPerfilPaciente(p);  // Carga perfil + bitácora al abrir la ficha
+            window.setTab('datos');
+        };
+
+        // =============================================
+        // GUARDAR — CON DOBLE VALIDACIÓN DE DNI
+        // =============================================
+        window.toggleArchivarPaciente = async () => {
+            if (!pacienteActualData) return;
+            const archivado = pacienteActualData.activo === false;
+            const accion = archivado ? 'desarchivar' : 'archivar';
+            if (!confirm(`¿${accion.charAt(0).toUpperCase()+accion.slice(1)} a ${esc(pacienteActualData.nombre)}?`)) return;
+            
+            const nuevoEstado = archivado ? true : false;
+            await updateDoc(doc(db,'pacientes', pacienteActualData.id), { activo: nuevoEstado });
+            
+            // Actualizar local
+            pacienteActualData.activo = nuevoEstado;
+            const idx = todosLosPacientes.findIndex(p => p.id === pacienteActualData.id);
+            if (idx >= 0) todosLosPacientes[idx].activo = nuevoEstado;
+
+            // Actualizar botón
+            const btnArchivar = document.getElementById('btnArchivar');
+            btnArchivar.textContent = nuevoEstado ? '📦 Archivar' : '✅ Desarchivar';
+            btnArchivar.className = nuevoEstado
+                ? 'bg-gray-600 hover:bg-gray-500 text-white px-4 py-4 rounded-xl text-[9px] font-black uppercase transition'
+                : 'bg-green-700 hover:bg-green-600 text-white px-4 py-4 rounded-xl text-[9px] font-black uppercase transition';
+
+            toast(`Paciente ${archivado ? 'desarchivado' : 'archivado'} correctamente.`, 'ok');
+            window.buscar();
+        };
+
+        window.guardarDatosBase = async () => {
+            const pId   = document.getElementById('pacienteId').value;
+            const nombre = document.getElementById('nombre').value.trim();
+            const dni    = cleanDNI(document.getElementById('dni').value.trim());
+
+            if (!nombre) return toast('El nombre es obligatorio.', 'warn');
+            if (!dni || dni.length < 6) return toast('El DNI es obligatorio y debe tener al menos 6 dígitos.', 'warn');
+
+            // Doble validación server-side: verificar DNI duplicado en Firestore
+            if (!pId) {
+                const snap = await getDocs(query(collection(db, 'pacientes'), where('dni', '==', dni)));
+                if (!snap.empty) {
+                    const dup = snap.docs[0].data();
+                    return toast(`⛔ Ya existe el paciente ${esc(dup.nombre)} con ese DNI. No se puede crear un duplicado.`, 'info');
+                }
+            }
+
+            const data = {
+                nombre,
+                dni,
+                fechaNac: document.getElementById('fechaNac').value,
+                sexo: document.getElementById('sexo').value,
+                tel: document.getElementById('tel').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                loc: document.getElementById('loc').value.trim(),
+                alergias: document.getElementById('alergias').value.trim(),
+                obraSocial: document.getElementById('obraSocial').value.trim(),
+                contactoEmergencia: document.getElementById('contactoEmergencia').value.trim(),
+                telEmergencia: document.getElementById('telEmergencia').value.trim(),
+                ultimaModificacion: new Date().toLocaleString(),
+                modificadoPor: SESION.nombre
+            };
+
+            try {
+                if (pId) {
+                    await updateDoc(doc(db, 'pacientes', pId), data);
+                    toast('✅ Datos actualizados.', 'ok');
+                } else {
+                    data.evoluciones = []; data.seguridad = {}; data.planes = []; data.archivos = [];
+                    data.fechaAlta = new Date().toLocaleDateString();
+                    data.creadoPor = SESION.nombre;
+                    const docRef = await addDoc(collection(db, 'pacientes'), data);
+                    document.getElementById('pacienteId').value = docRef.id;
+                    ['hc','evo','perfil','archivos','seg','plan','fin'].forEach(t => document.getElementById('btn-tab-' + t).style.display = 'block');
+                    document.getElementById('btnDescargarHC').classList.remove('hidden');
+            { const _a = document.getElementById('btnARCO'); if(_a) _a.classList.remove('hidden'); }
+                    if (data.tel) document.getElementById('btnWspBienvenida').classList.remove('hidden');
+                    toast('✅ Expediente creado.', 'ok');
+                }
+            } catch (e) { console.error('[PACIENTES]:', e?.message || e); toast('Error al guardar.', 'error'); }
+        };
+
+        // =============================================
+        // WHATSAPP BIENVENIDA
+        // =============================================
+        window.enviarWspBienvenida = () => {
+            const p = pacienteActualData; if (!p?.tel) return;
+            const num = p.tel.replace(/\D/g, '');
+            const msg = `¡Hola ${p.nombre.split(' ')[0]}! 👋 Te damos la bienvenida a Sanalys Clínica Ortomolecular.\n\nTu expediente fue registrado correctamente. Ante cualquier consulta estamos a disposición.\n\n¡Gracias por elegirnos! ✨`;
+            window.open(`https://api.whatsapp.com/send?phone=${num}&text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        // =============================================
+        // DICTADO POR VOZ
+        // =============================================
+        window.dictarPorVoz = (event, inputId) => {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) return toast('Usá Google Chrome para el dictado por voz.', 'info');
+            const rec = new SR();
+            rec.lang = 'es-AR'; rec.interimResults = false;
+            const btn = event.currentTarget;
+            const orig = btn.innerHTML;
+            btn.innerHTML = '🔴 Escuchando...';
+            btn.classList.add('bg-red-500', 'text-white');
+            rec.onresult = (e) => {
+                const inp = document.getElementById(inputId);
+                const txt = e.results[0][0].transcript;
+                inp.value = inp.value ? inp.value + ' ' + txt : txt;
+            };
+            rec.onerror = () => toast('Error al escuchar. Verificá el micrófono.', 'error');
+            rec.onend = () => { btn.innerHTML = orig; btn.classList.remove('bg-red-500', 'text-white'); };
+            rec.start();
+        };
+
+        // =============================================
+        // UTILIDADES
+        // =============================================
+        window.setTab = (tabId) => {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('btn-tab-' + tabId).classList.add('active');
+            
+            // Cargar documentos cuando se activa el tab
+            if(tabId === 'docs' && pacienteActivo) {
+                cargarDocumentos(pacienteActivo);
+            }
+        };
+        
+        window.cargarDocumentos = async (pacienteId) => {
+            try {
+                // Cargar consentimientos
+                const consSnap = await getDocs(collection(db, `pacientes/${pacienteId}/consentimientos`));
+                const divCons = document.getElementById('listaConsentimientos');
+                if(consSnap.empty) {
+                    divCons.innerHTML = '<p class="text-xs opacity-30 italic">Sin consentimientos registrados.</p>';
+                } else {
+                    divCons.innerHTML = consSnap.docs.map(d => {
+                        const c = d.data();
+                        return `<div class="bg-black/20 p-3 rounded-lg border border-white/5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-bold text-[var(--fluo)]">${c.tipo || 'Consentimiento'}</p>
+                                    <p class="text-[10px] opacity-50 mt-1">Firmado: ${c.firmaFecha || 'Sin fecha'}</p>
+                                    <p class="text-[10px] opacity-50">Médica: ${c.medica || 'N/A'}</p>
+                                </div>
+                                <span class="text-xs ${c.firmado ? 'text-green-400' : 'text-yellow-400'}">${c.firmado ? '✓ Firmado' : '⚠ Pendiente'}</span>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+                
+                // Cargar registros enfermería
+                const enfSnap = await getDocs(collection(db, `pacientes/${pacienteId}/registrosEnfermeria`));
+                const divEnf = document.getElementById('listaEnfermeria');
+                if(enfSnap.empty) {
+                    divEnf.innerHTML = '<p class="text-xs opacity-30 italic">Sin registros de enfermería.</p>';
+                } else {
+                    divEnf.innerHTML = enfSnap.docs.map(d => {
+                        const r = d.data();
+                        return `<div class="bg-black/20 p-3 rounded-lg border border-white/5">
+                            <div class="flex justify-between items-start mb-2">
+                                <p class="text-xs font-bold text-blue-300">${r.tratamiento?.formulaNombre || 'Tratamiento'}</p>
+                                <p class="text-[10px] opacity-50">${r.fecha || ''}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-[10px]">
+                                <p><span class="opacity-50">Vía:</span> ${r.via?.tipo || 'N/A'}</p>
+                                <p><span class="opacity-50">TA:</span> ${r.signos?.ta || 'N/A'}</p>
+                                <p><span class="opacity-50">FC:</span> ${r.signos?.fc || 'N/A'}</p>
+                                <p><span class="opacity-50">SatO2:</span> ${r.signos?.sato2 || 'N/A'}</p>
+                            </div>
+                            ${r.observaciones ? `<p class="text-[10px] opacity-70 mt-2 italic">${esc(r.observaciones)}</p>` : ''}
+                            <p class="text-[9px] opacity-40 mt-2">Enfermera: ${r.enfermera || 'N/A'}</p>
+                        </div>`;
+                    }).join('');
+                }
+            } catch(e) {
+                console.error('[PACIENTES/DOCS]:', e?.message || e);
+            }
+        };
+
+        window.calcularEdad = () => {
+            const f = document.getElementById('fechaNac').value;
+            if (f) document.getElementById('edad').value = Math.floor((new Date() - new Date(f)) / (1000*60*60*24*365.25)) + ' años';
+        };
+
+        window.checkAlergia = () => {
+            const val = document.getElementById('alergias').value.trim();
+            const banner = document.getElementById('bannerAlergia');
+            if (val && val.toUpperCase() !== 'NINGUNA') {
+                banner.classList.remove('hidden');
+                document.getElementById('txtAlergia').textContent = val;
+            } else {
+                banner.classList.add('hidden');
+            }
+        };
+
+        // =============================================
+        // BIO-PERFIL
+        // =============================================
+        window.guardarBioPerfil = async () => {
+            const pId = document.getElementById('pacienteId').value;
+            if (!pId) return toast('Guardá los datos base primero.', 'info');
+            const data = {
+                hc_dieta: document.getElementById('hc_dieta').value,
+                hc_ayuno: document.getElementById('hc_ayuno').value,
+                hc_tox_tabaco: document.getElementById('hc_tox_tabaco').checked,
+                hc_tox_alcohol: document.getElementById('hc_tox_alcohol').checked,
+                hc_tox_otros: document.getElementById('hc_tox_otros').checked,
+                hc_antecedentes: document.getElementById('hc_antecedentes').value.trim(),
+                hc_expectativas: document.getElementById('hc_expectativas').value.trim()
+            };
+            try { await updateDoc(doc(db, 'pacientes', pId), data); toast('✅ Bio-Perfil guardado.', 'ok'); }
+            catch (e) { toast('Error.', 'error'); }
+        };
+
+        // =============================================
+        // EVOLUCIONES
+        // =============================================
+        // ═══════════════════════════════════════════════════════
+        // EVOLUCIÓN COMPARATIVA — Nueva feature
+        // Consolida datos de todas las visitas en una tabla pivote
+        // ═══════════════════════════════════════════════════════
+        window.setVistaEvo = (vista) => {
+            const esNueva = vista === 'nueva';
+            document.getElementById('vistaEvoNueva').style.display = esNueva ? '' : 'none';
+            document.getElementById('vistaEvoComparativa').style.display = esNueva ? 'none' : '';
+            document.getElementById('btnVistaEvoNueva').className = `px-4 py-2 text-[9px] font-black uppercase rounded border transition ${esNueva ? 'border-[var(--fluo)] bg-[var(--fluo)] text-black' : 'border-white/20 text-white/50 hover:border-[var(--fluo)] hover:text-[var(--fluo)]'}`;
+            document.getElementById('btnVistaEvoComp').className = `px-4 py-2 text-[9px] font-black uppercase rounded border transition ${!esNueva ? 'border-[var(--fluo)] bg-[var(--fluo)] text-black' : 'border-white/20 text-white/50 hover:border-[var(--fluo)] hover:text-[var(--fluo)]'}`;
+            if(!esNueva) window.renderComparativa();
+        };
+
+        window.renderComparativa = () => {
+            const evos = pacienteActualData?.evoluciones || [];
+            const container = document.getElementById('tablaComparativa');
+            const tendencias = document.getElementById('tendenciasComp');
+            if(!evos.length) {
+                container.innerHTML = '<p class="text-center opacity-30 text-xs py-6">Sin mediciones para comparar.</p>';
+                tendencias.innerHTML = '';
+                return;
+            }
+
+            const maxN = parseInt(document.getElementById('evoMaxVisitas')?.value || '6');
+            // Las evoluciones están en orden inverso (más reciente primero)
+            const slice = evos.slice(0, maxN);
+
+            // Métricas a comparar: [campo, label, unidad, mejoraMenor (true=menor es mejor)]
+            const METRICAS = [
+                { k:'peso',  label:'Peso',     u:'kg',   menor:true },
+                { k:'imc',   label:'IMC',      u:'',     menor:true },
+                { k:'ta',    label:'T.A.',     u:'mmHg', menor:null }, // texto, sin comparación
+                { k:'fc',    label:'F.C.',     u:'lpm',  menor:true },
+                { k:'sat',   label:'SpO₂',     u:'%',    menor:false },
+                { k:'cin',   label:'Cintura',  u:'cm',   menor:true },
+                { k:'cad',   label:'Cadera',   u:'cm',   menor:null },
+            ];
+
+            // Función para calcular tendencia (comparando última vs primera)
+            const getTrend = (metrica) => {
+                const vals = slice.map(e => parseFloat(e[metrica.k])).filter(v => !isNaN(v) && v > 0);
+                if(vals.length < 2) return null;
+                const ultima = vals[0], primera = vals[vals.length-1];
+                const diff = ultima - primera;
+                const pct = primera > 0 ? ((diff/primera)*100).toFixed(1) : 0;
+                let mejoro = null;
+                if(metrica.menor === true) mejoro = diff < 0;
+                else if(metrica.menor === false) mejoro = diff > 0;
+                return { diff, pct, mejoro, ultima, primera };
+            };
+
+            // Función para colorear celda vs celda anterior
+            const getCellColor = (val, prevVal, menorEsMejor) => {
+                if(!val || !prevVal || isNaN(val) || isNaN(prevVal) || menorEsMejor === null) return '';
+                const diff = parseFloat(val) - parseFloat(prevVal);
+                if(Math.abs(diff) < 0.01) return 'color:rgba(255,255,255,0.4)';
+                const mejoro = menorEsMejor ? diff < 0 : diff > 0;
+                return mejoro ? 'color:#86efac;font-weight:900' : 'color:#fca5a5;font-weight:900';
+            };
+
+            // Construir headers (fechas de visita)
+            const headers = slice.map((e, i) => 
+                `<th class="text-center px-3 py-2 text-[8px] font-black uppercase whitespace-nowrap ${i===0?'text-[var(--fluo)]':'opacity-60'}">
+                    ${i===0?'⭐ ':''}${e.fecha}<br>
+                    <span class="font-normal opacity-60 normal-case">${e.medico?.split(' ')[0]||''}</span>
+                </th>`
+            ).join('');
+
+            // Construir filas
+            const filas = METRICAS.map(m => {
+                const celdas = slice.map((e, i) => {
+                    const val = e[m.k] || '—';
+                    const prevVal = slice[i+1]?.[m.k];
+                    const style = (val !== '—' && prevVal && prevVal !== '—') ? getCellColor(val, prevVal, m.menor) : '';
+                    const arrow = style.includes('86ef') ? ' ↑' : style.includes('fca5') ? ' ↓' : '';
+                    return `<td class="text-center px-3 py-2.5 text-[10px] border-t border-white/5" style="${style}">${val}${val!=='—'?`<span class="text-[8px] opacity-50"> ${m.u}</span>`:''}${arrow}</td>`;
+                }).join('');
+                return `<tr class="hover:bg-white/2 transition">
+                    <td class="px-3 py-2.5 text-[9px] font-black uppercase opacity-60 whitespace-nowrap border-t border-white/5">${m.label}</td>
+                    ${celdas}
+                </tr>`;
+            }).join('');
+
+            // Fila de notas
+            const filaNota = `<tr class="hover:bg-white/2 transition">
+                <td class="px-3 py-2.5 text-[9px] font-black uppercase opacity-60 border-t border-white/5">Notas</td>
+                ${slice.map(e => `<td class="px-3 py-2.5 text-[9px] opacity-50 italic border-t border-white/5 max-w-[120px]">${e.notas ? e.notas.substring(0,60)+(e.notas.length>60?'…':'') : '—'}</td>`).join('')}
+            </tr>`;
+
+            container.innerHTML = `
+                <table class="w-full min-w-max text-left">
+                    <thead class="bg-black/40">
+                        <tr>
+                            <th class="px-3 py-2 text-[8px] uppercase opacity-40">Métrica</th>
+                            ${headers}
+                        </tr>
+                    </thead>
+                    <tbody>${filas}${filaNota}</tbody>
+                </table>`;
+
+            // Panel de tendencias globales
+            const metricas_trend = METRICAS.filter(m => m.menor !== null);
+            tendencias.innerHTML = metricas_trend.map(m => {
+                const t = getTrend(m);
+                if(!t) return '';
+                const arrow = t.mejoro === true ? '↗' : t.mejoro === false ? '↘' : '→';
+                const color = t.mejoro === true ? 'text-emerald-400' : t.mejoro === false ? 'text-red-400' : 'text-white/50';
+                const bgColor = t.mejoro === true ? 'border-emerald-500/30 bg-emerald-900/10' : t.mejoro === false ? 'border-red-500/30 bg-red-900/10' : 'border-white/10';
+                return `<div class="bg-black/30 p-3 rounded-xl border ${bgColor}">
+                    <p class="text-[8px] uppercase opacity-50 font-bold">${m.label}</p>
+                    <p class="text-xl font-black mt-1 ${color}">${arrow} ${t.diff > 0 ? '+' : ''}${t.diff.toFixed(1)} ${m.u}</p>
+                    <p class="text-[9px] opacity-60">${t.primera} → ${t.ultima} ${m.u} (${t.pct > 0 ? '+' : ''}${t.pct}%)</p>
+                </div>`;
+            }).filter(Boolean).join('');
+        };
+
+        window.calcularIndices = () => {
+            const p = parseFloat(document.getElementById('evo_peso').value) || 0;
+            const t = parseFloat(document.getElementById('evo_talla').value) || 0;
+            if (p && t) document.getElementById('evo_imc').value = (p / ((t/100)**2)).toFixed(1);
+            else document.getElementById('evo_imc').value = '';
+        };
+
+        window.agregarEvolucion = async () => {
+            const pId = document.getElementById('pacienteId').value;
+            if (!pId) return toast('Seleccioná un paciente primero.', 'info');
+            const evo = {
+                id: Date.now(),
+                fecha: new Date().toLocaleDateString(),
+                medico: SESION.nombre || 'Médico/a',
+                peso: document.getElementById('evo_peso').value,
+                talla: document.getElementById('evo_talla').value,
+                imc: document.getElementById('evo_imc').value,
+                ta: document.getElementById('evo_ta').value,
+                fc: document.getElementById('evo_fc').value,
+                sat: document.getElementById('evo_sat').value,
+                cin: document.getElementById('evo_cin').value,
+                cad: document.getElementById('evo_cad').value,
+                notas: document.getElementById('evo_notas').value.trim(),
+                motivo:      document.getElementById('evo_motivo')?.value?.trim() || '',
+                diagnostico: document.getElementById('evo_diagnostico')?.value?.trim() || '',
+                plan:        document.getElementById('evo_plan')?.value?.trim() || '',
+                motivo:      document.getElementById('evo_motivo')?.value?.trim() || '',
+                diagnostico: document.getElementById('evo_diagnostico')?.value?.trim() || '',
+                plan:        document.getElementById('evo_plan')?.value?.trim() || ''
+            };
+            const tieneDatos = evo.peso || evo.talla || evo.ta || evo.fc || evo.sat || evo.cin || evo.cad || evo.notas;
+            if (!tieneDatos) return toast('Ingresá al menos un dato.', 'info');
+            try {
+                const evos = Array.isArray(pacienteActualData.evoluciones) ? [...pacienteActualData.evoluciones] : [];
+                evos.unshift(evo);
+                await updateDoc(doc(db, 'pacientes', pId), { evoluciones: evos });
+                ['evo_peso','evo_talla','evo_imc','evo_ta','evo_fc','evo_sat','evo_cin','evo_cad','evo_notas','evo_motivo','evo_diagnostico','evo_plan'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+                toast('📈 Medición guardada.', 'info');
+            } catch (e) { toast('Error.', 'error'); }
+        };
+
+        function renderEvoluciones() {
+            const list = document.getElementById('listaEvoluciones');
+            const evos = pacienteActualData?.evoluciones || [];
+            const compVisible = document.getElementById('vistaEvoComparativa')?.style.display !== 'none';
+            if (compVisible) window.renderComparativa();
+            if (!evos.length) {
+                list.innerHTML = "<p class='text-center opacity-30 text-xs py-6'>Sin evoluciones registradas.</p>";
+                return;
+            }
+            list.innerHTML = evos.map((e, i) => {
+                const icc = (e.cin && e.cad && parseFloat(e.cad) > 0)
+                    ? ` ICC: ${(parseFloat(e.cin)/parseFloat(e.cad)).toFixed(2)}` : '';
+                const metricas = [
+                    e.peso  ? `Peso: <b class="text-white">${e.peso} kg</b>` : null,
+                    e.imc   ? `IMC: <b class="text-white">${e.imc}</b>` : null,
+                    e.ta    ? `T.A.: <b class="text-white">${e.ta}</b>` : null,
+                    e.fc    ? `F.C.: <b class="text-white">${e.fc} lpm</b>` : null,
+                    e.sat   ? `SpO2: <b class="text-white">${e.sat}%</b>` : null,
+                    (e.cin||e.cad) ? `Cintura: <b class="text-white">${e.cin||'-'} cm</b> / Cadera: <b class="text-white">${e.cad||'-'} cm</b>${icc}` : null,
+                ].filter(Boolean);
+
+                return `
+                <div class="rounded-xl border border-white/10 mb-3 overflow-hidden bg-black/20">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-white/3 border-b border-white/8">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-black text-[var(--fluo)]">${e.fecha}</span>
+                            <span class="opacity-30">·</span>
+                            <span class="text-[9px] text-white/50">${e.medico || ''}</span>
+                        </div>
+                        ${i === 0 ? '<span class="bg-[var(--fluo)] text-black px-2 py-0.5 rounded text-[7px] font-black">ULTIMA</span>' : ''}
+                    </div>
+                    <div class="p-4 space-y-3">
+                        ${e.motivo ? `<div>
+                            <p class="text-[7px] font-black uppercase text-white/35 mb-1 tracking-wider">Motivo de consulta</p>
+                            <p class="text-[11px] text-white/90 leading-snug">${esc(e.motivo)}</p>
+                        </div>` : ''}
+                        ${e.diagnostico ? `<div>
+                            <p class="text-[7px] font-black uppercase text-[var(--fluo)]/50 mb-1 tracking-wider">Diagnostico</p>
+                            <p class="text-[11px] text-white/90 leading-snug">${esc(e.diagnostico)}</p>
+                        </div>` : ''}
+                        ${e.plan ? `<div>
+                            <p class="text-[7px] font-black uppercase text-blue-400/60 mb-1 tracking-wider">Plan / Proxima sesion</p>
+                            <p class="text-[11px] text-white/90 leading-snug">${e.plan}</p>
+                        </div>` : ''}
+                        ${e.notas ? `<div>
+                            <p class="text-[7px] font-black uppercase text-white/30 mb-1 tracking-wider">Notas</p>
+                            <p class="text-[10px] text-white/60 italic leading-snug">${esc(e.notas)}</p>
+                        </div>` : ''}
+                        ${metricas.length ? `<div class="pt-3 border-t border-white/5">
+                            <p class="text-[7px] font-black uppercase text-white/25 mb-2 tracking-wider">Mediciones</p>
+                            <div class="flex flex-wrap gap-x-5 gap-y-1 text-[9px] text-white/45">
+                                ${metricas.map(m => `<span>${m}</span>`).join('')}
+                            </div>
+                        </div>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // =============================================
+        // ARCHIVOS / ESTUDIOS
+        // =============================================
+        window.subirArchivoEstudio = async () => {
+            const pId = document.getElementById('pacienteId').value;
+            if (!pId) return toast('Guardá los datos base primero.', 'info');
+            const fileInput = document.getElementById('archivoUpload');
+            const nombreEstudio = document.getElementById('nombreArchivo').value.trim();
+            if (!fileInput.files.length) return toast('Seleccioná un archivo.', 'info');
+            if (!nombreEstudio) return toast('Escribí el nombre del estudio.', 'info');
+
+            const file = fileInput.files[0];
+            // M2: solo PDF, máximo 5 MB (informes de laboratorio; no imágenes pesadas)
+            const errArch = window.validarArchivo(file, { maxMB: 5, extensiones: ['pdf'], etiqueta: 'PDF' });
+            if (errArch) return toast(errArch, 'error');
+
+            const btn = document.getElementById('btnSubirArchivo');
+            btn.disabled = true; btn.textContent = 'SUBIENDO...';
+            try {
+                const fileRef = ref(storage, `pacientes/${pId}/${Date.now()}_${file.name}`);
+                await uploadBytes(fileRef, file);
+                const url = await getDownloadURL(fileRef);
+                const archivos = Array.isArray(pacienteActualData.archivos) ? [...pacienteActualData.archivos] : [];
+                archivos.unshift({ idArchivo: Date.now().toString(), nombre: nombreEstudio, url, fechaSubida: new Date().toLocaleDateString(), pathStorage: fileRef.fullPath });
+                await updateDoc(doc(db, 'pacientes', pId), { archivos });
+                toast('✅ Archivo subido.', 'info');
+                fileInput.value = ''; document.getElementById('nombreArchivo').value = '';
+            } catch (e) { toast('Error al subir.', 'error'); }
+            btn.disabled = false; btn.textContent = 'SUBIR';
+        };
+
+        function renderArchivos() {
+            const div = document.getElementById('listaArchivos');
+            const archivos = pacienteActualData?.archivos || [];
+            if (!archivos.length) { div.innerHTML = "<p class='text-center opacity-30 text-xs py-4'>Sin archivos.</p>"; return; }
+            div.innerHTML = archivos.map(a => `
+                <div class="bg-white/5 p-3 rounded-lg border border-white/10 flex justify-between items-center hover:bg-white/8 transition">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">📄</span>
+                        <div><p class="font-bold text-[11px] uppercase text-teal-300">${esc(a.nombre)}</p><p class="text-[8px] opacity-60">${a.fechaSubida}</p></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="bg-teal-600 hover:bg-teal-500 text-white px-3 py-1.5 rounded text-[9px] font-bold uppercase">Ver</a>
+                        <button onclick="window.eliminarArchivo('${a.idArchivo}','${a.pathStorage}')" class="bg-red-600/50 hover:bg-red-500 text-white px-2 py-1.5 rounded text-[9px]">✕</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        window.eliminarArchivo = async (idArchivo, pathStorage) => {
+            if (!confirm('¿Borrar este archivo?')) return;
+            const pId = document.getElementById('pacienteId').value;
+            try {
+                await deleteObject(ref(storage, pathStorage));
+                const archivos = pacienteActualData.archivos.filter(a => a.idArchivo !== idArchivo);
+                await updateDoc(doc(db, 'pacientes', pId), { archivos });
+            } catch (e) { toast('Error al borrar.', 'error'); }
+        };
+
+        // =============================================
+        // SEGURIDAD / CHECKLIST
+        // =============================================
+        window.firmarChecklist = async () => {
+            const pId = document.getElementById('pacienteId').value;
+            if (!pId) return;
+            const seg = {
+                pre1: document.getElementById('chk_pre1').checked, pre2: document.getElementById('chk_pre2').checked,
+                pre3: document.getElementById('chk_pre3').checked, pre4: document.getElementById('chk_pre4').checked,
+                pre5: document.getElementById('chk_pre5').checked, pos1: document.getElementById('chk_pos1').checked,
+                pos2: document.getElementById('chk_pos2').checked, pos3: document.getElementById('chk_pos3').checked,
+                firma: SESION.nombre || 'Sanalys', fecha: new Date().toLocaleString()
+            };
+            try {
+                await updateDoc(doc(db, 'pacientes', pId), { seguridad: seg });
+                document.getElementById('firmaSeguridadTxt').textContent = `Validado por: ${seg.firma} · ${seg.fecha}`;
+                toast('🛡️ Seguridad validada y firmada.', 'info');
+            } catch (e) { toast('Error.', 'error'); }
+        };
+
+        // =============================================
+        // PLANES Y PRESUPUESTOS
+        // =============================================
+        window.generarPDFPresupuesto = () => {
+
+            try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Error: librería PDF no cargada. Recargá la página.', 'error'); return; }
+            const nom = document.getElementById('plan_nombre').value.trim();
+            const ses = parseInt(document.getElementById('plan_sesiones').value);
+            const costo = parseFloat(document.getElementById('plan_costo').value);
+            const validez = parseInt(document.getElementById('plan_validez')?.value) || 30;
+            if (!nom || isNaN(ses) || isNaN(costo)) return toast('Completá todos los campos.', 'info');
+
+            const pacNombre = document.getElementById('nombre')?.value || pacienteActualData?.nombre || '—';
+            const pacDNI    = document.getElementById('dni')?.value   || pacienteActualData?.dni    || '—';
+            const fechaVenc = new Date(Date.now() + validez * 86400000).toLocaleDateString('es-AR');
+
+            // ── Template maestro ────────────────────────────────────────────
+            const { doc: docPDF, startY } = SanalysPDF.crear({
+                titulo:    'Presupuesto de Tratamiento',
+                subtitulo: `Paciente: ${pacNombre.toUpperCase()}  ·  DNI: ${pacDNI}`,
+                emisor:    SESION?.nombre,
+            });
+            const T = SanalysPDF.T;
+
+            // Aviso de validez
+            docPDF.setFillColor(...T.FLUO);
+            docPDF.setDrawColor(...T.VERDE); docPDF.setLineWidth(0.3);
+            docPDF.roundedRect(T.M, startY - 8, 182, 10, 2, 2, 'FD');
+            docPDF.setFont(T.FONT,'bold'); docPDF.setFontSize(7.5); docPDF.setTextColor(...T.VERDE);
+            docPDF.text(`Este presupuesto es válido hasta el ${fechaVenc} (${validez} días desde la emisión).`, T.M + 4, startY - 1.5);
+
+            // Items del presupuesto
+            const itemsTabla = [[nom, `${ses} sesiones`, `$ ${costo.toLocaleString('es-AR')}`]];
+            // Agregar ítems extra si los hay
+            (_itemsExtra || []).filter(it => it.desc).forEach(it => {
+                itemsTabla.push([it.desc, '—', it.monto > 0 ? `$ ${it.monto.toLocaleString('es-AR')}` : '—']);
+            });
+            const totalExtra = (_itemsExtra || []).reduce((s, it) => s + (it.monto || 0), 0);
+
+            docPDF.autoTable(SanalysPDF.tableConfig({
+                startY: startY + 7,
+                head: [['Tratamiento / Servicio', 'Sesiones', 'Monto ARS']],
+                body: itemsTabla,
+                foot: [['', 'TOTAL PRESUPUESTADO', `$ ${(costo + totalExtra).toLocaleString('es-AR')}`]],
+                footStyles: { fillColor: T.VERDE, textColor: T.FLUO, fontStyle:'bold', fontSize:9 },
+                styles: { fontSize: 10, cellPadding: 6 },
+                columnStyles: { 2: { halign:'right', fontStyle:'bold' } },
+            }));
+
+            // Nota legal
+            const finalY = docPDF.lastAutoTable.finalY + 12;
+            docPDF.setFont(T.FONT,'italic'); docPDF.setFontSize(7); docPDF.setTextColor(...T.GRIS);
+            docPDF.text('Este presupuesto no constituye un comprobante de pago. Los precios pueden variar según indicación médica.', T.M, finalY);
+            docPDF.text('Para confirmar el tratamiento, presentarse en recepción con este documento.', T.M, finalY + 5);
+
+            SanalysPDF.save(docPDF, `Presupuesto_${pacNombre.replace(/ /g,'_')}.pdf`,
+                { disclaimer: 'Sanalys Clínica Ortomolecular  ·  Presupuesto informativo  ·  No es comprobante de pago' });
+        
+            } catch(err) { console.error("[PACIENTES/PDF]:", err?.message || err); toast("❌ Error al generar PDF: " + err.message, 'error'); }
+            };
+
+        // [NUEVO] Helper para ítems adicionales en el presupuesto
+        let _itemsExtra = [];
+        window.agregarItemPresupuesto = () => {
+            _itemsExtra.push({ id: Date.now(), desc: '', monto: 0 });
+            renderItemsPresupuesto();
+        };
+        function renderItemsPresupuesto() {
+            const c = document.getElementById('itemsPresupuesto');
+            if(!c) return;
+            c.innerHTML = _itemsExtra.map((it, i) => `
+                <div class="flex gap-2 items-center">
+                    <input type="text" placeholder="Descripción ítem" value="${it.desc}" 
+                        oninput="_itemsExtra[${i}].desc=this.value"
+                        class="input-sanalys flex-1 text-[11px] py-1.5">
+                    <input type="number" placeholder="$ 0" value="${it.monto||''}"
+                        oninput="_itemsExtra[${i}].monto=parseFloat(this.value)||0"
+                        class="input-sanalys w-28 text-center text-[11px] py-1.5 text-[var(--fluo)]">
+                    <button onclick="_itemsExtra.splice(${i},1);renderItemsPresupuesto()" 
+                        class="text-red-400 hover:text-red-300 text-xs font-bold px-2">✕</button>
+                </div>`).join('');
+        }
+
+        // [REFACTOR] guardarPresupuesto reemplaza activarPlan.
+        // IMPORTANTE: guarda el presupuesto en el campo 'planes' del paciente como REFERENCIA,
+        // pero con saldoPendiente = 0 — NO genera deuda, NO interactúa con Caja.
+        window.guardarPresupuesto = async () => {
+            const pId = document.getElementById('pacienteId').value; if (!pId) return;
+            const nom = document.getElementById('plan_nombre').value.trim();
+            const ses = parseInt(document.getElementById('plan_sesiones').value);
+            const costo = parseFloat(document.getElementById('plan_costo').value);
+            const validezDias = parseInt(document.getElementById('plan_validez').value) || 30;
+            if (!nom || isNaN(ses) || isNaN(costo)) return toast('Completá todos los campos del presupuesto.', 'info');
+            
+            const fechaAlta = new Date();
+            const fechaVencimiento = new Date(fechaAlta.getTime() + validezDias * 24 * 60 * 60 * 1000);
+            
+            const presupuesto = {
+                idPlan: Date.now(),
+                nombre: nom,
+                totalSesiones: ses,
+                sesionesUsadas: 0,
+                costoTotal: costo,
+                saldoPendiente: 0, // [CLAVE] Sin deuda — este campo es 0 para no generar cobros
+                esPresupuesto: true, // Marcador para distinguir de planes legacy
+                validezDias,
+                fechaAlta: fechaAlta.toLocaleDateString('es-AR'),
+                fechaVencimiento: fechaVencimiento.toLocaleDateString('es-AR'),
+                itemsExtra: _itemsExtra.filter(it => it.desc),
+                estado: 'PRESUPUESTO'
+            };
+            
+            console.log('[HC/PRESUPUESTO] Guardando presupuesto (sin deuda)');
+            
+            try {
+                const planes = Array.isArray(pacienteActualData.planes) ? [...pacienteActualData.planes] : [];
+                planes.unshift(presupuesto);
+                await updateDoc(doc(db, 'pacientes', pId), { planes });
+                toast(`✅ Presupuesto guardado.\n\nVálido hasta: ${presupuesto.fechaVencimiento}\n\n⚠️ Este presupuesto NO genera deuda. Para cobrar, ingresá el DNI del paciente en el módulo CAJA.`, 'ok');
+                document.getElementById('plan_nombre').value = ''; 
+                document.getElementById('plan_sesiones').value = '10'; 
+                document.getElementById('plan_costo').value = '';
+                document.getElementById('plan_validez').value = '30';
+                _itemsExtra = [];
+                renderItemsPresupuesto();
+            } catch (e) { console.error('[HC/PRESUPUESTO]:', e?.message || e); toast('Error al guardar el presupuesto.', 'error'); }
+        };
+
+        // [LEGACY - MANTENIDO para compatibilidad con planes anteriores que ya tienen saldoPendiente]
+        window.activarPlan = async () => {
+            const pId = document.getElementById('pacienteId').value; if (!pId) return;
+            const nom = document.getElementById('plan_nombre').value.trim();
+            const ses = parseInt(document.getElementById('plan_sesiones').value);
+            const costo = parseFloat(document.getElementById('plan_costo').value);
+            if (!nom || isNaN(ses) || isNaN(costo)) return toast('Completá todos los campos.', 'info');
+            const plan = { idPlan: Date.now(), nombre: nom, totalSesiones: ses, sesionesUsadas: 0, costoTotal: costo, saldoPendiente: costo, fechaAlta: new Date().toLocaleDateString(), estado: 'ACTIVO' };
+            try {
+                const planes = Array.isArray(pacienteActualData.planes) ? [...pacienteActualData.planes] : [];
+                planes.unshift(plan);
+                await updateDoc(doc(db, 'pacientes', pId), { planes });
+                toast('✅ Plan activado.', 'info');
+                document.getElementById('plan_nombre').value = ''; document.getElementById('plan_sesiones').value = '10'; document.getElementById('plan_costo').value = '';
+            } catch (e) { toast('Error.', 'error'); }
+        };
+
+        function renderPlanes() {
+            const div = document.getElementById('listaPlanes');
+            const planes = pacienteActualData?.planes || [];
+            if (!planes.length) { div.innerHTML = "<p class='text-center opacity-30 text-xs py-4'>Sin presupuestos guardados.</p>"; return; }
+            div.innerHTML = planes.map(p => {
+                // [REFACTOR] Detectar si es nuevo presupuesto (esPresupuesto=true) o plan legacy
+                if (p.esPresupuesto) {
+                    const hoy = new Date().toLocaleDateString('es-AR');
+                    const vencido = p.fechaVencimiento && p.fechaVencimiento < hoy;
+                    const itemsHTML = (p.itemsExtra || []).length > 0 
+                        ? p.itemsExtra.filter(it=>it.desc).map(it => `<div class="flex justify-between text-[9px] opacity-70"><span>${it.desc}</span><span>$${(it.monto||0).toLocaleString()}</span></div>`).join('') 
+                        : '';
+                    return `<div class="bg-black/40 p-5 rounded-2xl border ${vencido ? 'border-red-500/40 opacity-60' : 'border-purple-500/50'} mb-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="text-[8px] font-black ${vencido ? 'text-red-400' : 'text-purple-300'} uppercase tracking-widest">${vencido ? '⚠️ VENCIDO' : '📋 PRESUPUESTO'}</span>
+                                <h4 class="text-sm font-black uppercase text-white mt-1">${esc(p.nombre)}</h4>
+                            </div>
+                            <span class="text-xl font-black text-[var(--fluo)]">$${(p.costoTotal||0).toLocaleString()}</span>
+                        </div>
+                        <div class="space-y-1 mb-3">${itemsHTML}</div>
+                        <div class="grid grid-cols-2 gap-2 text-[9px] opacity-70 border-t border-white/10 pt-3">
+                            <span>📅 Emitido: ${p.fechaAlta}</span>
+                            <span class="${vencido ? 'text-red-400 font-bold' : ''}">⏳ Válido hasta: ${p.fechaVencimiento || '—'}</span>
+                            <span>💉 Sesiones: ${p.totalSesiones}</span>
+                            <span class="text-blue-300 italic">Sin deuda generada</span>
+                        </div>
+                    </div>`;
+                }
+                // Render legacy (planes con saldoPendiente real)
+                const porcS = (p.sesionesUsadas / p.totalSesiones) * 100;
+                const pagado = p.costoTotal - p.saldoPendiente;
+                const porcP = (pagado / p.costoTotal) * 100;
+                const terminado = p.sesionesUsadas >= p.totalSesiones && p.saldoPendiente <= 0;
+                return `<div class="bg-black/40 p-5 rounded-2xl border ${terminado ? 'border-gray-600 opacity-50' : 'border-purple-500/50'} mb-4">
+                    ${terminado ? '<div class="text-[8px] font-black text-gray-400 mb-2 uppercase">FINALIZADO</div>' : ''}
+                    <h4 class="text-sm font-black uppercase text-white mb-1">${esc(p.nombre)}</h4>
+                    <p class="text-[9px] opacity-60 mb-4">Alta: ${p.fechaAlta} · Total pactado: $${p.costoTotal.toLocaleString()}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1"><span class="text-blue-300">Sesiones usadas</span><span>${p.sesionesUsadas}/${p.totalSesiones}</span></div>
+                            <div class="w-full bg-white/10 rounded-full h-2 mb-2"><div class="bg-blue-400 h-2 rounded-full" style="width:${porcS}%"></div></div>
+                            ${!terminado && p.sesionesUsadas < p.totalSesiones ? `<button onclick="window.descontarSesionPlan(${p.idPlan})" class="border border-blue-400 text-blue-300 px-3 py-1 rounded text-[9px] hover:bg-blue-500 hover:text-white transition w-full">+1 Sesión Hoy</button>` : ''}
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1"><span class="text-[var(--fluo)]">Estado pagos</span><span>Resta: $${p.saldoPendiente.toLocaleString()}</span></div>
+                            <div class="w-full bg-white/10 rounded-full h-2 mb-2"><div class="bg-[var(--fluo)] h-2 rounded-full" style="width:${porcP}%"></div></div>
+                            ${!terminado && p.saldoPendiente > 0 ? `<button onclick="window.abrirModalPagoPlan(${p.idPlan},${p.saldoPendiente},'${esc(p.nombre)}')" class="btn-fluo px-3 py-1 rounded text-[9px] w-full">💰 Registrar Pago</button>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.descontarSesionPlan = async (idPlan) => {
+            const pId = document.getElementById('pacienteId').value;
+            let planes = [...pacienteActualData.planes];
+            let plan = planes.find(p => p.idPlan === idPlan);
+            if (plan && plan.sesionesUsadas < plan.totalSesiones) {
+                if (!confirm(`¿Consumir 1 sesión de "${esc(plan.nombre)}"?`)) return;
+                plan.sesionesUsadas++;
+                await updateDoc(doc(db, 'pacientes', pId), { planes });
+            }
+        };
+
+        window.abrirModalPagoPlan = (idPlan, saldo, nombre) => {
+            document.getElementById('pago_planId').value = idPlan;
+            document.getElementById('txtPlanPago').textContent = `${nombre} · Saldo: $${saldo.toLocaleString()}`;
+            document.getElementById('pago_monto').value = saldo;
+            document.getElementById('modalPagoCuota').classList.remove('hidden');
+        };
+
+        window.confirmarPagoCuota = async () => {
+            const pId = document.getElementById('pacienteId').value;
+            const idPlan = parseInt(document.getElementById('pago_planId').value);
+            const monto = parseFloat(document.getElementById('pago_monto').value);
+            const medio = document.getElementById('pago_medio').value;
+            if (!monto || monto <= 0) return toast('Monto inválido.', 'error');
+            let planes = [...pacienteActualData.planes];
+            let plan = planes.find(p => p.idPlan === idPlan);
+            if (!plan) return;
+            if (monto > plan.saldoPendiente) return toast('El monto no puede superar el saldo pendiente.', 'info');
+            try {
+                await addDoc(collection(db, 'caja'), { id: Date.now(), tipo: 'INGRESO', det: `Cuota Plan: ${esc(plan.nombre)}`, mon: monto, med: medio, dni: pacienteActualData.dni, hora: new Date().toLocaleTimeString(), fecha: new Date().toLocaleDateString(), usuario: SESION.nombre, centroCosto: 'Pack Tratamiento', anulado: false });
+                plan.saldoPendiente -= monto;
+                await updateDoc(doc(db, 'pacientes', pId), { planes });
+                toast('✅ Pago registrado en caja.', 'info');
+                document.getElementById('modalPagoCuota').classList.add('hidden');
+            } catch (e) { toast('Error.', 'error'); }
+        };
+
+        // =============================================
+        // HISTORIAL CAJA DEL PACIENTE
+        // =============================================
+        function renderHistorialCaja(dni) {
+            const tbody = document.getElementById('listaCajaPaciente');
+            const dniLimpio = cleanDNI(dni);
+            const movs = cajaOnline.filter(m => m.dni && cleanDNI(m.dni) === dniLimpio && !m.anulado && !m.esHonorario);
+            let total = 0;
+            if (!movs.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 opacity-30 italic">Sin pagos registrados.</td></tr>';
+                document.getElementById('totCajaPaciente').textContent = '$ 0';
+                return;
+            }
+            tbody.innerHTML = movs.sort((a, b) => b.id - a.id).map(m => {
+                const esEgr = m.tipo === 'EGRESO';
+                total += esEgr ? -parseFloat(m.mon||0) : parseFloat(m.mon||0);
+                const colorMonto = esEgr ? 'text-red-400' : 'text-[var(--fluo)]';
+                const signo = esEgr ? '-' : '';
+                const badgeColor = esEgr ? 'bg-red-500/20 text-red-300' : 'bg-[var(--fluo)]/20 text-[var(--fluo)]';
+                return `<tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="py-3 opacity-60 pr-3">${m.fecha}</td>
+                    <td class="py-3 pr-3"><span class="text-[8px] font-black px-2 py-0.5 rounded mr-2 ${badgeColor}">${m.tipo}</span><span class="font-bold text-white">${m.det}</span></td>
+                    <td class="py-3 text-orange-300 pr-3">${m.profesional || 'Sanalys'}</td>
+                    <td class="py-3 opacity-60 pr-3">${m.med}</td>
+                    <td class="py-3 text-right font-black ${colorMonto}">${signo}$ ${parseFloat(m.mon||0).toLocaleString()}</td>
+                </tr>`;
+            }).join('');
+            document.getElementById('totCajaPaciente').textContent = '$ ' + total.toLocaleString();
+        }
+
+        // =============================================
+        // PDF HISTORIA CLÍNICA
+        // =============================================
+        window.descargarHistoriaClinicaPDF = (opts) => {
+            const esARCO = opts && opts.arco === true;
+
+            try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Error: librería PDF no cargada. Recargá la página.', 'error'); return; }
+            if (!pacienteActualData) return;
+            const p = pacienteActualData;
+
+            // ── Template maestro ────────────────────────────────────────────
+            const { doc: docPDF, startY } = SanalysPDF.crear({
+                titulo:    esARCO ? 'Constancia de Datos Personales (Ley 25.326)' : 'Historia Clínica Electrónica',
+                subtitulo: `${esc(p.nombre).toUpperCase()}  ·  DNI: ${p.dni}`,
+                emisor:    SESION?.nombre,
+            });
+            const T  = SanalysPDF.T;
+            const font     = T.FONT;
+            const fontBold = T.FONT;
+
+            // Datos del paciente
+            docPDF.setFontSize(9); docPDF.setFont(font, 'normal');
+            docPDF.setTextColor(...T.GRIS_OSC);
+            docPDF.text(`Tel: ${p.tel || 'S/D'} · Email: ${p.email || 'S/D'}`, 14, startY);
+            docPDF.text(`Obra Social: ${esc(p.obraSocial || 'S/D')} · Localidad: ${p.loc || 'S/D'}`, 14, startY + 6);
+            docPDF.text(`Contacto Emergencia: ${p.contactoEmergencia || 'S/D'} · Tel: ${p.telEmergencia || 'S/D'}`, 14, startY + 12);
+            docPDF.text(`Sexo: ${p.sexo || 'S/D'} · Nac: ${p.fechaNac || 'S/D'}`, 14, startY + 18);
+
+            // Alerta de alergias
+            if (p.alergias) {
+                docPDF.setFillColor(...T.ROJO);
+                docPDF.rect(14, startY + 22, 182, 10, 'F');
+                docPDF.setTextColor(...T.BLANCO); docPDF.setFont(fontBold, 'bold');
+                docPDF.text(`ALERGIA: ${esc(p.alergias).toUpperCase()}`, 17, startY + 29);
+                docPDF.setTextColor(...T.NEGRO);
+            }
+
+            let y = p.alergias ? startY + 40 : startY + 26;
+
+            // Bio-perfil
+            y = SanalysPDF.sectionTitle(docPDF, 'Bio-Perfil', y);
+
+            docPDF.setFontSize(9); docPDF.setFont(font, 'normal'); docPDF.setTextColor(...T.GRIS_OSC);
+            docPDF.text(`Dieta: ${p.hc_dieta || 'S/D'} · Ayuno: ${p.hc_ayuno || '0'}hs`, 14, y); y += 5;
+
+            const tox = [p.hc_tox_tabaco&&'Tabaquismo',p.hc_tox_alcohol&&'Alcohol',p.hc_tox_otros&&'Otros'].filter(Boolean);
+            docPDF.text(`Tóxicos: ${tox.length?tox.join(', '):'Niega'}`, 14, y); y += 8;
+
+            if (p.hc_antecedentes) {
+                docPDF.setFont(fontBold, 'bold'); docPDF.setTextColor(...T.NEGRO);
+                docPDF.text('Antecedentes:', 14, y); y += 5;
+                docPDF.setFont(font, 'normal'); docPDF.setTextColor(...T.GRIS_OSC);
+                const lines = docPDF.splitTextToSize(p.hc_antecedentes, 180);
+                docPDF.text(lines, 14, y); y += lines.length * 4 + 6;
+            }
+
+            // Historial de mediciones
+            y = SanalysPDF.sectionTitle(docPDF, 'Historial de Mediciones', y);
+
+            const rows = (p.evoluciones||[]).map(e => [
+                e.fecha, e.medico,
+                `${e.peso||'-'}kg/${e.talla||'-'}cm`,
+                `${e.ta||'-'} | FC:${e.fc||'-'}`,
+                e.notas||''
+            ]);
+
+            if (rows.length) {
+                docPDF.autoTable(SanalysPDF.tableConfig({
+                    head: [['Fecha','Médico/a','Peso/Talla','Vitales','Notas']],
+                    body: rows,
+                    startY: y,
+                    styles: { fontSize: 7 },
+                }));
+            }
+
+            SanalysPDF.save(docPDF, `${esARCO ? 'Datos_ARCO' : 'HC'}_${esc(p.nombre).replace(/ /g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+                { disclaimer: esARCO
+                    ? 'Documento entregado al titular en ejercicio del derecho de acceso (Ley 25.326, arts. 14-16) · Sanalys Clínica Ortomolecular · Contiene datos sensibles de salud · Confidencial'
+                    : 'Sanalys Clínica Ortomolecular  ·  Historia Clínica Electrónica Oficial  ·  Documento médico confidencial' });
+        
+            } catch(err) { console.error("[PACIENTES/PDF]:", err?.message || err); toast("❌ Error al generar PDF: " + err.message, 'error'); }
+            };
+
+        // ═══════════════════════════════════════════════════════════════════
+        // MÓDULO PERFIL RELACIONAL + BITÁCORA (no clínico)
+        // ═══════════════════════════════════════════════════════════════════
+
+        // Carga los datos del perfil cuando se abre la ficha del paciente
+        window.cargarPerfilPaciente = (p) => {
+            const _setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+            _setV('perfil_profesion', p.perfilProfesion);
+            _setV('perfil_canal', p.perfilCanal);
+            _setV('perfil_recomendado_por', p.perfilRecomendadoPor);
+            _setV('perfil_alerta', p.perfilAlerta);
+            _setV('perfil_notas', p.perfilNotas);
+
+            // Mostrar u ocultar alerta destacada
+            const cont = document.getElementById('alertaPerfilContainer');
+            const txt = document.getElementById('alertaPerfilTexto');
+            if (p.perfilAlerta && p.perfilAlerta.trim() !== '') {
+                txt.textContent = p.perfilAlerta;
+                cont.classList.remove('hidden');
+            } else {
+                cont.classList.add('hidden');
+            }
+
+            // Cargar bitácora
+            window.cargarBitacora();
+        };
+
+        // Guardar perfil (campos del paciente)
+        window.guardarPerfilPaciente = async () => {
+            if (!pacienteActualData) return toast('Abrí primero la ficha del paciente.', 'info');
+            try {
+                const datos = {
+                    perfilProfesion: document.getElementById('perfil_profesion').value.trim(),
+                    perfilCanal: document.getElementById('perfil_canal').value,
+                    perfilRecomendadoPor: document.getElementById('perfil_recomendado_por').value.trim(),
+                    perfilAlerta: document.getElementById('perfil_alerta').value.trim(),
+                    perfilNotas: document.getElementById('perfil_notas').value.trim()
+                };
+                await updateDoc(doc(db, 'pacientes', pacienteActualData.id), datos);
+                // Actualizar objeto local
+                Object.assign(pacienteActualData, datos);
+                // Refrescar alerta
+                const cont = document.getElementById('alertaPerfilContainer');
+                const txt = document.getElementById('alertaPerfilTexto');
+                if (datos.perfilAlerta) {
+                    txt.textContent = datos.perfilAlerta;
+                    cont.classList.remove('hidden');
+                } else {
+                    cont.classList.add('hidden');
+                }
+                toast('Perfil guardado correctamente.', 'ok');
+                regAuditoria && regAuditoria(`PERFIL actualizado — Paciente: ${pacienteActualData.nombre}`);
+            } catch(e) {
+                console.error('[PERFIL]:', e?.message || e);
+                toast('No se pudo guardar el perfil. Intentá de nuevo.', 'error');
+            }
+        };
+
+        // Abrir modal de nueva entrada de bitácora
+        window.abrirNuevaEntradaBitacora = () => {
+            if (!pacienteActualData) return toast('Abrí primero la ficha del paciente.', 'info');
+            // Limpiar todo el modal
+            document.querySelectorAll('#modalBitacora .bit-tag').forEach(el => el.checked = false);
+            document.querySelectorAll('#modalBitacora .bit-otra').forEach(el => el.value = '');
+            document.getElementById('bit_comentario').value = '';
+            // Mostrar
+            const m = document.getElementById('modalBitacora');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        };
+
+        window.cerrarBitacora = () => {
+            const m = document.getElementById('modalBitacora');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        };
+
+        // Guardar una entrada nueva (no editable después)
+        window.guardarEntradaBitacora = async () => {
+            if (!pacienteActualData) return toast('Abrí primero la ficha del paciente.', 'info');
+            const comentario = document.getElementById('bit_comentario').value.trim();
+            if (!comentario) {
+                toast('El comentario es obligatorio. Describí lo observado.', 'warn');
+                document.getElementById('bit_comentario').focus();
+                return;
+            }
+
+            // Recolectar etiquetas marcadas + "otras" (texto libre)
+            const etiquetas = {};
+            document.querySelectorAll('#modalBitacora .bit-tag:checked').forEach(el => {
+                const g = el.dataset.grupo;
+                if (!etiquetas[g]) etiquetas[g] = [];
+                etiquetas[g].push(el.dataset.val);
+            });
+            document.querySelectorAll('#modalBitacora .bit-otra').forEach(el => {
+                const txt = el.value.trim();
+                if (txt) {
+                    const g = el.dataset.grupo;
+                    if (!etiquetas[g]) etiquetas[g] = [];
+                    etiquetas[g].push(txt);
+                }
+            });
+
+            // Guardar la entrada (operación crítica)
+            try {
+                const entrada = {
+                    fecha: new Date().toLocaleDateString('es-AR'),
+                    hora: new Date().toLocaleTimeString('es-AR'),
+                    creado: Date.now(), // timestamp para ordenar correctamente
+                    autor: SESION?.nombre || '—',
+                    etiquetas,
+                    comentario
+                };
+                await addDoc(collection(db, 'pacientes', pacienteActualData.id, 'bitacora'), entrada);
+            } catch(e) {
+                console.error('[BITACORA] guardar:', e?.message || e);
+                toast('No se pudo guardar la entrada. Intentá de nuevo.', 'error');
+                return; // si el guardado falló, no seguimos
+            }
+
+            // Si llegamos acá, el guardado fue exitoso. Lo posterior es secundario:
+            // cerrar modal, mostrar éxito y recargar lista. Errores en estos pasos
+            // no deben mostrar "no se pudo guardar" porque YA se guardó.
+            try { window.cerrarBitacora(); } catch(e) { console.warn('[BITACORA] cerrar modal:', e); }
+            toast('Entrada agregada a la bitácora.', 'ok');
+            try { window.cargarBitacora(); } catch(e) { console.warn('[BITACORA] recargar lista:', e); }
+        };
+
+        // Cargar la bitácora del paciente actual (orden cronológico descendente)
+        window.cargarBitacora = async () => {
+            if (!pacienteActualData) return;
+            const cont = document.getElementById('listaBitacora');
+            try {
+                const snap = await getDocs(collection(db, 'pacientes', pacienteActualData.id, 'bitacora'));
+                if (snap.empty) {
+                    cont.innerHTML = '<p class="text-center opacity-30 text-xs py-6 italic">Sin entradas en la bitácora todavía.</p>';
+                    return;
+                }
+                // Ordenar por creado descendente (más nuevo primero)
+                const docs = snap.docs.map(d => d.data())
+                    .sort((a,b) => (b.creado||0) - (a.creado||0));
+                cont.innerHTML = docs.map(e => {
+                    // Renderizar etiquetas como chips
+                    let chipsHtml = '';
+                    const colores = {
+                        personalidad: 'bg-blue-500/20 text-blue-200 border-blue-400/30',
+                        puntualidad: 'bg-green-500/20 text-green-200 border-green-400/30',
+                        sensibilidad: 'bg-purple-500/20 text-purple-200 border-purple-400/30',
+                        comunicacion: 'bg-cyan-500/20 text-cyan-200 border-cyan-400/30',
+                        quejas: 'bg-amber-500/20 text-amber-200 border-amber-400/30'
+                    };
+                    if (e.etiquetas) {
+                        for (const grupo in e.etiquetas) {
+                            const color = colores[grupo] || 'bg-white/10 text-white/70 border-white/20';
+                            e.etiquetas[grupo].forEach(t => {
+                                chipsHtml += `<span class="inline-block ${color} border text-[8px] px-2 py-0.5 rounded-full mr-1 mb-1">${esc(t)}</span>`;
+                            });
+                        }
+                    }
+                    return `
+                        <div class="bg-black/30 p-3 rounded-lg border border-white/5 hover:border-blue-400/30 transition">
+                            <div class="flex items-start justify-between mb-2">
+                                <div>
+                                    <span class="text-[10px] font-bold text-blue-300">${esc(e.autor)}</span>
+                                    <span class="text-[8px] opacity-50 ml-2">${e.fecha} ${e.hora || ''}</span>
+                                </div>
+                            </div>
+                            ${chipsHtml ? `<div class="mb-2">${chipsHtml}</div>` : ''}
+                            <p class="text-[11px] leading-relaxed whitespace-pre-wrap">${esc(e.comentario)}</p>
+                        </div>
+                    `;
+                }).join('');
+            } catch(e) {
+                console.error('[BITACORA]:', e?.message || e);
+                cont.innerHTML = '<p class="text-center opacity-50 text-xs py-6 italic text-red-300">Error al cargar la bitácora.</p>';
+            }
+        };
+
+        // M7 (ARCO — Ley 25.326): exporta los datos del paciente bajo derecho
+        // de acceso. Reúsa el PDF de Historia Clínica y agrega una aclaración
+        // legal de que es una entrega formal al titular de los datos.
+        window.exportarDatosARCO = () => {
+            if (!pacienteActualData) { toast('Abrí primero la ficha del paciente.', 'info'); return; }
+            const p = pacienteActualData;
+            const ok = confirm(
+                `🔒 EXPORTACIÓN DE DATOS — DERECHO DE ACCESO (Ley 25.326)\n\n` +
+                `Vas a generar un documento con todos los datos de ${p.nombre} ` +
+                `para entregárselo como titular de sus datos.\n\n` +
+                `Recordá: este documento contiene datos sensibles de salud. ` +
+                `Entregalo únicamente al propio paciente o a quien él autorice.\n\n` +
+                `¿Continuar?`
+            );
+            if (!ok) return;
+            // Genera el mismo PDF de HC (ya contiene los datos del paciente).
+            // La constancia legal queda en el disclaimer del documento.
+            window.descargarHistoriaClinicaPDF({ arco: true });
+            regAuditoria
+                && regAuditoria(`EXPORTACION ARCO (derecho de acceso) — Paciente: ${p.nombre} (DNI ${p.dni})`);
+            toast('Documento de acceso generado. Entregalo solo al titular.', 'ok');
+        };
+
+        window.descargarListaPacientes = () => {
+            if (!window.XLSX) { toast('Recarga la pagina e intentá de nuevo.', 'info'); return; }
+            if (!todosLosPacientes.length) { toast('No hay pacientes cargados.', 'info'); return; }
+
+            const filas = todosLosPacientes
+                .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''))
+                .map(p => ({
+                    'Nombre':               p.nombre || '',
+                    'DNI':                  p.dni    || '',
+                    'Fecha de Nacimiento':  p.fechaNac || '',
+                    'Sexo':                 p.sexo   || '',
+                    'Telefono':             p.tel    || '',
+                    'Email':               p.email  || '',
+                    'Localidad':            p.loc    || '',
+                    'Obra Social':          p.obraSocial || '',
+                    'Contacto Emergencia':  p.contactoEmergencia || '',
+                    'Tel. Emergencia':      p.telEmergencia || '',
+                    'Fecha Alta':           p.fechaAlta || '',
+                    'Alergias':             p.alergias || '',
+                }));
+
+            const ws = XLSX.utils.json_to_sheet(filas);
+
+            // Ancho de columnas
+            ws['!cols'] = [
+                { wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 8  },
+                { wch: 16 }, { wch: 28 }, { wch: 18 }, { wch: 20 },
+                { wch: 25 }, { wch: 16 }, { wch: 12 }, { wch: 20 },
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Pacientes');
+            const fecha = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Pacientes_Sanalys_${fecha}.xlsx`);
+        };
+    </script>
+<!-- MODAL — Nueva entrada de bitácora -->
+<div id="modalBitacora" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4" onclick="if(event.target===this) window.cerrarBitacora()">
+    <div class="bg-[#0a2a23] rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-blue-400/30">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-[14px] font-black uppercase tracking-wider text-blue-300">📅 Nueva entrada en la bitácora</h2>
+            <button onclick="window.cerrarBitacora()" class="text-white/50 hover:text-white text-2xl leading-none">×</button>
+        </div>
+
+        <p class="text-[9px] opacity-60 italic mb-4">Marcá las etiquetas que correspondan (en lenguaje profesional) y agregá un comentario libre. La entrada queda con tu nombre y la fecha de hoy. <b>No se puede editar después</b>, así que repasá antes de guardar.</p>
+
+        <!-- Etiquetas en 5 grupos -->
+        <div class="space-y-4 mb-5">
+
+            <details open class="bg-black/20 p-3 rounded-lg border border-white/10">
+                <summary class="cursor-pointer text-[10px] font-bold uppercase text-blue-300">😌 Personalidad / Trato</summary>
+                <div class="mt-2 grid grid-cols-2 gap-2 text-[10px]">
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="personalidad" data-val="Tranquilo"> Tranquilo</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="personalidad" data-val="Conversador"> Conversador</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="personalidad" data-val="Reservado"> Reservado</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="personalidad" data-val="Detallista (preguntón)"> Detallista (preguntón)</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="personalidad" data-val="Requiere atención personalizada"> Requiere atención personalizada</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="personalidad" data-val="Trato exigente"> Trato exigente</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="personalidad" data-val="Tono fuerte / atención senior"> Tono fuerte / atención senior</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="personalidad" data-val="VIP / atención especial"> VIP / atención especial</label>
+                </div>
+                <input type="text" class="input-sanalys text-[10px] mt-2 bit-otra" data-grupo="personalidad" placeholder="Otra (texto libre)...">
+            </details>
+
+            <details class="bg-black/20 p-3 rounded-lg border border-white/10">
+                <summary class="cursor-pointer text-[10px] font-bold uppercase text-blue-300">⏰ Puntualidad y compromiso</summary>
+                <div class="mt-2 grid grid-cols-2 gap-2 text-[10px]">
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="puntualidad" data-val="Muy puntual"> Muy puntual</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="puntualidad" data-val="A horario"> A horario</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="puntualidad" data-val="Suele llegar tarde"> Suele llegar tarde</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="puntualidad" data-val="Cancela con frecuencia"> Cancela con frecuencia</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="puntualidad" data-val="Confirma siempre por WhatsApp"> Confirma siempre por WhatsApp</label>
+                </div>
+                <input type="text" class="input-sanalys text-[10px] mt-2 bit-otra" data-grupo="puntualidad" placeholder="Otra (texto libre)...">
+            </details>
+
+            <details class="bg-black/20 p-3 rounded-lg border border-white/10">
+                <summary class="cursor-pointer text-[10px] font-bold uppercase text-blue-300">🌡️ Sensibilidades</summary>
+                <div class="mt-2 grid grid-cols-2 gap-2 text-[10px]">
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="sensibilidad" data-val="Sensible al frío del consultorio"> Sensible al frío del consultorio</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="sensibilidad" data-val="Sensible al dolor / agujas"> Sensible al dolor / agujas</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="sensibilidad" data-val="Ansiedad pre-tratamiento"> Ansiedad pre-tratamiento</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="sensibilidad" data-val="Náuseas frecuentes"> Náuseas frecuentes</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="sensibilidad" data-val="Prefiere acompañante presente"> Prefiere acompañante presente</label>
+                </div>
+                <input type="text" class="input-sanalys text-[10px] mt-2 bit-otra" data-grupo="sensibilidad" placeholder="Otra (texto libre)...">
+            </details>
+
+            <details class="bg-black/20 p-3 rounded-lg border border-white/10">
+                <summary class="cursor-pointer text-[10px] font-bold uppercase text-blue-300">💬 Comunicación preferida</summary>
+                <div class="mt-2 grid grid-cols-2 gap-2 text-[10px]">
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="comunicacion" data-val="Le gusta charlar antes/durante"> Le gusta charlar antes/durante</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="comunicacion" data-val="Prefiere ir al grano"> Prefiere ir al grano</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="comunicacion" data-val="Necesita explicaciones detalladas"> Necesita explicaciones detalladas</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="comunicacion" data-val="Prefiere WhatsApp"> Prefiere WhatsApp</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="comunicacion" data-val="Prefiere llamada telefónica"> Prefiere llamada telefónica</label>
+                </div>
+                <input type="text" class="input-sanalys text-[10px] mt-2 bit-otra" data-grupo="comunicacion" placeholder="Otra (texto libre)...">
+            </details>
+
+            <details class="bg-black/20 p-3 rounded-lg border border-amber-500/30">
+                <summary class="cursor-pointer text-[10px] font-bold uppercase text-amber-300">⚠️ Quejas observadas</summary>
+                <div class="mt-2 grid grid-cols-2 gap-2 text-[10px]">
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="quejas" data-val="Tiempo de espera"> Tiempo de espera</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="quejas" data-val="Temperatura del consultorio"> Temperatura del consultorio</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="quejas" data-val="Precio / valor percibido"> Precio / valor percibido</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="quejas" data-val="Resultado del tratamiento"> Resultado del tratamiento</label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded"><input type="checkbox" class="bit-tag" data-grupo="quejas" data-val="Atención del personal"> Atención del personal</label>
+                </div>
+                <input type="text" class="input-sanalys text-[10px] mt-2 bit-otra" data-grupo="quejas" placeholder="Otra queja (texto libre)...">
+            </details>
+        </div>
+
+        <!-- Comentario libre obligatorio -->
+        <div class="mb-4">
+            <label class="text-[9px] uppercase font-bold text-blue-300 block mb-1">💬 Comentario <span class="text-red-400">(obligatorio)</span></label>
+            <textarea id="bit_comentario" class="input-sanalys text-[11px]" style="height:100px;resize:vertical" placeholder="Describí lo observado en lenguaje profesional. Ej: 'Vino más relajada hoy, contó que tuvo una semana mejor en el trabajo. Sugiere mantener horario temprano que le funciona.'"></textarea>
+            <p class="text-[7px] opacity-50 italic mt-1">💡 Recordá: el paciente podría pedir ver estos datos (Ley 25.326). Usá lenguaje profesional, descriptivo, no juicios personales.</p>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex gap-3 justify-end">
+            <button onclick="window.cerrarBitacora()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-5 py-2 rounded-lg text-[10px] uppercase">Cancelar</button>
+            <button onclick="window.guardarEntradaBitacora()" class="bg-blue-500 hover:bg-blue-400 text-white font-black px-5 py-2 rounded-lg text-[10px] uppercase shadow-lg">💾 Guardar entrada</button>
+        </div>
+    </div>
+</div>
+
+<script src="sidebar.js"></script></body>
+</html>

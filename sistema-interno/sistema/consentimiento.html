@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys - Legal</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="pdf-master.js?v=3.1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
+    <style>
+        :root { --verde-deep:#0A3D33; --fluo:#D0FF4E; }
+        body { background:#071f1a; color:white; font-family:'Roboto Flex',sans-serif; }
+        .card { background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:14px; }
+        .inp { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.2); padding:10px 12px; border-radius:6px; width:100%; color:white; outline:none; font-size:11px; font-family:'Roboto Flex',sans-serif; transition:0.2s; }
+        .inp:focus { border-color:var(--fluo); }
+        .btn-fluo { background:var(--fluo); color:var(--verde-deep); font-weight:900; text-transform:uppercase; cursor:pointer; border-radius:6px; transition:0.2s; }
+        .btn-fluo:hover { filter:brightness(1.1); }
+        .btn-ghost { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:white; border-radius:6px; cursor:pointer; transition:0.2s; }
+        .btn-ghost:hover { background:rgba(255,255,255,0.15); }
+        .scroll::-webkit-scrollbar { width:5px; }
+        .scroll::-webkit-scrollbar-thumb { background:var(--fluo); border-radius:10px; }
+        select option { background:#0A3D33; }
+        #canvas-firma { border:2px dashed rgba(255,255,255,0.3); border-radius:8px; cursor:crosshair; touch-action:none; background:rgba(255,255,255,0.04); }
+        #canvas-firma:hover { border-color:var(--fluo); }
+        .check-acc { accent-color:var(--fluo); }
+        .badge-firmado { background:rgba(34,197,94,0.2); color:#86efac; border:1px solid rgba(34,197,94,0.3); font-size:8px; font-weight:900; padding:2px 8px; border-radius:99px; text-transform:uppercase; }
+        .badge-pendiente { background:rgba(249,115,22,0.2); color:#fdba74; border:1px solid rgba(249,115,22,0.3); font-size:8px; font-weight:900; padding:2px 8px; border-radius:99px; text-transform:uppercase; }
+    </style>
+</head>
+<body class="p-4 md:p-6 pb-20" onload="init()">
+
+<main class="max-w-6xl mx-auto">
+
+    <!-- HEADER DEL MÓDULO -->
+    <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+        <div>
+            <h1 class="text-xl font-black uppercase tracking-widest">Legal</h1>
+            <p class="text-[9px] opacity-40 uppercase tracking-widest mt-0.5">Consentimientos Informados</p>
+        </div>
+        <div id="sesionLabel" class="text-[9px] opacity-40 hidden"></div>
+    </div>
+
+    <!-- BANNER MÓDULO DESHABILITADO -->
+    <div id="banner_deshabilitado" class="hidden card p-4 mb-6 border-l-4 border-orange-400 bg-orange-900/10">
+        <p class="text-[10px] font-bold text-orange-300">⚠ Los consentimientos digitales están desactivados.</p>
+        <p class="text-[9px] opacity-60 mt-0.5">Para habilitarlos ir a Admin → Configuracion del sistema → activar "Consentimientos Digitales".</p>
+    </div>
+
+    <div id="panel_principal" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- COLUMNA IZQUIERDA: historial -->
+        <div class="lg:col-span-1 space-y-4">
+            <div class="card p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-[10px] font-black uppercase tracking-widest">Historial</h2>
+                    <span id="total_badge" class="text-[8px] opacity-40"></span>
+                </div>
+                <input type="text" id="buscador" class="inp text-[10px] mb-3" placeholder="Buscar por nombre o DNI..." oninput="buscarPaciente()">
+                <div id="lista_consentimientos" class="space-y-2 overflow-y-auto scroll" style="max-height:520px">
+                    <p class="text-center opacity-30 text-xs mt-6">Cargando...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: formulario nuevo -->
+        <div class="lg:col-span-2">
+            <div class="card p-6">
+                <h2 class="text-[10px] font-black uppercase tracking-widest mb-5 border-b border-white/10 pb-3">Nuevo Consentimiento</h2>
+
+                <datalist id="lista_pac_datalist"></datalist>
+
+                <!-- Paciente -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Nombre del paciente</label>
+                        <input type="text" id="cons_paciente" list="lista_pac_datalist" class="inp" placeholder="Nombre completo" oninput="autocompletarDesdNombre()" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">DNI</label>
+                        <input type="text" id="cons_dni" class="inp" placeholder="Sin puntos ni guiones" oninput="autocompletarPaciente()">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Tipo de consentimiento</label>
+                        <select id="cons_tipo" class="inp" onchange="cargarTextoTipo()">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Medica responsable</label>
+                        <select id="cons_medica" class="inp">
+                            <option value="">-- Sin asignar --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Texto -->
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[8px] font-black uppercase text-[var(--fluo)] block">Texto del consentimiento</label>
+                        <span class="text-[8px] opacity-40">Editable — personalizable</span>
+                    </div>
+                    <textarea id="cons_texto" class="inp scroll" style="height:140px;resize:none" placeholder="El texto se carga al seleccionar el tipo, o escribi uno personalizado..."></textarea>
+                </div>
+
+                <!-- Checklist -->
+                <div class="bg-black/20 p-4 rounded-xl border border-white/8 mb-4">
+                    <p class="text-[9px] font-black uppercase text-white mb-3">El paciente declara haber entendido y aceptado</p>
+                    <div class="space-y-2">
+                        <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="chk_riesgos" class="check-acc mt-0.5"><span class="text-[10px]">Los riesgos y beneficios del tratamiento fueron explicados claramente</span></label>
+                        <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="chk_alternativas" class="check-acc mt-0.5"><span class="text-[10px]">Se le informaron las alternativas terapeuticas disponibles</span></label>
+                        <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="chk_preguntas" class="check-acc mt-0.5"><span class="text-[10px]">Tuvo oportunidad de hacer preguntas y fueron respondidas</span></label>
+                        <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="chk_voluntario" class="check-acc mt-0.5"><span class="text-[10px]">Acepta el tratamiento de forma libre y voluntaria</span></label>
+                        <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="chk_retiro" class="check-acc mt-0.5"><span class="text-[10px]">Entiende que puede retirar su consentimiento en cualquier momento</span></label>
+                    </div>
+                </div>
+
+                <!-- Alergias -->
+                <div class="mb-4">
+                    <label class="text-[8px] text-red-400 font-black uppercase block mb-1">Alergias declaradas por el paciente</label>
+                    <input type="text" id="cons_alergias" class="inp" style="border-color:rgba(239,68,68,0.3)" placeholder="NINGUNA — o detallar" oninput="this.value=this.value.toUpperCase()">
+                </div>
+
+                <!-- Firma -->
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-[9px] font-black uppercase text-[var(--fluo)]">Firma del paciente</label>
+                        <button onclick="limpiarFirma()" class="btn-ghost px-3 py-1 text-[8px] font-bold uppercase">Limpiar</button>
+                    </div>
+                    <canvas id="canvas-firma" width="600" height="110" class="w-full"></canvas>
+                    <p class="text-[8px] opacity-40 mt-1">Firmar con dedo (celular/tablet) o mouse</p>
+                </div>
+
+                <!-- Meta -->
+                <div class="bg-black/20 p-3 rounded-lg border border-white/8 mb-5 flex justify-between items-center">
+                    <div>
+                        <p class="text-[8px] opacity-50 uppercase font-bold">Fecha y hora</p>
+                        <p class="text-[10px] font-black" id="fecha_firma_display"></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[8px] opacity-50 uppercase font-bold">Registrado por</p>
+                        <p class="text-[10px] font-bold" id="usuario_firma_display"></p>
+                    </div>
+                </div>
+
+                <button onclick="guardarConsentimiento()" class="btn-fluo w-full py-4 rounded-xl text-[11px] tracking-widest">Guardar y Generar PDF</button>
+                <button id="btnWhatsApp" onclick="enviarWhatsApp()" class="hidden bg-green-600 hover:bg-green-500 w-full py-3 rounded-xl text-[10px] font-black uppercase transition mt-3 border border-green-400">💬 Enviar por WhatsApp</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, doc, onSnapshot, getDoc, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const FC = { apiKey:"AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA", authDomain:"sanalys-2263e.firebaseapp.com", projectId:"sanalys-2263e", storageBucket:"sanalys-2263e.firebasestorage.app", messagingSenderId:"899593881035", appId:"1:899593881035:web:cd0ddfdb4f8af089e9224e" };
+    const app = initializeApp(FC);
+        const auth = getAuth(app);
+    const db  = getFirestore(app);
+    const SESION = JSON.parse(sessionStorage.getItem('usuario_sanalys')||'{}');
+
+    let pacientes = [], consentimientos = [], moduloHabilitado = false;
+    let datosClinica = { nombre:'Sanalys Clinica Ortomolecular', direccion:'', telefono:'', email:'' };
+    let textosPredefinidos = {};
+    let ultimoGuardado = null;
+    let firmaDataURL   = null;
+
+
+    // ── CANVAS FIRMA ────────────────────────────────────────────────────
+    const canvas = document.getElementById('canvas-firma');
+    const ctx    = canvas.getContext('2d');
+    let dibujando = false;
+
+    function posCanvas(e) {
+        const r = canvas.getBoundingClientRect();
+        const sx = canvas.width / r.width, sy = canvas.height / r.height;
+        if (e.touches) return { x:(e.touches[0].clientX-r.left)*sx, y:(e.touches[0].clientY-r.top)*sy };
+        return { x:(e.clientX-r.left)*sx, y:(e.clientY-r.top)*sy };
+    }
+    canvas.addEventListener('mousedown',  e => { dibujando=true; const p=posCanvas(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+    canvas.addEventListener('mousemove',  e => { if(!dibujando) return; const p=posCanvas(e); ctx.lineTo(p.x,p.y); ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke(); });
+    canvas.addEventListener('mouseup',    () => { dibujando=false; capturarFirma(); });
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); dibujando=true; const p=posCanvas(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }, {passive:false});
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); if(!dibujando) return; const p=posCanvas(e); ctx.lineTo(p.x,p.y); ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke(); }, {passive:false});
+    canvas.addEventListener('touchend',   () => { dibujando=false; capturarFirma(); });
+
+    function capturarFirma() {
+        const tmp = document.createElement('canvas');
+        tmp.width = canvas.width; tmp.height = canvas.height;
+        const tc = tmp.getContext('2d');
+        tc.fillStyle = '#fff'; tc.fillRect(0,0,tmp.width,tmp.height);
+        tc.drawImage(canvas,0,0);
+        firmaDataURL = tmp.toDataURL('image/jpeg',0.95);
+    }
+    window.limpiarFirma = () => { ctx.clearRect(0,0,canvas.width,canvas.height); firmaDataURL=null; };
+
+    // ── INIT ────────────────────────────────────────────────────────────
+    window.init = async () => {
+        if (!SESION.nombre) { window.location.href='index.html'; return; }
+        // Acceso: cualquier usuario logueado con permiso admin o legal puede entrar
+        // El sidebar ya controla la visibilidad del ícono
+
+        const sl = document.getElementById('sesionLabel');
+        if (sl) { sl.textContent = SESION.nombre; sl.classList.remove('hidden'); }
+
+        const confSnap = await getDoc(doc(db,'config','funcionalidades'));
+        moduloHabilitado = confSnap.exists() ? (confSnap.data().consentimientosDigitales===true) : false;
+        if (!moduloHabilitado) {
+            document.getElementById('banner_deshabilitado').classList.remove('hidden');
+            document.getElementById('panel_principal').style.opacity='0.4';
+            document.getElementById('panel_principal').style.pointerEvents='none';
+        }
+
+        document.getElementById('fecha_firma_display').textContent = new Date().toLocaleString('es-AR');
+        document.getElementById('usuario_firma_display').textContent = SESION.nombre;
+        setInterval(() => {
+            document.getElementById('fecha_firma_display').textContent = new Date().toLocaleString('es-AR');
+        }, 10000);
+
+        // Personas
+        onSnapshot(collection(db,'personas'), snap => {
+            const personas = snap.docs.map(d=>({...d.data()})).filter(p=>p.esMedica&&p.activo!==false);
+            document.getElementById('cons_medica').innerHTML =
+                '<option value="">-- Sin asignar --</option>' + personas.map(p=>`<option value="${esc(p.nombre)}">${esc(p.nombre)}</option>`).join('');
+        });
+
+        // Pacientes
+        onSnapshot(collection(db,'pacientes'), snap => {
+            pacientes = snap.docs.map(d=>({id:d.id,...d.data()}));
+            document.getElementById('lista_pac_datalist').innerHTML =
+                pacientes.map(p=>`<option value="${(p.nombre||'').toUpperCase()} (${p.dni||''})">`).join('');
+        });
+
+        // Consentimientos
+        onSnapshot(query(collection(db,'consentimientos'), orderBy('timestamp','desc')), snap => {
+            consentimientos = snap.docs.map(d=>({id:d.id,...d.data()}));
+            renderLista();
+        });
+
+        // Textos predefinidos
+        const txtSnap = await getDoc(doc(db,'config','textosConsentimiento'));
+        if (txtSnap.exists()) textosPredefinidos = { ...txtSnap.data() };
+
+        // Tipos de tratamiento dinámicos
+        const tiposSnap = await getDoc(doc(db,'config','tiposTratamiento'));
+        const tipos = tiposSnap.exists() ? (tiposSnap.data().lista||[]) : [
+            'Terapia Inyectable / Sueros IV','Mesoterapia','Pellets Hormonales',
+            'Terapia Hormonal','Medicina Ortomolecular','Tratamiento Estetico'
+        ];
+        const sel = document.getElementById('cons_tipo');
+        sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
+            tipos.map(t => {
+                const slug = t.toLowerCase().replace(/ \/ /g,'_').replace(/\s+/g,'_')
+                    .replace(/[áéíóú]/g, m=>({'á':'a','é':'e','í':'i','ó':'o','ú':'u'}[m]));
+                return `<option value="${slug}">${t}</option>`;
+            }).join('') + '<option value="personalizado">Personalizado</option>';
+
+        // Datos clínica → pdf-master
+        const clinicaSnap = await getDoc(doc(db,'config','datosClinica'));
+        if (clinicaSnap.exists()) {
+            datosClinica = { ...datosClinica, ...clinicaSnap.data() };
+            if (window.SanalysPDF) window.SanalysPDF.setClinica(datosClinica);
+        }
+    };
+
+    // ── AUTOCOMPLETAR ───────────────────────────────────────────────────
+    window.autocompletarPaciente = () => {
+        const dni = document.getElementById('cons_dni').value.replace(/\D/g,'');
+        if (dni.length < 6) return;
+        const p = pacientes.find(x => x.dni && x.dni.replace(/\D/g,'')=== dni);
+        if (p) {
+            document.getElementById('cons_paciente').value = (p.nombre||'').toUpperCase();
+            document.getElementById('cons_alergias').value = (p.alergias||'NINGUNA').toUpperCase();
+        }
+    };
+
+    window.autocompletarDesdNombre = () => {
+        const val = document.getElementById('cons_paciente').value;
+        const m   = val.match(/\((\d+)\)$/);
+        if (m) {
+            document.getElementById('cons_dni').value = m[1];
+            const p = pacientes.find(x => x.dni && x.dni.replace(/\D/g,'')===m[1]);
+            if (p) document.getElementById('cons_alergias').value = (p.alergias||'NINGUNA').toUpperCase();
+            return;
+        }
+        const nombre = val.replace(/\s*\(\d+\)$/,'').trim();
+        const p = pacientes.find(x => (x.nombre||'').toUpperCase()===nombre);
+        if (p) {
+            document.getElementById('cons_dni').value = p.dni||'';
+            document.getElementById('cons_alergias').value = (p.alergias||'NINGUNA').toUpperCase();
+        }
+    };
+
+    window.cargarTextoTipo = () => {
+        const tipo = document.getElementById('cons_tipo').value;
+        if (tipo && textosPredefinidos[tipo]) document.getElementById('cons_texto').value = textosPredefinidos[tipo];
+    };
+
+    window.buscarPaciente = () => renderLista(document.getElementById('buscador').value.toLowerCase());
+
+    // ── GUARDAR ─────────────────────────────────────────────────────────
+    window.guardarConsentimiento = async () => {
+        if (!moduloHabilitado) return toast('El modulo no esta habilitado. Activarlo desde Admin → Config del Sistema.', 'info');
+        const nombre = document.getElementById('cons_paciente').value.trim().toUpperCase();
+        const dni    = document.getElementById('cons_dni').value.trim();
+        const tipo   = document.getElementById('cons_tipo').value;
+        if (!nombre || !tipo) return toast('Nombre y tipo de consentimiento son obligatorios.', 'warn');
+
+        const checklist = {
+            riesgos:      document.getElementById('chk_riesgos').checked,
+            alternativas: document.getElementById('chk_alternativas').checked,
+            preguntas:    document.getElementById('chk_preguntas').checked,
+            voluntario:   document.getElementById('chk_voluntario').checked,
+            retiro:       document.getElementById('chk_retiro').checked,
+        };
+        if (!Object.values(checklist).every(Boolean))
+            if (!confirm('No todos los puntos del checklist estan marcados. Continuar de todos modos?')) return;
+
+        const data = {
+            pacienteNombre: nombre, dni, tipo,
+            medica:         document.getElementById('cons_medica').value,
+            texto:          document.getElementById('cons_texto').value,
+            alergias:       document.getElementById('cons_alergias').value.toUpperCase(),
+            checklist, firmaDataURL: firmaDataURL||null,
+            firmaFecha:     new Date().toLocaleString('es-AR'),
+            firmado:        !!firmaDataURL,
+            registradoPor:  SESION.nombre,
+            timestamp:      Date.now(),
+        };
+
+        try {
+            const docRef = await addDoc(collection(db,'consentimientos'), data);
+            if (dni) {
+                const ps = await getDocs(query(collection(db,'pacientes'), where('dni','==',dni)));
+                if (!ps.empty) await addDoc(collection(db,`pacientes/${ps.docs[0].id}/consentimientos`), { ...data, consentimientoRaizId:docRef.id });
+            }
+            generarPDF(data, docRef.id);
+            ultimoGuardado = data;
+            limpiarFormulario();
+            toast('Consentimiento guardado. PDF generado.', 'ok');
+            document.getElementById('btnWhatsApp').classList.remove('hidden');
+        } catch(e) { console.error('[CONSENTIMIENTO]:', e?.message || e); toast('Error al guardar.', 'error'); }
+    };
+
+    window.limpiarFormulario = () => {
+        ['cons_paciente','cons_dni','cons_alergias','cons_texto'].forEach(id => document.getElementById(id).value='');
+        document.getElementById('cons_tipo').value='';
+        document.getElementById('cons_medica').value='';
+        document.querySelectorAll('.check-acc').forEach(cb => cb.checked=false);
+        window.limpiarFirma();
+    };
+
+    // ── PDF ─────────────────────────────────────────────────────────────
+    function generarPDF(data, id) {
+        const { doc: docPDF, startY } = SanalysPDF.crear({
+            titulo:    'Consentimiento Informado',
+            subtitulo: `Tipo: ${data.tipo ? data.tipo.replace(/_/g,' ').toUpperCase() : 'General'}`,
+            emisor:    data.medica || '-',
+        });
+        const T = SanalysPDF.T;
+        let y = startY;
+
+        y = SanalysPDF.sectionTitle(docPDF, 'Datos del Paciente', y);
+        docPDF.setFontSize(9); docPDF.setFont(T.FONT,'normal'); docPDF.setTextColor(...T.GRIS_OSC);
+        docPDF.text('Nombre:', 14, y); docPDF.setFont(T.FONT,'bold'); docPDF.setTextColor(...T.NEGRO);
+        docPDF.text(data.pacienteNombre, 38, y);
+        docPDF.setFont(T.FONT,'normal'); docPDF.setTextColor(...T.GRIS_OSC);
+        docPDF.text(`DNI: ${data.dni||'S/D'}`, 140, y); y+=7;
+        docPDF.text(`Medica responsable: ${data.medica||'S/D'}`, 14, y); y+=6;
+        docPDF.text(`Tipo: ${data.tipo ? data.tipo.replace(/_/g,' ').toUpperCase() : '-'}`, 14, y); y+=6;
+        docPDF.text(`Alergias: ${esc(data.alergias||'NINGUNA')}`, 14, y); y+=10;
+
+        y = SanalysPDF.sectionTitle(docPDF, 'Consentimiento', y);
+        docPDF.setFontSize(9); docPDF.setFont(T.FONT,'normal'); docPDF.setTextColor(...T.NEGRO);
+        const lines = docPDF.splitTextToSize(data.texto||'', 182);
+        docPDF.text(lines, 14, y);
+        y += lines.length * 4.5 + 8;
+        if (y > 230) { docPDF.addPage(); y=20; }
+
+        docPDF.setFontSize(11); docPDF.setFont('helvetica','bold');
+        docPDF.text('DECLARACION DEL PACIENTE', 14, y);
+        docPDF.line(14, y+2, 196, y+2); y+=9;
+        const checkLabels = {
+            riesgos:'Riesgos y beneficios explicados', alternativas:'Alternativas terapeuticas informadas',
+            preguntas:'Sus preguntas fueron respondidas', voluntario:'Acepta voluntariamente',
+            retiro:'Entiende su derecho a retirarse',
+        };
+        docPDF.setFontSize(9); docPDF.setFont(T.FONT,'normal');
+        Object.entries(checkLabels).forEach(([k, label]) => {
+            const checked = data.checklist?.[k];
+            docPDF.setDrawColor(...T.GRIS_CLARO); docPDF.setLineWidth(0.4); docPDF.rect(14,y-3.5,4,4);
+            if (checked) { docPDF.setDrawColor(...T.VERDE); docPDF.setLineWidth(0.6); docPDF.line(14.6,y-1.5,15.8,y-0.3); docPDF.line(15.8,y-0.3,17.8,y-3.2); }
+            docPDF.setTextColor(...(checked?T.NEGRO:T.GRIS)); docPDF.text(label, 20, y); y+=7;
+        });
+        y+=5;
+
+        if (y > 240) { docPDF.addPage(); y=20; }
+        y = SanalysPDF.sectionTitle(docPDF, 'Firma del Paciente', y);
+        if (data.firmaDataURL) { docPDF.addImage(data.firmaDataURL,'JPEG',14,y,90,25); y+=30; }
+        else { docPDF.setDrawColor(...T.GRIS_CLARO); docPDF.line(14,y+18,90,y+18); docPDF.setFontSize(7); docPDF.setTextColor(...T.GRIS); docPDF.text('Firma manuscrita del paciente',14,y+22); y+=28; }
+
+        docPDF.setDrawColor(...T.GRIS_CLARO); docPDF.line(14,y+4,196,y+4);
+        docPDF.setFontSize(7); docPDF.setTextColor(...T.GRIS);
+        docPDF.text(`Fecha: ${data.firmaFecha}   |   Registrado por: ${data.registradoPor}   |   ID: ${id}`,14,y+9);
+
+        SanalysPDF.save(docPDF, `Consentimiento_${data.pacienteNombre.replace(/ /g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+            { disclaimer: 'Sanalys Clinica Ortomolecular  -  Consentimiento Informado  -  Documento oficial con valor legal' });
+    }
+
+    // ── LISTA ───────────────────────────────────────────────────────────
+    function renderLista(filtro='') {
+        const cont  = document.getElementById('lista_consentimientos');
+        let items   = consentimientos;
+        if (filtro) items = items.filter(c => c.pacienteNombre?.toLowerCase().includes(filtro) || c.dni?.includes(filtro));
+        document.getElementById('total_badge').textContent = `${items.length} registros`;
+        if (!items.length) { cont.innerHTML='<p class="text-center opacity-30 text-xs mt-6">Sin consentimientos.</p>'; return; }
+        cont.innerHTML = items.map(c=>`
+            <div class="bg-white/5 p-3 rounded-lg border border-white/5 hover:bg-white/8 transition cursor-pointer" onclick="verPDF('${c.id}')">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-black text-[10px] uppercase truncate">${c.pacienteNombre}</p>
+                        <p class="text-[8px] opacity-50">${c.tipo?.replace(/_/g,' ')||''} · ${c.firmaFecha}</p>
+                    </div>
+                    <span class="${c.firmado?'badge-firmado':'badge-pendiente'} ml-2 flex-shrink-0">${c.firmado?'Firmado':'Sin firma'}</span>
+                </div>
+            </div>`).join('');
+    }
+
+    window.verPDF = id => {
+        if (!window.SanalysPDF||!window.jspdf) { toast('Recarga la pagina con Ctrl+Shift+R', 'info'); return; }
+        const c = consentimientos.find(x=>x.id===id);
+        if (c) generarPDF(c, id);
+    };
+
+    window.enviarWhatsApp = async () => {
+        if (!ultimoGuardado) { toast('No hay consentimiento guardado en esta sesion.', 'warn'); return; }
+        const dni    = ultimoGuardado.dni?.replace(/\D/g,'');
+        const nombre = ultimoGuardado.pacienteNombre;
+        const tipo   = ultimoGuardado.tipo?.replace(/_/g,' ') || '';
+        const pac = pacientes.find(p => p.dni && p.dni.replace(/\D/g,'') === dni);
+        if (!pac?.tel) { toast('El paciente no tiene telefono registrado en su ficha.', 'warn'); return; }
+        let tel = pac.tel.replace(/\D/g,'');
+        if (!tel.startsWith('54')) tel = '549' + tel.replace(/^0/, '');
+        // Template desde Firestore con fallback
+        let template = `Hola {nombre}!\n\nTe enviamos tu *Consentimiento Informado* para el tratamiento de *{tratamiento}* firmado hoy en Sanalys.\n\nCualquier duda estamos a disposicion.\n\n_Sanalys - La ciencia de estar bien_`;
+        try {
+            const snap = await getDoc(doc(db,'config','mensajes'));
+            if (snap.exists() && snap.data().consentimiento) template = snap.data().consentimiento;
+        } catch(e) {}
+        const msg = template
+            .replace(/{nombre}/g,     nombre.split(' ')[0])
+            .replace(/{tratamiento}/g, tipo)
+            .replace(/{clinica}/g,    'Sanalys');
+        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
+    };
+</script>
+<script src="sidebar.js"></script>
+</body>
+</html>

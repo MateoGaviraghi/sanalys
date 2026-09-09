@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys S.M.S. - Stock Clínico y Laboratorio</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="pdf-master.js?v=3.1"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root { --verde-deep: #0A3D33; --fluo: #D0FF4E; }
+        body { background-color: #071f1a; color: white; font-family: 'Roboto Flex', sans-serif; }
+        /* ── INPUTS ─────────────────────────────────────────────── */
+        .input-sanalys { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 10px; border-radius: 6px; width: 100%; outline: none; color: white; font-size: 11px; }
+        .input-sanalys:focus { border-color: var(--fluo); }
+        select option, select optgroup { background: #071f1a; color: white; }
+        select optgroup { color: var(--fluo); font-weight: bold; }
+        /* ── CARDS ──────────────────────────────────────────────── */
+        .card-sanalys { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
+        .section-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .15em; color: var(--fluo); margin-bottom: 14px; }
+        /* ── BUTTONS ────────────────────────────────────────────── */
+        .btn-fluo { background: var(--fluo); color: var(--verde-deep); font-weight: 900; text-transform: uppercase; cursor: pointer; transition: .2s; border-radius: 8px; }
+        .btn-fluo:hover { filter: brightness(1.08); box-shadow: 0 0 16px rgba(208,255,78,0.25); }
+        .btn-ghost { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); font-size: 10px; font-weight: 700; text-transform: uppercase; border-radius: 8px; padding: 7px 14px; cursor: pointer; transition: .2s; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.12); color: white; }
+        .btn-danger { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; font-size: 9px; font-weight: 700; text-transform: uppercase; border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: .2s; }
+        .btn-danger:hover { background: rgba(239,68,68,0.25); }
+        /* ── TABS ───────────────────────────────────────────────── */
+        .tab-btn { padding: 8px 14px; font-size: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; border-bottom: 2px solid transparent; opacity: .5; transition: .2s; color: white; background: none; border-top: none; border-left: none; border-right: none; white-space: nowrap; }
+        .tab-btn.active { opacity: 1; border-bottom-color: var(--fluo); color: var(--fluo); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeIn .2s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+        /* ── STOCK ITEM ─────────────────────────────────────────── */
+        .stock-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 12px 14px; transition: border-color .2s; }
+        .stock-item:hover { border-color: rgba(208,255,78,0.25); }
+        .badge-ok     { background: rgba(52,211,153,.15); color: #34d399; font-size:8px; font-weight:900; text-transform:uppercase; padding:2px 7px; border-radius:5px; }
+        .badge-low    { background: rgba(251,191,36,.15); color: #fbbf24; font-size:8px; font-weight:900; text-transform:uppercase; padding:2px 7px; border-radius:5px; }
+        .badge-out    { background: rgba(239,68,68,.15);  color: #f87171; font-size:8px; font-weight:900; text-transform:uppercase; padding:2px 7px; border-radius:5px; }
+        .stock-bar    { height: 3px; border-radius: 2px; margin-top: 5px; transition: width .4s; }
+        /* ── FORMULA COMPONENTE ─────────────────────────────────── */
+        .comp-row { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.04); border-radius:8px; padding:7px 10px; margin-bottom:6px; }
+        .conv-box { background:rgba(208,255,78,.07); border:1px solid rgba(208,255,78,.2); border-radius:8px; padding:8px 12px; font-size:10px; color:rgba(255,255,255,.8); margin-top:8px; }
+        .conv-box strong { color: var(--fluo); }
+        /* ── SCROLLBAR ──────────────────────────────────────────── */
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(208,255,78,.3); border-radius:10px; }
+        /* ── FIELD LABEL ────────────────────────────────────────── */
+        .field-label { font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; opacity:.5; display:block; margin-bottom:4px; }
+    </style>
+</head>
+<body class="p-4 md:p-8" onload="init()">
+
+    <header class="max-w-7xl mx-auto mb-6 flex justify-between items-center border-b border-white/10 pb-6 flex-wrap gap-3">
+    <div>
+        <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">sanalys<span style="color:var(--fluo)">.</span></h1>
+        <p style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:2px">Laboratorio &amp; Stock</p>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-1 border-r border-white/10 pr-3 mr-1">
+            <a href="enfermeria.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white" title="Enfermería">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <span style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Enfermería</span>
+            </a>
+            <a href="pacientes.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white" title="Pacientes">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Pacientes</span>
+            </a>
+        </div>
+        <a href="index.html" class="bg-white/10 px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase hover:bg-white/20 transition text-white">Volver</a>
+    </div>
+</header>
+
+    <main class="max-w-7xl mx-auto space-y-6">
+
+        <!-- TABS PRINCIPALES -->
+        <div class="flex gap-1 border-b border-white/10 pb-0">
+            <button class="tab-btn active" onclick="switchTab('stock')">📦 Stock de Insumos</button>
+            <button class="tab-btn" onclick="switchTab('formulas')">🧪 Fórmulas</button>
+            <button class="tab-btn" onclick="switchTab('pedido')">🛒 Pedido Inteligente</button>
+            <button class="tab-btn" onclick="switchTab('historial')">📋 Historial de Pedidos</button>
+        </div>
+
+        <!-- ===================== TAB STOCK ===================== -->
+        <div id="tab-stock" class="tab-panel active">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- FORMULARIO ALTA -->
+                <div class="lg:col-span-5 space-y-4">
+                    <section class="card-sanalys p-5 border-l-4 border-[var(--fluo)]">
+                        <h2 class="text-[11px] font-black uppercase text-[var(--fluo)] tracking-widest mb-4">Alta de Insumo</h2>
+
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Nombre principio activo</label>
+                                    <input type="text" id="n-nombre" class="input-sanalys font-bold" placeholder="Ej: VITAMINA C" list="lista-nombres-insumos" oninput="this.value=this.value.toUpperCase()">
+                                    <datalist id="lista-nombres-insumos"></datalist>
+                                </div>
+                                <div><label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Laboratorio / Proveedor</label><input type="text" id="n-lab" class="input-sanalys" placeholder="Ej: SIMILIA" oninput="this.value=this.value.toUpperCase()"></div>
+                            </div>
+
+                            <div>
+                                <label class="text-[9px] font-black uppercase text-blue-300 block mb-1">¿Cómo viene del proveedor?</label>
+                                <select id="n-tipo" class="input-sanalys" onchange="toggleTipo()">
+                                    <option value="solucion">Solución inyectable (vial con concentración %)</option>
+                                    <option value="puro">Polvo / Sustancia pura (100% principio activo)</option>
+                                    <option value="unidad">Unidad suelta (jeringas, vías, agujas, gasas, etc.)</option>
+                                </select>
+                            </div>
+
+                            <div id="box-farmaco">
+                            <div class="grid grid-cols-3 gap-2">
+                                <div id="box-conc">
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Concentración (%)</label>
+                                    <input type="number" id="n-conc" class="input-sanalys" placeholder="Ej: 10" step="0.01" oninput="updateConvPreview()">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Vol/Peso por vial</label>
+                                    <input type="number" id="n-vol" class="input-sanalys" placeholder="Ej: 10" oninput="updateConvPreview()">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Unidad del vial</label>
+                                    <select id="n-unidad-vial" class="input-sanalys" onchange="updateConvPreview()">
+                                        <option value="ml">ml</option>
+                                        <option value="g">g</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[9px] font-black uppercase text-[var(--fluo)] block mb-1">¿Cómo lo usás en fórmulas?</label>
+                                    <select id="n-unidad-uso" class="input-sanalys border-[var(--fluo)]/40" onchange="updateConvPreview()">
+                                        <option value="ml">En ml (de la solución del vial)</option>
+                                        <option value="mg">En mg (principio activo puro)</option>
+                                        <option value="g">En g (principio activo puro)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1" id="lbl-cantidad-alta">Viales a incorporar</label>
+                                    <input type="number" id="n-cantidad" class="input-sanalys font-bold text-[var(--fluo)]" placeholder="Cant. frascos" oninput="updateConvPreview()">
+                                </div>
+                            </div>
+                            </div><!-- /box-farmaco -->
+
+                            <!-- UNIDAD SUELTA: solo cantidad -->
+                            <div id="box-unidad" class="hidden">
+                                <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Cantidad de unidades a incorporar</label>
+                                <input type="number" id="n-cantidad-unidad" class="input-sanalys font-bold text-[var(--fluo)]" placeholder="Ej: 100 jeringas">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Costo por vial ($)</label>
+                                    <input type="number" id="n-costo" class="input-sanalys" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Lote / Vencimiento</label>
+                                    <input type="text" id="n-lote" class="input-sanalys" placeholder="L123 - 06/27">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Fecha Vencimiento</label>
+                                    <input type="date" id="n-fecha-venc" class="input-sanalys" style="color-scheme:dark">
+                                </div>
+                            </div>
+
+                            <div id="conv-preview" class="conv-box hidden"></div>
+
+                            <button onclick="window.agregarInsumo()" class="btn-fluo w-full py-3 rounded text-[10px] mt-1">+ Incorporar al Stock</button>
+                        </div>
+                    </section>
+
+                    <!-- CARGA EXCEL -->
+                    <section class="card-sanalys p-5 border-l-4 border-blue-400">
+                        <h2 class="text-[11px] font-black uppercase text-blue-400 tracking-widest mb-2">Sincronización Excel (Remito)</h2>
+                        <p class="text-[9px] opacity-60 mb-3">Columnas: <strong class="text-white">Tipo</strong> (solucion/puro/unidad) · Nombre · Laboratorio · Concentracion_pct · VolPorVial_ml · UnidadUso (ml/mg/g/unidad) · Viales_Sumar · CostoPorVial · Lote</p>
+                        <button onclick="window.descargarPlantilla()" class="w-full border border-blue-400/50 text-blue-300 py-2 text-[9px] font-bold uppercase rounded hover:bg-blue-400/10 transition mb-2">⬇️ Descargar Plantilla</button>
+                        <input type="file" id="excelUpload" accept=".xlsx,.xls" class="text-[10px] w-full text-white file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:text-[9px] file:font-bold file:bg-[var(--fluo)] file:text-black cursor-pointer mb-2">
+                        <button id="btnSubirExcel" onclick="window.procesarExcel()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase py-3 rounded transition">Subir y Actualizar Inventario</button>
+                    </section>
+                </div>
+
+                <!-- LISTA INVENTARIO -->
+                <div class="lg:col-span-7">
+                    <section class="card-sanalys p-5 h-full">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-[10px] font-bold uppercase tracking-widest opacity-50">Inventario Clínico</h2>
+                            <button onclick="window.descargarReportePDF()" class="text-[8px] border border-[var(--fluo)] text-[var(--fluo)] px-3 py-1 rounded hover:bg-[var(--fluo)] hover:text-black transition font-bold">PDF Stock</button>
+                        </div>
+                <div id="stock_alertas" class="mb-2"></div>
+                        <div id="lista-stock" class="space-y-2 overflow-y-auto custom-scroll max-h-[600px] pr-1">
+                            <p class="text-center text-xs opacity-30 mt-10 animate-pulse">Conectando...</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== TAB FÓRMULAS ===================== -->
+        <div id="tab-formulas" class="tab-panel">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- CONSTRUCTOR -->
+                <div class="space-y-4">
+                    <section class="card-sanalys p-6 border-t-4 border-white">
+                        <h2 class="text-[13px] font-black uppercase tracking-widest mb-4">Laboratorio de Fórmulas</h2>
+
+                        <input type="hidden" id="formula-id">
+
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div><label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Nombre del protocolo</label><input type="text" id="f-nombre" class="input-sanalys font-bold border-[var(--fluo)]/40" placeholder="Ej: Myers Cóctel Estándar"></div>
+                            <div><label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Volumen total suero (ml)</label><input type="number" id="f-vol" class="input-sanalys" value="250" placeholder="250"></div>
+                        </div>
+
+                        <!-- AGREGAR COMPONENTE -->
+                        <div class="bg-black/30 p-4 rounded-xl border border-[var(--fluo)]/20 mb-4">
+                            <h3 class="text-[10px] font-black uppercase text-[var(--fluo)] mb-3">Añadir componente</h3>
+                            <div class="grid grid-cols-1 gap-2">
+                                <div>
+                                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Insumo base</label>
+                                    <select id="f-insumo" class="input-sanalys" onchange="window.onSelectInsumo()"></select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[9px] font-black text-[var(--fluo)] block mb-1" id="lbl-dosis">Dosis</label>
+                                        <input type="number" id="f-dosis" class="input-sanalys font-bold text-[var(--fluo)] border-[var(--fluo)]/40" step="0.01" placeholder="0">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Unidad (auto)</label>
+                                        <input type="text" id="f-unidad-disp" class="input-sanalys opacity-60" readonly placeholder="Seleccioná insumo">
+                                    </div>
+                                </div>
+                                <div id="comp-conv-info" class="conv-box hidden"></div>
+                                <button onclick="window.agregarComponente()" class="bg-white/10 hover:bg-white/20 text-white font-black text-[10px] uppercase py-2 rounded transition border border-white/10">+ Añadir a la fórmula</button>
+                            </div>
+                        </div>
+
+                        <!-- RECETA -->
+                        <div id="lista-receta" class="min-h-[50px] mb-3">
+                            <p class="text-[10px] opacity-30 text-center py-3">Fórmula vacía</p>
+                        </div>
+
+                        <!-- COSTO Y MARGEN -->
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div><label class="text-[9px] opacity-50 uppercase font-bold block mb-1">Precio de venta PVP ($)</label><input type="number" id="f-pvp" class="input-sanalys text-xl font-black text-[var(--fluo)]" placeholder="0" oninput="window.calcularCosto()"></div>
+                            <div id="costo-box" class="bg-black/20 p-3 rounded-lg border border-white/5 flex flex-col justify-center">
+                                <p class="text-[9px] opacity-50 uppercase font-bold">Costo producción</p>
+                                <p class="text-xl font-black" id="costo-valor">$ 0</p>
+                                <p class="text-[9px] mt-1" id="margen-valor">Margen: —</p>
+                            </div>
+                        </div>
+
+                        <div id="warn-formula" class="warn-box hidden mb-3"></div>
+
+                        <div class="flex gap-2">
+                            <button onclick="window.guardarFormula()" class="btn-fluo flex-1 py-3 rounded text-[10px]">💾 Guardar Protocolo</button>
+                            <button onclick="window.limpiarFormula()" class="bg-white/10 px-4 py-3 rounded text-[10px] font-bold uppercase hover:bg-white/20 transition text-white">Limpiar</button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- CATÁLOGO -->
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3">Protocolos Activos</div>
+                    <div id="catalogo-formulas" class="space-y-3 overflow-y-auto custom-scroll max-h-[700px] pr-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== TAB PEDIDO ===================== -->
+        <div id="tab-pedido" class="tab-panel">
+            <section class="card-sanalys p-6 border-l-4 border-purple-500">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-[13px] font-black uppercase text-purple-400 tracking-widest">Inteligencia de Suministros</h2>
+                        <p class="text-[9px] opacity-60 mt-1">El pedido se expresa en <strong class="text-white">viales/frascos del proveedor</strong>, no en dosis. Se calcula según stock actual.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="generarRecetaMedicaPDF()" class="bg-white hover:bg-gray-100 text-gray-900 px-4 py-2 rounded text-[10px] font-black uppercase transition border border-gray-300">📋 RECETA MÉDICA</button>
+                        <button onclick="generarOrdenProveedorPDF()" class="bg-[var(--verde-deep)] hover:bg-black/40 text-white px-4 py-2 rounded text-[10px] font-black uppercase transition border border-white/20">🏭 ORDEN PROVEEDOR</button>
+                    </div>
+                </div>
+                
+                <!-- Selector de médica -->
+                <div class="mb-4">
+                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-2">Médica que firma la receta:</label>
+                    <select id="medicaReceta" class="input-sanalys border-purple-400/40">
+                        <option value="">Seleccionar médica...</option>
+                    </select>
+                </div>
+
+                <!-- Diagnóstico editable (se imprime en la receta; podés ajustarlo antes de generar el PDF) -->
+                <div class="mb-4">
+                    <label class="text-[9px] opacity-50 uppercase font-bold block mb-2">Diagnóstico (editable antes de imprimir):</label>
+                    <input type="text" id="diagnosticoReceta" class="input-sanalys border-purple-400/40" value="Suplementación Endovenosa" placeholder="Ej: Suplementación Endovenosa">
+                    <p class="text-[8px] opacity-40 mt-1">Aparece en la receta como "Dig. ...". Viene pre-escrito; corregilo si hace falta antes de generar el PDF.</p>
+                </div>
+
+                <div class="bg-black/40 rounded-xl border border-white/5 overflow-x-auto">
+                    <table class="w-full text-left text-[10px] uppercase">
+                        <thead class="opacity-50 border-b border-white/10">
+                            <tr>
+                                <th class="p-3">Principio Activo</th>
+                                <th class="p-3 text-center">Concentración</th>
+                                <th class="p-3 text-center">Stock actual</th>
+                                <th class="p-3 text-center">Estado</th>
+                                <th class="p-3 text-center">Pedir (viales)</th>
+                                <th class="p-3 text-center">Presentación</th>
+                                <th class="p-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-pedido">
+                            <tr><td colspan="7" class="text-center py-6 opacity-30 italic">Calculando pedido...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button onclick="agregarItemManual()" class="mt-4 bg-green-600/20 border border-green-500/40 text-green-400 px-4 py-2 rounded text-[10px] font-bold uppercase hover:bg-green-600 hover:text-white transition">➕ Agregar ítem manual</button>
+            </section>
+        </div>
+
+        <!-- ===================== TAB HISTORIAL ===================== -->
+        <div id="tab-historial" class="tab-panel">
+            <section class="card-sanalys p-6 border-l-4 border-blue-400">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-[13px] font-black uppercase text-blue-400 tracking-widest">Historial de Pedidos</h2>
+                        <p class="text-[9px] opacity-60 mt-1">Registro de todos los pedidos generados. Se guarda automáticamente al emitir un PDF.</p>
+                    </div>
+                </div>
+                <div class="bg-black/40 rounded-xl border border-white/5 overflow-x-auto">
+                    <table class="w-full text-left text-[10px]">
+                        <thead class="opacity-50 border-b border-white/10">
+                            <tr>
+                                <th class="p-3 uppercase">Fecha</th>
+                                <th class="p-3 uppercase">Tipo</th>
+                                <th class="p-3 uppercase">Médica</th>
+                                <th class="p-3 uppercase text-center">Ítems</th>
+                                <th class="p-3 uppercase">Notas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-historial">
+                            <tr><td colspan="5" class="text-center py-8 opacity-30 italic text-xs">Cargando historial...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA", authDomain: "sanalys-2263e.firebaseapp.com", projectId: "sanalys-2263e", storageBucket: "sanalys-2263e.firebasestorage.app", messagingSenderId: "899593881035", appId: "1:899593881035:web:cd0ddfdb4f8af089e9224e" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let insumosDB = [];
+        let formulasDB = [];
+        let recetaActual = [];
+        const SESION = JSON.parse(sessionStorage.getItem('usuario_sanalys') || '{}');
+
+        // =============================================
+        // NÚCLEO: Funciones de Conversión de Unidades
+        // =============================================
+
+        /**
+         * Calcula cuántas "unidades de uso" (ml/mg/g) tiene UN vial.
+         * Esta es la función clave que resuelve la conversión proveedor <-> uso.
+         */
+        function unidadesPorVial(ins) {
+            const conc = parseFloat(ins.concentracion) || 100; // %
+            const vol  = parseFloat(ins.volPorVial) || 1;
+            const puro_por_unidad = conc / 100; // fracción de principio activo
+
+            if (ins.unidadUso === 'ml') {
+                // Si uso en ml de solución: 1 vial de 10ml = 10 unidades de uso
+                return vol;
+            } else if (ins.unidadUso === 'mg') {
+                // Si uso en mg de principio activo: 1 vial de 10ml al 10% = 1000mg
+                // 10ml * 0.10 * 1000mg/g = 1000mg
+                return vol * puro_por_unidad * 1000;
+            } else if (ins.unidadUso === 'g') {
+                // Si uso en g de principio activo: 1 vial de 10ml al 10% = 1g
+                return vol * puro_por_unidad;
+            }
+            return vol;
+        }
+
+        /**
+         * Convierte una dosis en "unidades de uso" a ml de solución (para descontar stock).
+         * stockDisp siempre se guarda en "unidades de uso" del profesional.
+         */
+        function dosisAMlSolucion(dosis, ins) {
+            const conc = parseFloat(ins.concentracion) || 100;
+            const puro_por_ml = conc / 100;
+            if (ins.unidadUso === 'ml') return dosis;
+            if (ins.unidadUso === 'mg') return dosis / (puro_por_ml * 1000);
+            if (ins.unidadUso === 'g')  return dosis / puro_por_ml;
+            return dosis;
+        }
+
+        /**
+         * Texto legible de cuánto queda en stock.
+         */
+        function stockLegible(ins) {
+            const upv = unidadesPorVial(ins);
+            if (upv <= 0) return '0';
+            const vialesFracc = (ins.stockDisp || 0) / upv;
+            const vialesCompletos = Math.floor(vialesFracc);
+            const resto = ((ins.stockDisp || 0) % upv);
+            let textoResto = '';
+            if (resto > 0.01) {
+                if (ins.unidadUso === 'ml') textoResto = ` + ${resto.toFixed(1)}ml abierto`;
+                else if (ins.unidadUso === 'mg') textoResto = ` + ${resto.toFixed(0)}mg`;
+                else textoResto = ` + ${resto.toFixed(2)}g`;
+            }
+            return `${vialesCompletos} vial${vialesCompletos!==1?'es':''}${textoResto}`;
+        }
+
+        function vialessEquivalentes(ins) {
+            const upv = unidadesPorVial(ins);
+            return upv > 0 ? (ins.stockDisp || 0) / upv : 0;
+        }
+
+        function costoComponente(dosis, ins) {
+            const upv = unidadesPorVial(ins);
+            if (upv <= 0) return 0;
+            return (dosis / upv) * (parseFloat(ins.costo) || 0);
+        }
+
+        // =============================================
+        // TAB NAVIGATION
+        // =============================================
+        window.switchTab = (t) => {
+            ['stock','formulas','pedido','historial'].forEach(x => {
+                document.getElementById('tab-'+x).classList.toggle('active', x===t);
+                document.querySelectorAll('.tab-btn')[['stock','formulas','pedido','historial'].indexOf(x)].classList.toggle('active', x===t);
+            });
+            if(t==='pedido') {
+                cargarPedidoInteligente();
+                cargarMedicasReceta();
+            }
+            if(t==='historial') cargarHistorial();
+        };
+
+        // =============================================
+        // TIPO INSUMO TOGGLE
+        // =============================================
+        window.toggleTipo = () => {
+            const tipo = document.getElementById('n-tipo').value;
+            const esUnidad = tipo === 'unidad';
+            const esPuro = tipo === 'puro';
+            document.getElementById('box-farmaco').style.display = esUnidad ? 'none' : 'block';
+            document.getElementById('box-unidad').style.display = esUnidad ? 'block' : 'none';
+            document.getElementById('box-conc').style.display = esPuro ? 'none' : 'block';
+            if(esPuro) {
+                document.getElementById('n-conc').value = 100;
+                document.getElementById('n-unidad-uso').value = 'g';
+            }
+            window.updateConvPreview();
+        };
+
+        window.updateConvPreview = () => {
+            const conc = parseFloat(document.getElementById('n-conc').value) || 0;
+            const vol  = parseFloat(document.getElementById('n-vol').value) || 0;
+            const cant = parseFloat(document.getElementById('n-cantidad').value) || 0;
+            const unidadUso = document.getElementById('n-unidad-uso').value;
+            const prev = document.getElementById('conv-preview');
+            if(!vol || !cant) { prev.classList.add('hidden'); return; }
+            const tmpIns = { concentracion: conc||100, volPorVial: vol, unidadUso };
+            const upv = unidadesPorVial(tmpIns);
+            const total = upv * cant;
+            let desc = '';
+            if(unidadUso==='ml') desc = `${cant} viales × ${vol}ml = <strong>${total.toFixed(1)} ml</strong> disponibles en stock`;
+            else if(unidadUso==='mg') desc = `${cant} viales × ${upv.toFixed(0)}mg/vial = <strong>${total.toFixed(0)} mg</strong> disponibles en stock`;
+            else desc = `${cant} viales × ${upv.toFixed(2)}g/vial = <strong>${total.toFixed(3)} g</strong> disponibles en stock`;
+            prev.innerHTML = `<strong>Vista previa:</strong> ${desc}. En fórmulas usarás la unidad <strong>${unidadUso}</strong>.`;
+            prev.classList.remove('hidden');
+        };
+
+        // =============================================
+        // ALTA MANUAL DE INSUMO
+        // =============================================
+        window.agregarInsumo = async () => {
+            const nombre = document.getElementById('n-nombre').value.trim().toUpperCase();
+            if (!nombre) return toast('Falta el nombre del insumo.', 'warn');
+            const tipo = document.getElementById('n-tipo').value;
+            const lab = document.getElementById('n-lab').value.trim().toUpperCase();
+
+            let ins = { nombre, lab, tipo, costo: parseFloat(document.getElementById('n-costo').value) || 0, lote: document.getElementById('n-lote').value.trim().toUpperCase(), minimoViales: 2 };
+
+            if(tipo === 'unidad') {
+                const cant = parseFloat(document.getElementById('n-cantidad-unidad').value) || 0;
+                ins.unidadUso = 'unidad';
+                ins.stockDisp = cant;
+                ins.concentracion = 0;
+                ins.volPorVial = 1;
+                ins.unidadVial = 'u';
+            } else {
+                const conc = tipo === 'puro' ? 100 : (parseFloat(document.getElementById('n-conc').value) || 0);
+                const vol  = parseFloat(document.getElementById('n-vol').value) || 1;
+                const cant = parseFloat(document.getElementById('n-cantidad').value) || 0;
+                if(!conc && tipo!=='puro') return toast('Ingresa la concentracion del vial (%).', 'warn');
+                ins.concentracion = conc;
+                ins.volPorVial = vol;
+                ins.unidadVial = document.getElementById('n-unidad-vial').value;
+                ins.unidadUso = document.getElementById('n-unidad-uso').value;
+                const upv = unidadesPorVial(ins);
+                ins.stockDisp = upv * cant;
+                ins.stockDispML = vol * cant;
+            }
+
+            try {
+                await addDoc(collection(db, 'insumos'), ins);
+                ['n-nombre','n-lab','n-conc','n-vol','n-cantidad','n-costo','n-lote','n-cantidad-unidad'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+                document.getElementById('conv-preview').classList.add('hidden');
+            } catch(e) { toast('Error al guardar.', 'error'); }
+        };
+
+        window.eliminarInsumo = async (id) => {
+            if(!confirm('¿Eliminar este insumo?')) return;
+            await deleteDoc(doc(db, 'insumos', id));
+        };
+
+        // =============================================
+        // RENDER STOCK
+        // =============================================
+        function updateNombresDatalist() {
+            const dl = document.getElementById('lista-nombres-insumos');
+            if(!dl) return;
+            dl.innerHTML = insumosDB.map(ins => `<option value="${esc(ins.nombre)}">`).join('');
+        }
+
+        function renderStock() {
+            const cont = document.getElementById('lista-stock');
+            if(!insumosDB.length) { cont.innerHTML = '<p class="text-center text-xs opacity-30 mt-10">Sin insumos cargados.</p>'; return; }
+            cont.innerHTML = insumosDB.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(ins => {
+                const esUnidad = ins.tipo === 'unidad' || ins.unidadUso === 'unidad';
+                let stockNum, minimoV, pct, estado, badgeTxt, fillColor, stockTxt, infoTxt;
+
+                if(esUnidad) {
+                    stockNum = ins.stockDisp || 0;
+                    minimoV = ins.minimoViales || 10;
+                    pct = Math.min(100, (stockNum / (minimoV * 3)) * 100);
+                    estado = stockNum < 5 ? 'danger' : stockNum < minimoV ? 'warn' : 'ok';
+                    badgeTxt = stockNum < 5 ? 'CRÍTICO' : stockNum < minimoV ? 'BAJO' : 'OK';
+                    fillColor = estado==='danger'?'#ef4444':estado==='warn'?'#f59e0b':'#22c55e';
+                    stockTxt = `${stockNum} unidades`;
+                    infoTxt = `${ins.lab||'—'} · Unidad suelta${ins.lote?' · Lote: '+ins.lote:''}`;
+                } else {
+                    const viales = vialessEquivalentes(ins);
+                    minimoV = ins.minimoViales || 2;
+                    pct = Math.min(100, (viales / (minimoV * 4)) * 100);
+                    estado = viales < 1 ? 'danger' : viales < minimoV ? 'warn' : 'ok';
+                    badgeTxt = viales < 1 ? 'CRÍTICO' : viales < minimoV ? 'BAJO' : 'OK';
+                    fillColor = estado==='danger'?'#ef4444':estado==='warn'?'#f59e0b':'#22c55e';
+                    const upv = unidadesPorVial(ins);
+                    stockTxt = ins.unidadUso==='ml' ? `${(ins.stockDisp||0).toFixed(1)} ml` : ins.unidadUso==='mg' ? `${(ins.stockDisp||0).toFixed(0)} mg` : `${(ins.stockDisp||0).toFixed(2)} g`;
+                    stockNum = viales;
+                    infoTxt = `${ins.lab||'—'} · Vial: ${normIns(ins).volPorVial||'?'}${normIns(ins).unidadVial||'ml'} al ${normIns(ins).concentracion!=null?normIns(ins).concentracion:'—'}% · Usa en: <strong class="text-white">${ins.unidadUso}</strong> · ${upv.toFixed(1)} ${ins.unidadUso}/vial${ins.lote?' · Lote: '+ins.lote:''}`;
+                }
+
+                return `<div class="bg-white/5 p-3 rounded-lg border border-white/5 group hover:bg-white/8 transition relative">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 pr-4">
+                            <p class="text-[11px] font-black uppercase text-[var(--fluo)]">${esc(ins.nombre)}</p>
+                            <p class="text-[9px] opacity-50 mt-0.5">${infoTxt}</p>
+                            <div class="stock-bar mt-1.5"><div class="stock-fill" style="width:${pct}%;background:${fillColor};"></div></div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <p class="text-[13px] font-black">${esUnidad ? (ins.stockDisp||0) : stockNum.toFixed(1)}</p>
+                            <p class="text-[8px] opacity-50">${esUnidad ? 'unidades' : 'viales equiv.'}</p>
+                            <p class="text-[9px] opacity-70 mt-0.5">${stockTxt}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="badge-${estado} uppercase text-[8px]">${badgeTxt}</span>
+                        <button onclick="window.eliminarInsumo('${ins.id}')" class="text-red-500 hover:text-white opacity-0 group-hover:opacity-100 font-bold text-[10px] bg-black/40 px-2 py-0.5 rounded transition">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // =============================================
+        // FORMULARIO FÓRMULAS
+        // =============================================
+        function updateSelectInsumos() {
+            const sel = document.getElementById('f-insumo');
+            // Solo mostrar insumos farmacológicos en fórmulas (no descartables)
+            const farmaco = insumosDB.filter(i => i.tipo !== 'unidad' && i.unidadUso !== 'unidad');
+            sel.innerHTML = '<option value="">-- Seleccionar insumo --</option>' +
+                farmaco.sort((a,b)=>a.nombre.localeCompare(b.nombre))
+                    .map(i => `<option value="${i.id}">${esc(i.nombre)} (${i.concentracion}% · ${i.volPorVial}${i.unidadVial}) — ${vialessEquivalentes(i).toFixed(1)} viales</option>`).join('');
+        }
+
+        window.onSelectInsumo = () => {
+            const id = document.getElementById('f-insumo').value;
+            const ins = insumosDB.find(i=>i.id===id);
+            const lblDosis = document.getElementById('lbl-dosis');
+            const inpUnidad = document.getElementById('f-unidad-disp');
+            const infoBox = document.getElementById('comp-conv-info');
+            if(ins) {
+                const upv = unidadesPorVial(ins);
+                lblDosis.textContent = `Dosis en ${ins.unidadUso}`;
+                inpUnidad.value = ins.unidadUso;
+                // Mostrar la conversión explícita para evitar errores
+                let linea1 = `1 vial (${ins.volPorVial}${ins.unidadVial} al ${ins.concentracion}%) = ${upv.toFixed(2)} ${ins.unidadUso}`;
+                let linea2 = '';
+                if(ins.unidadUso==='ml') {
+                    linea2 = `Ingresás ml de solución. Ej: 5ml consume 5ml del vial (${((5/ins.volPorVial)*100).toFixed(1)}% del frasco)`;
+                } else if(ins.unidadUso==='mg') {
+                    linea2 = `Ingresás mg de principio activo. Ej: 500mg = ${(500/upv*ins.volPorVial).toFixed(2)}ml de solución`;
+                } else {
+                    linea2 = `Ingresás g de principio activo. Ej: 0.5g = ${(0.5/upv*ins.volPorVial).toFixed(2)}ml de solución`;
+                }
+                infoBox.innerHTML = `<strong>Conversión activa:</strong> ${linea1}<br><span class="opacity-70">${linea2}</span>`;
+                infoBox.classList.remove('hidden');
+            } else {
+                lblDosis.textContent = 'Dosis';
+                inpUnidad.value = '';
+                infoBox.classList.add('hidden');
+            }
+        };
+
+        window.agregarComponente = () => {
+            const insId = document.getElementById('f-insumo').value;
+            const dosis = parseFloat(document.getElementById('f-dosis').value);
+            if(!insId || !dosis || dosis <= 0) return toast('Seleccioná un insumo y escribí la dosis.', 'info');
+            const ins = insumosDB.find(i=>i.id===insId);
+            if(!ins) return;
+            const upv = unidadesPorVial(ins);
+            const mlEquivalente = dosisAMlSolucion(dosis, ins);
+            const costo = costoComponente(dosis, ins);
+            recetaActual.push({ insId, nombre: ins.nombre, dosis, unidad: ins.unidadUso, mlEquivalente, costo });
+            document.getElementById('f-dosis').value = '';
+            renderReceta();
+        };
+
+        window.quitarComponente = (i) => { recetaActual.splice(i,1); renderReceta(); };
+
+        function renderReceta() {
+            const cont = document.getElementById('lista-receta');
+            if(!recetaActual.length) { cont.innerHTML = '<p class="text-[10px] opacity-30 text-center py-3">Fórmula vacía</p>'; window.calcularCosto(); return; }
+            cont.innerHTML = recetaActual.map((c,i) => {
+                const ins = insumosDB.find(x=>x.id===c.insId);
+                const stockOk = ins && (ins.stockDisp||0) >= (c.unidad==='ml'?c.dosis : c.dosis); // stockDisp ya está en unidades de uso
+                const stockTxt = stockOk ? '<span class="badge-ok">✓ stock</span>' : '<span class="badge-danger">⚠ sin stock</span>';
+                return `<div class="comp-row">
+                    <span class="flex-1 text-[11px] font-bold">${esc(c.nombre)}</span>
+                    <span class="text-[11px] font-black text-[var(--fluo)]">${c.dosis} ${c.unidad}</span>
+                    <span class="chip text-[8px]">${c.mlEquivalente.toFixed(2)}ml sol.</span>
+                    ${stockTxt}
+                    <button onclick="window.quitarComponente(${i})" class="text-red-400 font-bold text-[10px] hover:text-red-300">✕</button>
+                </div>`;
+            }).join('');
+            window.calcularCosto();
+        }
+
+        window.calcularCosto = () => {
+            const costo = recetaActual.reduce((s,c)=>s+(c.costo||0),0);
+            const pvp = parseFloat(document.getElementById('f-pvp').value)||0;
+            const margen = pvp > 0 ? ((pvp-costo)/pvp*100).toFixed(0) : null;
+            document.getElementById('costo-valor').textContent = `$ ${costo.toFixed(0)}`;
+            document.getElementById('margen-valor').textContent = margen ? `Margen: ${margen}%` : 'Ingresá PVP para ver margen';
+            document.getElementById('margen-valor').style.color = margen && parseInt(margen) < 30 ? '#fca5a5' : 'var(--fluo)';
+
+            const sinStock = recetaActual.filter(c => {
+                const ins = insumosDB.find(x=>x.id===c.insId);
+                return !ins || (ins.stockDisp||0) < c.dosis;
+            });
+            const w = document.getElementById('warn-formula');
+            if(sinStock.length>0) { w.textContent = `⚠ Stock insuficiente: ${sinStock.map(c=>c.nombre).join(', ')}`; w.classList.remove('hidden'); }
+            else w.classList.add('hidden');
+        };
+
+        window.guardarFormula = async () => {
+            const nombre = document.getElementById('f-nombre').value.trim();
+            if(!nombre || !recetaActual.length) return toast('Completá el nombre y agregá al menos un componente.', 'info');
+            const data = {
+                nombre, pvp: parseFloat(document.getElementById('f-pvp').value)||0,
+                volTotal: parseFloat(document.getElementById('f-vol').value)||250,
+                componentes: JSON.parse(JSON.stringify(recetaActual))
+            };
+            const editId = document.getElementById('formula-id').value;
+            try {
+                if(editId) await updateDoc(doc(db,'formulas',editId), data);
+                else await addDoc(collection(db,'formulas'), data);
+                window.limpiarFormula();
+            } catch(e) { toast('Error al guardar fórmula.', 'error'); }
+        };
+
+        window.limpiarFormula = () => {
+            document.getElementById('formula-id').value='';
+            document.getElementById('f-nombre').value='';
+            document.getElementById('f-pvp').value='';
+            document.getElementById('f-vol').value='250';
+            recetaActual=[];
+            renderReceta();
+        };
+
+        window.editarFormula = (id) => {
+            const f = formulasDB.find(x=>x.id===id); if(!f) return;
+            document.getElementById('formula-id').value = f.id;
+            document.getElementById('f-nombre').value = f.nombre;
+            document.getElementById('f-pvp').value = f.pvp||0;
+            document.getElementById('f-vol').value = f.volTotal||250;
+            recetaActual = JSON.parse(JSON.stringify(f.componentes||[]));
+            renderReceta();
+            window.switchTab('formulas');
+            window.scrollTo({top:0,behavior:'smooth'});
+        };
+
+        window.eliminarFormula = async (id) => {
+            if(!confirm('¿Eliminar este protocolo?')) return;
+            await deleteDoc(doc(db,'formulas',id));
+        };
+
+        window.usarFormula = async (id) => {
+            const f = formulasDB.find(x=>x.id===id); if(!f) return;
+            for(const c of f.componentes||[]) {
+                const ins = insumosDB.find(i=>i.id===c.insId);
+                if(!ins || (ins.stockDisp||0) < c.dosis) return toast(`⚠ Stock insuficiente de ${esc(c.nombre)}`, 'info');
+            }
+            if(!confirm(`¿Usar "${esc(f.nombre)}" y descontar el stock automáticamente?`)) return;
+            for(const c of f.componentes||[]) {
+                const ins = insumosDB.find(i=>i.id===c.insId);
+                if(ins) {
+                    const nuevoStock = Math.max(0, (ins.stockDisp||0) - c.dosis);
+                    await updateDoc(doc(db,'insumos',ins.id), { stockDisp: nuevoStock });
+                }
+            }
+            toast('✓ Fórmula aplicada. Stock actualizado.', 'ok');
+        };
+
+        function renderFormulas() {
+            const cont = document.getElementById('catalogo-formulas');
+            if(!formulasDB.length) { cont.innerHTML = '<p class="text-[10px] opacity-30 text-center py-6">Sin protocolos guardados.</p>'; return; }
+            cont.innerHTML = formulasDB.map(f => {
+                const costo = (f.componentes||[]).reduce((s,c)=>s+(c.costo||0),0);
+                const margen = f.pvp>0 ? ((f.pvp-costo)/f.pvp*100).toFixed(0)+'%' : '—';
+                const sinStock = (f.componentes||[]).filter(c=>{const ins=insumosDB.find(x=>x.id===c.insId);return !ins||(ins.stockDisp||0)<c.dosis;});
+                const chips = (f.componentes||[]).map(c=>`<span class="chip">${esc(c.nombre)} ${c.dosis}${c.unidad}</span>`).join('');
+                return `<div class="formula-card">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-black text-[13px] text-white">${esc(f.nombre)}</p>
+                            <p class="text-[9px] opacity-50 mt-0.5">Vol: ${f.volTotal}ml · Costo: $${costo.toFixed(0)} · PVP: $${f.pvp||0} · Margen: ${margen}</p>
+                        </div>
+                        <div class="flex gap-1.5 flex-shrink-0 ml-3">
+                            ${sinStock.length===0?`<button onclick="window.usarFormula('${f.id}')" class="bg-[var(--fluo)] text-black font-black px-3 py-1 rounded text-[9px] uppercase">Usar</button>`:'<span class="badge-danger">sin stock</span>'}
+                            <button onclick="window.editarFormula('${f.id}')" class="bg-white/10 text-white px-2 py-1 rounded text-[9px] hover:bg-white/20 transition">✏️</button>
+                            <button onclick="window.eliminarFormula('${f.id}')" class="text-red-400 px-2 py-1 rounded text-[9px] hover:text-red-300">✕</button>
+                        </div>
+                    </div>
+                    <div>${chips}</div>
+                    ${sinStock.length>0?`<p class="text-[9px] text-red-300 mt-2">⚠ Sin stock: ${sinStock.map(c=>c.nombre).join(', ')}</p>`:''}
+                </div>`;
+            }).join('');
+        }
+
+
+        window.enviarPedidoMail = () => {
+            const items = insumosDB.map(ins => {
+                const esUnidad = ins.tipo==='unidad'||ins.unidadUso==='unidad';
+                const viales = esUnidad ? ins.stockDisp||0 : vialessEquivalentes(ins);
+                const minimo = ins.minimoViales||(esUnidad?10:2);
+                const aComprar = Math.max(0, Math.ceil(minimo*4 - viales));
+                return { ins, aComprar, esUnidad };
+            }).filter(x=>x.aComprar>0);
+            if(!items.length) return toast('No hay insumos para pedir.', 'info');
+            const cuerpo = `Estimados,\n\nSolicito el siguiente pedido para Sanalys:\n\n${items.map(x=> x.esUnidad
+                ? `• ${x.aComprar} unidades de ${x.ins.nombre} — Lab: ${x.ins.lab}`
+                : `• ${x.aComprar} viales de ${x.ins.nombre} (${x.ins.volPorVial}${x.ins.unidadVial} al ${x.ins.concentracion}%) — Lab: ${x.ins.lab}`
+            ).join('\n')}\n\nSaludos,\nSanalys Clínica Ortomolecular`;
+            window.location.href = `mailto:?subject=Pedido de Insumos - Sanalys&body=${encodeURIComponent(cuerpo)}`;
+        };
+
+        window.descargarPedidoPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const pdfdoc = new jsPDF();
+            const VERDE=[10,61,51], NEGRO=[20,20,20], GRIS=[100,100,100], BLANCO=[255,255,255];
+
+            pdfdoc.setFillColor(...VERDE); pdfdoc.rect(0,0,210,28,'F');
+            pdfdoc.setFont('helvetica','bold'); pdfdoc.setFontSize(18);
+            pdfdoc.setTextColor(...BLANCO); pdfdoc.text('sanalys.',14,14);
+            pdfdoc.setFont('helvetica','normal'); pdfdoc.setFontSize(8);
+            pdfdoc.setTextColor(200,230,200); pdfdoc.text('ANÁLISIS DE STOCK — PEDIDO SUGERIDO',14,22);
+
+            const rows = insumosDB.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(ins => {
+                const esUnidad = ins.tipo==='unidad'||ins.unidadUso==='unidad';
+                const viales = esUnidad ? ins.stockDisp||0 : vialessEquivalentes(ins);
+                const minimo = ins.minimoViales||(esUnidad?10:2);
+                const aComprar = Math.max(0, Math.ceil(minimo*4 - viales));
+                const estado = viales<(esUnidad?5:1)?'CRÍTICO':viales<minimo?'BAJO':'OK';
+                const stockTxt = esUnidad?`${viales} u.`:`${viales.toFixed(1)} viales`;
+                const presentacion = esUnidad?'UNIDAD':`${ins.volPorVial}${ins.unidadVial} al ${ins.concentracion}%`;
+                return [ins.nombre, presentacion, ins.lab||'—', stockTxt, estado, aComprar>0?`+${aComprar}`:'-'];
+            });
+
+            pdfdoc.autoTable({
+                head:[['INSUMO','PRESENTACIÓN','LAB','STOCK ACTUAL','ESTADO','A PEDIR']],
+                body: rows,
+                startY:34,
+                styles:{fontSize:8, textColor:NEGRO},
+                headStyles:{fillColor:VERDE, textColor:BLANCO, fontStyle:'bold', fontSize:7},
+                alternateRowStyles:{fillColor:[248,248,248]},
+                theme:'grid'
+            });
+
+            pdfdoc.save(`Pedido_Sanalys_${new Date().toISOString().split('T')[0]}.pdf`);
+        };
+
+        // =============================================
+        // EXCEL IMPORT
+        // =============================================
+        window.descargarPlantilla = () => {
+            const ws = XLSX.utils.json_to_sheet([
+                {
+                    Tipo: 'solucion', Nombre: 'VITAMINA C', Laboratorio: 'SIMILIA',
+                    Concentracion_pct: 20, VolPorVial_ml: 20,
+                    UnidadUso: 'ml', Viales_Sumar: 14,
+                    CostoPorVial: 12571, Lote: 'L99-06/27'
+                },
+                {
+                    Tipo: 'solucion', Nombre: 'GLUTATIÓN', Laboratorio: 'SIMILIA',
+                    Concentracion_pct: 1, VolPorVial_ml: 10,
+                    UnidadUso: 'mg', Viales_Sumar: 4,
+                    CostoPorVial: 10220, Lote: 'L88-12/27'
+                },
+                {
+                    Tipo: 'unidad', Nombre: 'JERINGAS 10ML', Laboratorio: 'TERUMO',
+                    Concentracion_pct: 0, VolPorVial_ml: 0,
+                    UnidadUso: 'unidad', Viales_Sumar: 100,
+                    CostoPorVial: 150, Lote: ''
+                }
+            ]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Insumos');
+            XLSX.writeFile(wb, 'Plantilla_Sanalys_Insumos.xlsx');
+        };
+
+        window.procesarExcel = async () => {
+            const fileInput = document.getElementById('excelUpload');
+            if(!fileInput.files.length) return toast('Seleccioná un archivo Excel.', 'info');
+            // M2: solo Excel, máximo 5 MB
+            const errArch = window.validarArchivo(fileInput.files[0], { maxMB: 5, extensiones: ['xlsx','xls'], etiqueta: 'Excel (.xlsx)' });
+            if (errArch) return toast(errArch, 'error');
+            const btn = document.getElementById('btnSubirExcel'); btn.disabled=true; btn.innerText='PROCESANDO...';
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data,{type:'array'});
+                    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                    let nuevos=0, actualizados=0;
+                    for(const row of json) {
+                        const nombre = (row.Nombre||'').toString().trim().toUpperCase();
+                        if(!nombre) continue;
+                        const tipo = (row.Tipo||'solucion').toString().trim().toLowerCase();
+                        const lab  = (row.Laboratorio||'').toString().trim().toUpperCase();
+                        const cant = parseFloat(row.Viales_Sumar)||0;
+                        const existente = insumosDB.find(i=>i.nombre===nombre);
+
+                        if(tipo === 'unidad') {
+                            // Insumo de unidad suelta
+                            if(existente) {
+                                await updateDoc(doc(db,'insumos',existente.id),{
+                                    stockDisp: (existente.stockDisp||0) + cant,
+                                    costo: parseFloat(row.CostoPorVial)||existente.costo,
+                                    lote: (row.Lote||existente.lote||'').toString().toUpperCase()
+                                });
+                                actualizados++;
+                            } else {
+                                await addDoc(collection(db,'insumos'),{ nombre, lab, tipo:'unidad', unidadUso:'unidad', concentracion:0, volPorVial:1, unidadVial:'u', costo:parseFloat(row.CostoPorVial)||0, lote:(row.Lote||'').toString().toUpperCase(), minimoViales:10, stockDisp:cant });
+                                nuevos++;
+                            }
+                        } else {
+                            // Insumo farmacológico
+                            const unidadUso = (row.UnidadUso||'ml').toString().trim().toLowerCase();
+                            const conc = parseFloat(row.Concentracion_pct)||10;
+                            const vol  = parseFloat(row.VolPorVial_ml)||10;
+                            const tmpIns = { concentracion:conc, volPorVial:vol, unidadUso };
+                            const upv = unidadesPorVial(tmpIns);
+                            const stockASumar = upv * cant;
+                            if(existente) {
+                                await updateDoc(doc(db,'insumos',existente.id),{
+                                    stockDisp: (existente.stockDisp||0) + stockASumar,
+                                    stockDispML: (existente.stockDispML||0) + vol * cant,
+                                    costo: parseFloat(row.CostoPorVial)||existente.costo,
+                                    lote: (row.Lote||existente.lote||'').toString().toUpperCase()
+                                });
+                                actualizados++;
+                            } else {
+                                await addDoc(collection(db,'insumos'),{ nombre, lab, tipo, concentracion:conc, volPorVial:vol, unidadVial:'ml', unidadUso, costo:parseFloat(row.CostoPorVial)||0, lote:(row.Lote||'').toString().toUpperCase(), minimoViales:2, stockDisp:stockASumar, stockDispML:vol*cant });
+                                nuevos++;
+                            }
+                        }
+                    }
+                    toast(`✅ Actualizados: ${actualizados} | Nuevos: ${nuevos}`, 'ok');
+                    fileInput.value='';
+                } catch(err) { toast('Error al procesar el Excel.', 'error'); console.error('[SUEROS/EXCEL]:', err?.message || err); }
+                btn.disabled=false; btn.innerText='Subir y Actualizar Inventario';
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
+        };
+
+        // =============================================
+        // PDF STOCK
+        // =============================================
+        window.descargarReportePDF = async () => {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Recargá con Live Server o Netlify para generar PDFs con el formato institucional.', 'info'); return; }
+            try {
+                const cfgSnap = await getDoc(doc(db,'config','datosClinica'));
+                const cfg = cfgSnap.exists() ? cfgSnap.data() : {};
+                if(cfg.nombre) window.SanalysPDF.setClinica(cfg);
+
+                const { doc: _jdoc, startY } = SanalysPDF.crear({
+                    titulo:    'Inventario Clínico',
+                    subtitulo: `Reporte de stock al ${new Date().toLocaleDateString('es-AR')}`,
+                    emisor:    SESION?.nombre,
+                    orient:    'l',
+                });
+                const T = SanalysPDF.T;
+
+                // KPI resumen
+                const total    = insumosDB.length;
+                const criticos = insumosDB.filter(ins => { const n=normIns(ins); const s=n.tipo==='unidad'?(n.stockDisp||0):Math.floor((n.stockDisp||0)/(n.volPorVial||1)); return s<=0; }).length;
+                const bajos    = insumosDB.filter(ins => { const n=normIns(ins); const s=n.tipo==='unidad'?(n.stockDisp||0):Math.floor((n.stockDisp||0)/(n.volPorVial||1)); return s>0&&s<(n.minimoViales||5); }).length;
+                let xK = T.M;
+                xK = SanalysPDF.kpiBox(_jdoc, xK, startY-8, 45, 18, 'Total Insumos', String(total), T.VERDE);
+                xK = SanalysPDF.kpiBox(_jdoc, xK, startY-8, 45, 18, 'Sin Stock',     String(criticos), criticos>0 ? T.ROJO : T.VERDE_OK);
+                xK = SanalysPDF.kpiBox(_jdoc, xK, startY-8, 45, 18, 'Bajo Mínimo',   String(bajos),    bajos>0    ? T.AMARILLO : T.VERDE_OK);
+
+                let y = startY + 14;
+                y = SanalysPDF.sectionTitle(_jdoc, 'Detalle del Inventario', y, T.VERDE);
+
+                const rows = insumosDB.sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')).map(ins => {
+                    const n = normIns(ins);
+                    const esU = n.tipo==='unidad'||n.unidadUso==='unidad';
+                    const stock = esU ? `${n.stockDisp||0} u.` : `${Math.floor((n.stockDisp||0)/(n.volPorVial||1))} viales`;
+                    const conc  = esU ? '—' : n.concentracion!=null ? `${n.concentracion}%` : '—';
+                    const pres  = esU ? 'Unidad' : n.volPorVial ? `${n.volPorVial}${n.unidadVial}` : '—';
+                    const min   = n.minimoViales || 5;
+                    const sNum  = esU ? (n.stockDisp||0) : Math.floor((n.stockDisp||0)/(n.volPorVial||1));
+                    const estado = sNum<=0 ? 'CRÍTICO' : sNum<min ? 'BAJO' : 'OK';
+                    return [n.nombre||'—', n.lab, conc, pres, stock, String(min), estado];
+                });
+
+                _jdoc.autoTable(SanalysPDF.tableConfig({
+                    startY: y+3,
+                    head: [['Insumo', 'Laboratorio', 'Concentración', 'Presentación', 'Stock Actual', 'Mínimo', 'Estado']],
+                    body: rows,
+                    columnStyles: {
+                        0: { cellWidth: 65 },
+                        1: { cellWidth: 38 },
+                        2: { cellWidth: 28, halign:'center' },
+                        3: { cellWidth: 28, halign:'center' },
+                        4: { cellWidth: 35, halign:'center' },
+                        5: { cellWidth: 20, halign:'center' },
+                        6: { cellWidth: 22, halign:'center' },
+                    },
+                    willDrawCell(data) {
+                        if(data.section==='body' && data.column.index===6) {
+                            const v = data.cell.raw;
+                            if(v==='CRÍTICO') data.cell.styles.textColor = [210,40,40];
+                            else if(v==='BAJO') data.cell.styles.textColor = [202,138,4];
+                            else data.cell.styles.textColor = [22,163,74];
+                        }
+                    }
+                }));
+
+                SanalysPDF.save(_jdoc, `Stock_Sanalys_${new Date().toISOString().split('T')[0]}.pdf`, {
+                    disclaimer: `${esc(cfg.nombre||'Sanalys')} · ${esc(cfg.direccion||'')} · ${cfg.telefono||''}`,
+                });
+            } catch(err) {
+                console.error('[SUEROS/STOCK-PDF]:', err?.message || err);
+                toast('Error al generar PDF: ' + err.message, 'error');
+            }
+        };
+
+        // =============================================
+        // RECETA MÉDICA PDF
+        // =============================================
+        let pedidoItems = [];
+        
+        window.cargarMedicasReceta = async function() {
+            const snap = await getDocs(collection(db, "personas"));
+            const sel = document.getElementById('medicaReceta');
+            sel.innerHTML = '<option value="">Seleccionar médica...</option>';
+            
+            // Buscar personas que sean médicas (múltiples criterios)
+            snap.docs.forEach(d => {
+                const m = d.data();
+                // Es médica si tiene: esMedica=true O tipo="medica" O tiene matrícula
+                if(m.esMedica === true || m.tipo === 'medica' || m.tipo === 'Médica' || m.matricula) {
+                    sel.innerHTML += `<option value='${JSON.stringify({nombre: m.nombre, matricula: m.matricula || 'N/A', dni: m.dni || 'N/A'})}'>${esc(m.nombre)}${m.matricula ? ' - Mat. ' + m.matricula : ''}</option>`;
+                }
+            });
+            
+            if(sel.options.length === 1) {
+                console.warn('No se encontraron médicas. Asegurate de marcar "Médica/Profesional" en Admin → Personas');
+            }
+        };
+        
+        window.cargarPedidoInteligente = function() {
+            const tbody = document.getElementById('tabla-pedido');
+            const criticos = insumosDB.filter(ins => {
+                const esUnidad = ins.tipo === 'unidad' || ins.unidadUso === 'unidad';
+                if(esUnidad) return (ins.stockDisp||0) < (ins.minimoViales||10);
+                return vialessEquivalentes(ins) < (ins.minimoViales || 2);
+            });
+
+            if(criticos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-green-400 font-bold text-[10px]">✅ Todos los insumos están bien de stock</td></tr>';
+                pedidoItems = [];
+                return;
+            }
+
+            pedidoItems = criticos.map(ins => {
+                const esUnidad = ins.tipo === 'unidad' || ins.unidadUso === 'unidad';
+                // Fix defensivo: si faltan datos del insumo, mostrar vacío en vez de "undefined"
+                const concTxt = esUnidad ? '—'
+                    : (ins.concentracion !== undefined && ins.concentracion !== null && ins.concentracion !== '')
+                        ? `${ins.concentracion}%` : '—';
+                const vol = (ins.volPorVial !== undefined && ins.volPorVial !== null && ins.volPorVial !== '') ? ins.volPorVial : '';
+                const uVial = (ins.unidadVial !== undefined && ins.unidadVial !== null) ? ins.unidadVial : '';
+                const presTxt = esUnidad ? 'UNIDAD' : ((vol || uVial) ? `${vol}${uVial}` : '—');
+                return {
+                    nombre: ins.nombre,
+                    concentracion: concTxt,
+                    cantidadViales: ins.minimoViales || (esUnidad ? 50 : 5),
+                    presentacion: presTxt,
+                    stockActual: esUnidad ? `${ins.stockDisp||0} u.` : `${vialessEquivalentes(ins).toFixed(1)} viales`,
+                    esUnidad
+                };
+            });
+
+            renderTablaPedido();
+        };
+
+        function renderTablaPedido() {
+            const tbody = document.getElementById('tabla-pedido');
+            tbody.innerHTML = pedidoItems.map((item, idx) => `
+                <tr class="border-b border-white/5">
+                    <td class="p-3"><input type="text" class="input-sanalys text-xs" value="${esc(item.nombre)}" oninput="pedidoItems[${idx}].nombre=this.value.toUpperCase();this.value=this.value.toUpperCase()"></td>
+                    <td class="p-3"><input type="text" class="input-sanalys text-xs text-center" value="${item.concentracion}" oninput="pedidoItems[${idx}].concentracion=this.value" ${item.esUnidad?'readonly style="opacity:0.4"':''}></td>
+                    <td class="p-3 text-center text-yellow-400 text-[10px]">${item.stockActual}</td>
+                    <td class="p-3 text-center"><span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-[9px] font-bold">CRÍTICO</span></td>
+                    <td class="p-3"><input type="number" class="input-sanalys text-xs text-center font-bold text-purple-400" value="${item.cantidadViales}" min="1" onchange="pedidoItems[${idx}].cantidadViales=parseInt(this.value)"></td>
+                    <td class="p-3"><input type="text" class="input-sanalys text-xs text-center" value="${item.presentacion}" oninput="pedidoItems[${idx}].presentacion=this.value"></td>
+                    <td class="p-3 text-center"><button onclick="eliminarItemPedido(${idx})" class="text-red-400 hover:text-red-300 text-xs">❌</button></td>
+                </tr>
+            `).join('');
+        }
+
+        window.agregarItemManual = function() {
+            pedidoItems.push({
+                nombre: 'NUEVO INSUMO',
+                concentracion: '—',
+                cantidadViales: 5,
+                presentacion: '10ml',
+                stockActual: '0',
+                esUnidad: false
+            });
+            renderTablaPedido();
+        };
+
+        window.eliminarItemPedido = function(idx) {
+            pedidoItems.splice(idx, 1);
+            renderTablaPedido();
+        };
+        
+        // ── helpers PDF compartidos
+        function pdfHeader(doc, clinica, titulo) {
+            const VERDE = [10, 61, 51], GRIS = [80, 80, 80], NEGRO = [20, 20, 20];
+            doc.setFillColor(...VERDE);
+            doc.rect(0, 0, 210, 28, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.setTextColor(255, 255, 255);
+            doc.text('sanalys.', 14, 14);
+            
+            // Slogan
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(8);
+            doc.setTextColor(208, 255, 78); // Color fluo #D0FF4E
+            doc.text('la ciencia de estar bien', 14, 20);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.setTextColor(200, 230, 200);
+            doc.text((clinica.direccion||'') + '  ·  ' + (clinica.telefono||'') + '  ·  ' + (clinica.email||''), 14, 25);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            doc.setTextColor(...NEGRO);
+            doc.text(titulo, 14, 38);
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.3);
+            doc.line(14, 41, 196, 41);
+        }
+
+        window.generarRecetaMedicaPDF = async function() {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Recargá con Live Server para generar el PDF.', 'info'); return; }
+            const selMedica = document.getElementById('medicaReceta');
+            if(!selMedica?.value) return toast('Seleccioná una médica que firme la receta.', 'info');
+            const medica = JSON.parse(selMedica.value);
+            if(!pedidoItems.length) return toast('No hay ítems en el pedido.', 'info');
+
+            try {
+                const cfgSnap = await getDoc(doc(db,'config','datosClinica'));
+                const cfg = cfgSnap.exists() ? cfgSnap.data() : {};
+                if(cfg.nombre) window.SanalysPDF.setClinica(cfg);
+
+                // Header: sin título, subtítulo con datos de la empresa
+                const subtituloClinica = [
+                    cfg.nombre    || '',
+                    cfg.direccion || '',
+                    [cfg.telefono, cfg.email].filter(Boolean).join('  ·  '),
+                ].filter(Boolean).join('  ·  ');
+
+                const { doc: _jdoc, startY } = SanalysPDF.crear({
+                    titulo:    '',
+                    subtitulo: subtituloClinica,
+                    orient:    'p',
+                });
+                const T = SanalysPDF.T;
+                let y = startY + 4;
+
+                // ── Datos médica ──────────────────────────────────
+                _jdoc.setFont(T.FONT, 'bold');
+                _jdoc.setFontSize(11);
+                _jdoc.setTextColor(...T.NEGRO);
+                _jdoc.text(`Dra. ${esc(medica.nombre)}`, T.M, y);
+
+                _jdoc.setFont(T.FONT, 'normal');
+                _jdoc.setFontSize(8.5);
+                _jdoc.setTextColor(...T.GRIS_OSC);
+                y += 6;
+                const linea1 = [
+                    medica.dni       ? `DNI: ${medica.dni}`      : null,
+                    medica.matricula ? `Mat. ${medica.matricula}` : null,
+                ].filter(Boolean).join('   ·   ');
+                _jdoc.text(linea1, T.M, y);
+
+                // Fecha derecha
+                _jdoc.text(
+                    `Santa Fe, ${new Date().toLocaleDateString('es-AR', {day:'numeric', month:'long', year:'numeric'})}`,
+                    196, startY + 4, { align: 'right' }
+                );
+
+                y += 10;
+                _jdoc.setDrawColor(...T.GRIS_CLARO);
+                _jdoc.setLineWidth(0.3);
+                _jdoc.line(T.M, y, 196, y);
+                y += 8;
+
+                // ── Rp./ ─────────────────────────────────────────
+                _jdoc.setFont(T.FONT, 'bold');
+                _jdoc.setFontSize(13);
+                _jdoc.setTextColor(...T.VERDE);
+                _jdoc.text('Rp./', T.M, y);
+                y += 10;
+
+                // ── Medicamentos ──────────────────────────────────
+                pedidoItems.forEach((item, idx) => {
+                    _jdoc.setFont(T.FONT, 'bold');
+                    _jdoc.setFontSize(10);
+                    _jdoc.setTextColor(...T.NEGRO);
+                    _jdoc.text(`${idx + 1}.`, T.M, y);
+                    _jdoc.text(item.nombre, T.M + 6, y);
+                    y += 5;
+
+                    _jdoc.setFont(T.FONT, 'normal');
+                    _jdoc.setFontSize(8);
+                    _jdoc.setTextColor(...T.GRIS_OSC);
+                    const detalle = [
+                        item.concentracion && item.concentracion !== '—' ? `Concentración: ${item.concentracion}` : '',
+                        item.presentacion  && item.presentacion  !== '—' ? `Presentación: ${item.presentacion}` : '',
+                        `Cantidad: ${item.cantidadViales} amp.`,
+                    ].filter(Boolean).join('   ·   ');
+                    _jdoc.text(detalle, T.M + 6, y);
+                    y += 4;
+                    _jdoc.setDrawColor(...T.GRIS_CLARO);
+                    _jdoc.setLineWidth(0.1);
+                    _jdoc.line(T.M + 4, y + 1, 196, y + 1);
+                    y += 7;
+                });
+
+                // ── Diagnóstico (editable desde el campo, pre-escrito) ──
+                y += 8;
+                _jdoc.setFont(T.FONT, 'italic');
+                _jdoc.setFontSize(8.5);
+                _jdoc.setTextColor(...T.GRIS_OSC);
+                // Toma lo que la médica escribió en el campo; si está vacío, usa el texto por defecto
+                const diagInput = (document.getElementById('diagnosticoReceta')?.value || '').trim();
+                const diagTexto = diagInput || 'Suplementación Endovenosa';
+                _jdoc.text(`Dig. ${diagTexto}`, T.M, y);
+
+                // ── Firma ─────────────────────────────────────────
+                y += 18;
+                _jdoc.setDrawColor(...T.GRIS_OSC);
+                _jdoc.setLineWidth(0.4);
+                _jdoc.line(130, y, 196, y);
+                _jdoc.setFont(T.FONT, 'normal');
+                _jdoc.setFontSize(7.5);
+                _jdoc.setTextColor(...T.GRIS_OSC);
+                _jdoc.text('Firma y Sello del Profesional', 163, y + 5, { align: 'center' });
+
+                // ── Nota al pie ───────────────────────────────────
+                y += 16;
+                _jdoc.setFont(T.FONT, 'normal');
+                _jdoc.setFontSize(7);
+                _jdoc.setTextColor(...T.GRIS);
+                _jdoc.text('Documento médico confidencial. Válido únicamente con firma y sello del profesional habilitado.', T.M, y);
+
+                SanalysPDF.save(_jdoc,
+                    `Receta_Medica_${esc(medica.nombre).replace(/ /g,'-')}_${new Date().toISOString().split('T')[0]}.pdf`,
+                    { disclaimer: `${esc(cfg.nombre||'Sanalys')} · ${esc(cfg.direccion||'')} · ${cfg.telefono||''}` }
+                );
+
+                await guardarEnHistorial(medica.nombre, 'RECETA MÉDICA');
+            } catch(err) {
+                console.error('[SUEROS/RECETA-PDF]:', err?.message || err);
+                toast('Error al generar receta: ' + err.message, 'error');
+            }
+        };
+
+        window.generarOrdenProveedorPDF = async function() {
+            if(pedidoItems.length === 0) return toast('⚠️ No hay ítems en el pedido', 'info');
+
+            const configSnap = await getDoc(doc(db, 'config', 'datosClinica'));
+            const clinica = configSnap.exists() ? configSnap.data() : { nombre:'SANALYS', direccion:'25 de Mayo 1845, Santa Fe', telefono:'(342) 452-8533', email:'sanalys.sf@gmail.com' };
+
+            const { jsPDF } = window.jspdf;
+            const pdfdoc = new jsPDF();
+
+            pdfHeader(pdfdoc, clinica, 'ORDEN DE COMPRA — INSUMOS CLÍNICOS');
+
+            const NEGRO = [20,20,20], GRIS = [100,100,100], VERDE = [10,61,51];
+            let y = 50;
+
+            pdfdoc.setFont('helvetica', 'normal');
+            pdfdoc.setFontSize(8);
+            pdfdoc.setTextColor(...GRIS);
+            pdfdoc.text(`Fecha de pedido: ${new Date().toLocaleDateString('es-AR')}`, 14, y);
+            pdfdoc.text(`Solicitado por: ${esc(SESION.nombre || '—')}`, 110, y);
+            y += 12;
+
+            pdfdoc.autoTable({
+                head: [['PRINCIPIO ACTIVO / INSUMO', 'CONCENTRACIÓN', 'PRESENTACIÓN', 'CANTIDAD']],
+                body: pedidoItems.map(item => [
+                    item.nombre,
+                    item.concentracion || '—',
+                    item.presentacion || '—',
+                    `${item.cantidadViales} amp./u.`
+                ]),
+                startY: y,
+                styles: { fontSize: 9, textColor: [20,20,20] },
+                headStyles: { fillColor: VERDE, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8 },
+                alternateRowStyles: { fillColor: [248, 248, 248] },
+                theme: 'grid'
+            });
+
+            const finalY = pdfdoc.lastAutoTable.finalY + 8;
+            const totalAmp = pedidoItems.reduce((s,i)=>s+i.cantidadViales,0);
+            pdfdoc.setFont('helvetica', 'bold');
+            pdfdoc.setFontSize(9);
+            pdfdoc.setTextColor(...NEGRO);
+            pdfdoc.text(`TOTAL: ${totalAmp} unidades / ampollas`, 14, finalY);
+
+            const totalPag = pdfdoc.internal.getNumberOfPages();
+            for(let p=1; p<=totalPag; p++) {
+                pdfdoc.setPage(p);
+                pdfdoc.setDrawColor(200,200,200);
+                pdfdoc.line(14,285,196,285);
+                pdfdoc.setFontSize(6);
+                pdfdoc.setTextColor(160,160,160);
+                pdfdoc.text('Sanalys Clínica Ortomolecular  ·  Documento interno de uso comercial', 14, 290);
+                pdfdoc.text(new Date().toLocaleDateString('es-AR'), 196, 290, {align:'right'});
+            }
+
+            pdfdoc.save(`Orden_Proveedor_${new Date().toISOString().split('T')[0]}.pdf`);
+            await guardarEnHistorial('—', 'ORDEN PROVEEDOR');
+        };
+
+        async function guardarEnHistorial(medica, tipo) {
+            try {
+                await addDoc(collection(db, 'historialPedidos'), {
+                    fecha: new Date().toLocaleDateString('es-AR'),
+                    hora: new Date().toLocaleTimeString('es-AR'),
+                    creado: Date.now(), // timestamp real para ordenar correctamente
+                    tipo,
+                    medica,
+                    items: pedidoItems.length,
+                    detalle: pedidoItems.map(i=>i.nombre).join(', '),
+                    usuario: SESION.nombre || '—'
+                });
+            } catch(e) { console.warn('No se pudo guardar historial'); }
+        }
+
+        window.cargarHistorial = async function() {
+            const tbody = document.getElementById('lista-historial');
+            try {
+                // Traer sin orderBy de Firestore (los pedidos viejos no tienen 'creado').
+                // Ordenamos en el código para que ninguno se pierda y los de hoy salgan arriba.
+                const snap = await getDocs(collection(db,'historialPedidos'));
+                if(snap.empty) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 opacity-30 italic text-xs">Sin pedidos registrados aún.</td></tr>';
+                    return;
+                }
+                // Convierte "25/5/2026 09:18:00" (texto es-AR) a número ordenable.
+                const aTiempo = (h) => {
+                    if (typeof h.creado === 'number') return h.creado; // nuevos: timestamp real
+                    // viejos: reconstruir desde fecha (d/m/aaaa) + hora
+                    try {
+                        const [d,m,a] = (h.fecha||'').split('/').map(Number);
+                        const [hh=0,mm=0,ss=0] = (h.hora||'').split(':').map(Number);
+                        if (d && m && a) return new Date(a, m-1, d, hh, mm, ss).getTime();
+                    } catch(e) {}
+                    return 0; // si no se puede interpretar, al final
+                };
+                const docs = snap.docs.map(d => d.data())
+                    .sort((x,y) => aTiempo(y) - aTiempo(x)) // descendente: más nuevo primero
+                    .slice(0, 50);
+                tbody.innerHTML = docs.map(h => {
+                    const tipoBadge = h.tipo==='RECETA MÉDICA'
+                        ? '<span class="bg-white/10 text-white px-2 py-0.5 rounded text-[8px] font-bold">📋 RECETA</span>'
+                        : '<span class="bg-[var(--verde-deep)] border border-white/20 text-white px-2 py-0.5 rounded text-[8px] font-bold">🏭 PROVEEDOR</span>';
+                    return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                        <td class="p-3 text-[10px]">${h.fecha} ${h.hora||''}</td>
+                        <td class="p-3">${tipoBadge}</td>
+                        <td class="p-3 text-[10px] opacity-70">${h.medica||'—'}</td>
+                        <td class="p-3 text-center text-[10px] font-bold">${h.items}</td>
+                        <td class="p-3 text-[9px] opacity-50 max-w-[200px] truncate">${esc(h.detalle||'')}</td>
+                    </tr>`;
+                }).join('');
+            } catch(e) {
+                console.error('[HISTORIAL]:', e?.message || e);
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 opacity-30 italic text-xs">Error al cargar historial.</td></tr>';
+            }
+        };
+
+        // =============================================
+        // INIT Y LISTENERS FIREBASE
+        // =============================================
+        
+        // ── Normaliza campos de insumos (compatibilidad old/new) ──
+        function normIns(ins) {
+            return {
+                ...ins,
+                concentracion: ins.concentracion != null ? ins.concentracion : (ins.concentracion_pct != null ? ins.concentracion_pct : null),
+                volPorVial:    ins.volPorVial    != null ? ins.volPorVial    : (ins.VolPorVial_ml   != null ? ins.VolPorVial_ml   : null),
+                unidadVial:    ins.unidadVial    || ins.UnidadUso || ins.unidadUso || 'ml',
+                unidadUso:     ins.unidadUso     || ins.UnidadUso || 'ml',
+                lab:           ins.lab           || ins.laboratorio || '—',
+            };
+        }
+
+        window.init = () => {
+            if(!SESION.nombre) { window.location.href='index.html'; return; }
+            const esAdmin = SESION.rol==='admin' || SESION.permisos?.includes('admin');
+            if(!esAdmin && !SESION.permisos?.includes('stock') && !SESION.permisos?.includes('formulas')) { window.location.href='index.html'; return; }
+
+            onSnapshot(collection(db,'insumos'), snap => {
+                insumosDB = snap.docs.map(d=>({id:d.id,...d.data()}));
+                renderStock();
+                updateAlertas();
+                updateSelectInsumos();
+                updateNombresDatalist();
+            });
+
+            onSnapshot(collection(db,'formulas'), snap => {
+                formulasDB = snap.docs.map(d=>({id:d.id,...d.data()}));
+                renderFormulas();
+            });
+        };
+
+        // ── ALERTAS DE STOCK ─────────────────────────────────────
+        function updateAlertas() {
+            const el = document.getElementById('stock_alertas');
+            if (!el) return;
+            const hoy30 = new Date(); hoy30.setDate(hoy30.getDate() + 30);
+            let criticos = 0, bajos = 0, vencen = 0;
+            insumosDB.forEach(ins => {
+                const esUnidad = ins.tipo === 'unidad' || ins.unidadUso === 'unidad';
+                const stock = esUnidad ? (ins.stockDisp||0) : Math.floor((ins.stockDisp||0)/(ins.VolPorVial_ml||1));
+                const min   = ins.minimoViales || 5;
+                if (stock <= 0) criticos++;
+                else if (stock < min) bajos++;
+                if (ins.fechaVencimiento) {
+                    const fv = new Date(ins.fechaVencimiento);
+                    if (!isNaN(fv) && fv <= hoy30) vencen++;
+                }
+            });
+            let html = '';
+            if (criticos) html += `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:6px 10px;font-size:9px;color:#f87171;font-weight:700;margin-bottom:4px">⚠ ${criticos} sin stock</div>`;
+            if (bajos)    html += `<div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:6px 10px;font-size:9px;color:#fbbf24;font-weight:700;margin-bottom:4px">! ${bajos} bajo mínimo</div>`;
+            if (vencen)   html += `<div style="background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.3);border-radius:8px;padding:6px 10px;font-size:9px;color:#fb923c;font-weight:700;margin-bottom:4px">📅 ${vencen} vencen en 30 días</div>`;
+            el.innerHTML = html;
+        }
+    </script>
+<script src="sidebar.js"></script>
+</body>
+</html>

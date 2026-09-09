@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanalys — Manual de Operaciones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root { --verde:#071f1a; --fluo:#D0FF4E; --card:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.08); }
+        * { box-sizing:border-box; scroll-behavior:smooth; }
+        body { background:var(--verde); color:white; font-family:'Roboto Flex',sans-serif; margin:0; }
+        
+        /* NAV LATERAL */
+        #sidenav { position:fixed; top:0; left:0; height:100vh; width:260px; background:rgba(0,0,0,0.6); border-right:1px solid var(--border); overflow-y:auto; z-index:100; backdrop-filter:blur(20px); }
+        #sidenav::-webkit-scrollbar { width:4px; }
+        #sidenav::-webkit-scrollbar-thumb { background:var(--fluo); border-radius:10px; }
+        .nav-section { padding:8px 16px 4px; font-size:8px; font-weight:900; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.3); }
+        .nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; cursor:pointer; transition:.15s; border-left:2px solid transparent; color:rgba(255,255,255,.5); text-decoration:none; }
+        .nav-item:hover { background:rgba(208,255,78,.06); color:white; border-left-color:rgba(208,255,78,.3); }
+        .nav-item.active { background:rgba(208,255,78,.1); color:var(--fluo); border-left-color:var(--fluo); }
+        .nav-icon { font-size:14px; width:20px; text-align:center; flex-shrink:0; }
+
+        /* CONTENIDO */
+        #content { margin-left:260px; min-height:100vh; }
+        .section { display:none; padding:48px; max-width:960px; }
+        .section.active { display:block; }
+
+        /* COMPONENTES */
+        .hero { border-bottom:1px solid var(--border); padding-bottom:32px; margin-bottom:40px; }
+        .hero-tag { font-size:8px; font-weight:900; letter-spacing:.3em; text-transform:uppercase; color:var(--fluo); margin-bottom:8px; }
+        .hero-title { font-size:36px; font-weight:900; letter-spacing:-.03em; line-height:1; }
+        .hero-sub { font-size:13px; opacity:.5; margin-top:8px; }
+        
+        .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; }
+        .card-accent { border-left:3px solid var(--fluo); }
+        .card-red { border-left:3px solid #ef4444; }
+        .card-blue { border-left:3px solid #60a5fa; }
+        .card-orange { border-left:3px solid #f59e0b; }
+        .card-purple { border-left:3px solid #a78bfa; }
+        .card-green { border-left:3px solid #34d399; }
+
+        .step { display:flex; gap:16px; margin-bottom:20px; }
+        .step-num { background:var(--fluo); color:var(--verde); width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; flex-shrink:0; margin-top:2px; }
+        .step-content h4 { font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+        .step-content p { font-size:12px; opacity:.65; line-height:1.6; }
+
+        .badge { display:inline-block; padding:2px 10px; border-radius:99px; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.1em; }
+        .badge-fluo { background:rgba(208,255,78,.15); color:var(--fluo); border:1px solid rgba(208,255,78,.3); }
+        .badge-red { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
+        .badge-blue { background:rgba(96,165,250,.15); color:#93c5fd; border:1px solid rgba(96,165,250,.3); }
+        .badge-orange { background:rgba(245,158,11,.15); color:#fcd34d; border:1px solid rgba(245,158,11,.3); }
+
+        h2 { font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:.15em; color:var(--fluo); margin-bottom:16px; }
+        h3 { font-size:14px; font-weight:900; margin-bottom:8px; }
+        p { font-size:12px; opacity:.7; line-height:1.7; }
+        ul { padding-left:0; list-style:none; }
+        li { font-size:12px; opacity:.7; line-height:1.7; padding-left:14px; position:relative; }
+        li::before { content:"·"; position:absolute; left:0; color:var(--fluo); font-weight:900; }
+
+        .highlight { color:var(--fluo); font-weight:700; opacity:1; }
+        .warn { color:#fcd34d; font-weight:700; opacity:1; }
+        .danger { color:#fca5a5; font-weight:700; opacity:1; }
+
+        .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+        .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+        .space-y > * + * { margin-top:16px; }
+        .space-y-sm > * + * { margin-top:10px; }
+
+        .flow-step { background:rgba(0,0,0,.3); border:1px solid var(--border); border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:12px; }
+        .flow-arrow { color:var(--fluo); font-size:16px; text-align:center; margin:4px 0; }
+
+        .kbd { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); border-radius:4px; padding:1px 7px; font-size:10px; font-family:monospace; }
+
+        @media print {
+            #sidenav { display:none; }
+            #content { margin-left:0; }
+            .section { display:block !important; page-break-before:always; }
+            body { background:white; color:black; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV LATERAL -->
+<nav id="sidenav">
+    <div style="padding:20px 16px 12px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:8px;">
+        <div style="font-size:20px;font-weight:900;letter-spacing:-.03em">sanalys<span style="color:var(--fluo)">.</span></div>
+        <div style="font-size:8px;opacity:.4;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin-top:2px">Manual de Operaciones</div>
+    </div>
+
+    <div class="nav-section">Inicio</div>
+    <a class="nav-item active" onclick="show('inicio')"><span class="nav-icon">⬡</span>Introducción</a>
+    <a class="nav-item" onclick="show('acceso')"><span class="nav-icon">🔐</span>Acceso y Sesión</a>
+    <a class="nav-item" onclick="show('index')"><span class="nav-icon">◉</span>Panel Principal</a>
+
+    <div class="nav-section" style="margin-top:8px">Módulos Clínicos</div>
+    <a class="nav-item" onclick="show('pacientes')"><span class="nav-icon">👤</span>Pacientes</a>
+    <a class="nav-item" onclick="show('agenda')"><span class="nav-icon">🗓</span>Agenda</a>
+    <a class="nav-item" onclick="show('enfermeria')"><span class="nav-icon">💉</span>Enfermería</a>
+    <a class="nav-item" onclick="show('laboratorio')"><span class="nav-icon">🧪</span>Laboratorio</a>
+    <a class="nav-item" onclick="show('legal')"><span class="nav-icon">📋</span>Legal</a>
+
+    <div class="nav-section" style="margin-top:8px">Módulos Financieros</div>
+    <a class="nav-item" onclick="show('caja')"><span class="nav-icon">💰</span>Caja</a>
+    <a class="nav-item" onclick="show('balance')"><span class="nav-icon">📊</span>Balance</a>
+
+    <div class="nav-section" style="margin-top:8px">Gestión</div>
+    <a class="nav-item" onclick="show('crm')"><span class="nav-icon">🎯</span>CRM</a>
+    <a class="nav-item" onclick="show('admin')"><span class="nav-icon">⚙️</span>Admin</a>
+
+    <div class="nav-section" style="margin-top:8px">Referencia</div>
+    <a class="nav-item" onclick="show('roles')"><span class="nav-icon">👥</span>Roles y Permisos</a>
+    <a class="nav-item" onclick="show('seguridad')"><span class="nav-icon">🛡</span>Seguridad</a>
+    <a class="nav-item" onclick="show('firebase')"><span class="nav-icon">🔥</span>Configuración Firebase</a>
+    <a class="nav-item" onclick="show('netlify')"><span class="nav-icon">☁️</span>Despliegue</a>
+
+    <div style="padding:16px;margin-top:8px;border-top:1px solid rgba(255,255,255,.06)">
+        <a href="index.html" style="display:block;text-align:center;background:rgba(208,255,78,.1);border:1px solid rgba(208,255,78,.3);color:var(--fluo);padding:8px;border-radius:8px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;text-decoration:none">← Volver al Sistema</a>
+    </div>
+</nav>
+
+<!-- CONTENIDO -->
+<div id="content">
+
+<!-- ═══════════════════════════════════════════════════════════ INICIO -->
+<section class="section active" id="sec-inicio">
+    <div class="hero">
+        <div class="hero-tag">Sanalys SMS · Manual de Operaciones</div>
+        <div class="hero-title">La guía completa<br>del sistema.</div>
+        <div class="hero-sub">Todo lo que necesitás saber para operar Sanalys SMS con excelencia.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="grid-3">
+            <div class="card card-accent">
+                <div style="font-size:24px;margin-bottom:8px">⬡</div>
+                <h3>Sistema integrado</h3>
+                <p>Pacientes, caja, stock, agenda y CRM en una sola plataforma. Todo conectado en tiempo real.</p>
+            </div>
+            <div class="card card-blue">
+                <div style="font-size:24px;margin-bottom:8px">☁️</div>
+                <h3>En la nube</h3>
+                <p>Firebase sincroniza los datos en milisegundos. Varios usuarios pueden trabajar al mismo tiempo.</p>
+            </div>
+            <div class="card card-red">
+                <div style="font-size:24px;margin-bottom:8px">🛡</div>
+                <h3>Caja negra</h3>
+                <p>Toda acción queda registrada con usuario, fecha y hora. Nada se borra sin dejar huella.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Cómo usar este manual</h2>
+            <p>Navegá por los módulos desde el menú lateral izquierdo. Cada sección explica el flujo completo de trabajo, las funciones disponibles y los casos de uso más frecuentes.</p>
+            <br>
+            <p>Si sos nueva en el sistema, empezá por <span class="highlight">Acceso y Sesión</span> → <span class="highlight">Panel Principal</span> y después avanzá al módulo que corresponda a tu rol.</p>
+        </div>
+
+        <div class="card card-orange">
+            <h2>Principios del sistema</h2>
+            <div class="grid-2" style="margin-top:12px">
+                <div>
+                    <h3 style="color:#fcd34d">Todo queda registrado</h3>
+                    <p>Cada movimiento de caja, cada evolución clínica, cada cambio de configuración queda sellado con nombre de usuario y timestamp. La auditoría es permanente e inalterable.</p>
+                </div>
+                <div>
+                    <h3 style="color:#fcd34d">Los módulos se hablan</h3>
+                    <p>Cuando confirmás un suero en Caja, el stock se descuenta en Laboratorio. Cuando convertís un lead en CRM, el expediente se crea en Pacientes. Todo está conectado.</p>
+                </div>
+                <div>
+                    <h3 style="color:#fcd34d">Primero los datos, después las acciones</h3>
+                    <p>El sistema necesita que cargues el plan de cuentas, los tipos de tratamiento y las personas antes de operar. Admin es el cerebro que alimenta al resto.</p>
+                </div>
+                <div>
+                    <h3 style="color:#fcd34d">Cada quien ve lo que le corresponde</h3>
+                    <p>El acceso a cada módulo se controla por permisos individuales que define la administradora desde Admin → Usuarios. Las acciones sensibles (borrar o restaurar datos) se realizan de forma controlada desde Firebase Console, no desde el sistema, para evitar accidentes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ ACCESO -->
+<section class="section" id="sec-acceso">
+    <div class="hero">
+        <div class="hero-tag">Módulo de Acceso</div>
+        <div class="hero-title">Login y sesión</div>
+        <div class="hero-sub">Cómo entrar al sistema, gestionar la sesión y recuperar la contraseña.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Iniciar sesión</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Ingresar email y contraseña</h4>
+                    <p>Usá el email con el que te registraron en el sistema. La contraseña es la que seteaste vos. El sistema distingue mayúsculas y minúsculas.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Clic en "Entrar al Sistema"</h4>
+                    <p>El sistema verifica tus credenciales contra Firebase Authentication y luego carga tus permisos desde Firestore. Si todo está bien, entrás al Panel Principal.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Los módulos visibles dependen de tus permisos</h4>
+                    <p>Si no ves un módulo en el Index o en el sidebar, es porque no tenés el permiso habilitado. Contactá a la administración.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-orange">
+                <h2>Olvidé mi contraseña</h2>
+                <p>Hacé clic en <span class="highlight">"¿Olvidaste tu contraseña?"</span> en la pantalla de login e ingresá tu email. Por seguridad, el sistema siempre muestra el mismo mensaje (no revela si el email existe o no). Si la cuenta existe, te llega un link de recuperación a tu casilla.</p>
+                <br>
+                <p class="warn">⚠ Si el mail no llega, revisá spam. Como alternativa, una administradora puede resetear tu contraseña desde Firebase Console (ver sección Administración → crear/gestionar usuarios).</p>
+            </div>
+            <div class="card card-red">
+                <h2>Bloqueo por intentos fallidos</h2>
+                <p>Después de 5 intentos incorrectos, el sistema bloquea el acceso por <span class="danger">15 minutos</span>. Si necesitás entrar antes, abrí el login en una ventana de incógnito o esperá los 15 minutos.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Cierre de sesión automático</h2>
+            <p>Por seguridad, el sistema cierra la sesión automáticamente después de un tiempo de inactividad. Ese tiempo lo configura la administradora desde <span class="highlight">Admin → Alertas y Sesión</span> (15, 30 o 60 minutos, o sin límite). Cualquier clic, escritura o movimiento del mouse reinicia el contador.</p>
+            <br>
+            <p>Unos minutos antes de cerrarse, aparece un aviso (<span class="highlight">"Tu sesión expira en X min"</span>) para que puedas seguir trabajando si movés el mouse. Al expirar, te lleva al login y cierra la sesión real de forma segura.</p>
+            <br>
+            <p>Para cerrar sesión manualmente, usá el botón <span class="highlight">SALIR</span> en el Panel Principal.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ INDEX -->
+<section class="section" id="sec-index">
+    <div class="hero">
+        <div class="hero-tag">Panel Principal</div>
+        <div class="hero-title">El dashboard</div>
+        <div class="hero-sub">El centro de comando. Todo lo importante de un vistazo.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>KPIs en tiempo real</h2>
+            <div class="grid-2" style="margin-top:12px">
+                <div>
+                    <h3 style="color:var(--fluo)">Ingresos Hoy</h3>
+                    <p>Total de cobros del día en todas las cuentas. Se actualiza en tiempo real con cada movimiento de Caja.</p>
+                </div>
+                <div>
+                    <h3 style="color:#60a5fa">Turnos Hoy</h3>
+                    <p>Cantidad de turnos programados para el día de hoy en Agenda.</p>
+                </div>
+                <div>
+                    <h3 style="color:#a78bfa">Pacientes Activos</h3>
+                    <p>Total de expedientes en la base de datos.</p>
+                </div>
+                <div>
+                    <h3 style="color:#fb923c">Sin Visita</h3>
+                    <p>Pacientes que no consultaron en los últimos 30 días (configurable en Admin).</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Saldos disponibles</h2>
+            <p>Muestra el saldo actual de cada cuenta configurada (Efectivo, Bancos, Billeteras, etc.). Los datos vienen de Caja en tiempo real. Si el saldo de una cuenta no cuadra, revisá los últimos movimientos en Caja.</p>
+        </div>
+
+        <div class="card card-red">
+            <h2>Alertas del sistema</h2>
+            <p>La zona de alertas muestra banderas rojas y naranjas cuando hay situaciones que requieren atención:</p>
+            <br>
+            <ul>
+                <li><span class="danger">Rojo — Insumos bajo stock mínimo:</span> muestra los nombres y cantidades de los insumos críticos. Clic para ir a Laboratorio.</li>
+                <li><span class="warn">Naranja — Vencimientos próximos:</span> insumos que vencen en los próximos 30 días.</li>
+                <li><span class="highlight">Fluo — Cumpleaños del día:</span> pacientes que cumplen años hoy con botón de WhatsApp directo.</li>
+            </ul>
+        </div>
+
+        <div class="card card-orange">
+            <h2>Pacientes inactivos</h2>
+            <p>Lista de pacientes que no tuvieron consulta en el período configurado. Cada uno tiene un botón <span class="highlight">WSP</span> que abre WhatsApp con un mensaje de reactivación pre-cargado. El mensaje se puede enviar en un clic.</p>
+            <br>
+            <p>Para cambiar el período de inactividad: <span class="highlight">Admin → Config del Sistema → Alertas del Sistema</span>.</p>
+        </div>
+
+        <div class="card">
+            <h2>Buscador global</h2>
+            <p>La barra de búsqueda del header busca pacientes por nombre o DNI en tiempo real. Al hacer clic en un resultado, abre directamente la ficha del paciente en el módulo de Pacientes.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ PACIENTES -->
+<section class="section" id="sec-pacientes">
+    <div class="hero">
+        <div class="hero-tag">Módulo Clínico</div>
+        <div class="hero-title">Pacientes</div>
+        <div class="hero-sub">Expedientes, historias clínicas, evoluciones y seguimiento completo del paciente.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Crear un expediente nuevo</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Clic en "+ Nuevo Expediente"</h4>
+                    <p>En la columna izquierda. El formulario aparece en el panel derecho listo para completar.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Ingresá el DNI primero</h4>
+                    <p>El sistema verifica automáticamente si ya existe un expediente con ese DNI. Si hay un duplicado, aparece una alerta roja con un botón para ir al expediente existente.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Completar datos personales</h4>
+                    <p>Nombre, fecha de nacimiento, sexo, teléfono, email, localidad, obra social, contacto de emergencia. El campo de <span class="danger">Alergias</span> es crítico — si el paciente tiene alergias, describirlas en detalle.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>Guardar datos</h4>
+                    <p>Clic en "Guardar Datos". El expediente queda creado y aparece en la lista izquierda.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-red">
+            <h2>Alerta de alergias</h2>
+            <p>Si un paciente tiene alergias declaradas (que no sean "NINGUNA"), al abrir su ficha aparece un <span class="danger">banner rojo pulsante</span> en la parte superior del formulario. Este banner es visible antes de cualquier otra acción para garantizar la seguridad clínica.</p>
+        </div>
+
+        <div class="card">
+            <h2>Cargar una evolución clínica</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Abrí la ficha del paciente</h4>
+                    <p>Desde la lista o usando el buscador por nombre o DNI.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Scrolleá a la sección "Nueva Evolución"</h4>
+                    <p>Encontrarás campos específicos: <span class="highlight">Motivo de consulta</span>, <span class="highlight">Diagnóstico</span>, <span class="highlight">Plan / Próxima sesión</span>, <span class="highlight">Notas</span>, y <span class="highlight">Mediciones</span> (peso, presión, etc.).</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Guardar evolución</h4>
+                    <p>La evolución queda registrada con fecha, hora y el nombre del profesional que la cargó. Aparece en el historial ordenado del más reciente al más antiguo.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-blue">
+                <h2>Exportar lista de pacientes</h2>
+                <p>Botón <span class="highlight">"📊 Exportar lista Excel"</span> debajo de "+ Nuevo Expediente". Descarga un archivo Excel con todos los datos personales (no clínicos) de todos los pacientes, ordenados alfabéticamente.</p>
+                <br>
+                <p>Incluye: Nombre, DNI, Fecha Nac, Sexo, Tel, Email, Localidad, Obra Social, Contacto Emergencia, Fecha Alta, Alergias.</p>
+            </div>
+            <div class="card card-purple">
+                <h2>Descargar Historia Clínica</h2>
+                <p>Botón <span class="highlight">"📄 Descargar HC"</span> en la ficha del paciente. Genera un PDF con header institucional, datos personales y todas las evoluciones clínicas registradas.</p>
+            </div>
+        </div>
+
+        <div class="card card-blue">
+            <h2>Exportar datos del paciente (ARCO — Ley 25.326)</h2>
+            <p>Botón <span class="highlight">"🔒 Exportar datos (ARCO)"</span> en la ficha del paciente. Sirve para cuando un paciente ejerce su <span class="highlight">derecho de acceso</span> a sus datos personales (Ley 25.326 de Protección de Datos). Genera un documento formal titulado "Constancia de Datos Personales" con todos los datos del paciente y una aclaración legal.</p>
+            <br>
+            <p class="warn">⚠ Contiene datos sensibles de salud. El sistema pide confirmar antes de generarlo y registra la exportación en auditoría. Entregalo únicamente al propio paciente o a quien él autorice.</p>
+        </div>
+
+        <div class="card card-amber">
+            <h2>Adjuntar estudios / laboratorios</h2>
+            <p>En la pestaña <span class="highlight">Archivos</span> de cada paciente. <span class="warn">Esta función estará disponible próximamente</span> (requiere activar el almacenamiento en la nube). Cuando se habilite, vas a poder subir informes de laboratorio en <span class="highlight">PDF (máximo 5 MB)</span>. Por ahora, conservá los informes en tu carpeta habitual.</p>
+        </div>
+
+        <div class="card">
+            <h2>Filtros de la lista</h2>
+            <ul>
+                <li><span class="highlight">Todos:</span> muestra todos los pacientes activos.</li>
+                <li><span class="danger">⚠ Alergias:</span> filtra solo pacientes con alergias declaradas.</li>
+                <li><span class="warn">Deuda:</span> filtra pacientes con planes de pago pendientes.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ AGENDA -->
+<section class="section" id="sec-agenda">
+    <div class="hero">
+        <div class="hero-tag">Módulo de Gestión</div>
+        <div class="hero-title">Agenda</div>
+        <div class="hero-sub">Turnos, vistas diaria y semanal, recordatorios por WhatsApp.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Agendar un turno</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Seleccionar fecha y hora</h4>
+                    <p>Elegí el día en el calendario y el horario disponible. Los horarios se configuran en Admin → Agenda y Espacios.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Ingresar el paciente</h4>
+                    <p>Escribí el nombre o DNI en el campo de paciente. El autocompletar muestra sugerencias de la base de datos. Si el paciente no existe, podés cargarlo desde Pacientes primero.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Completar el turno</h4>
+                    <p>Elegí el profesional, el tipo de tratamiento, la sala y las observaciones si corresponde.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>Guardar</h4>
+                    <p>El turno aparece en la vista del día y la semana. Podés enviar un recordatorio por WhatsApp desde la tarjeta del turno.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h2>Vista Diaria</h2>
+                <p>Muestra todos los turnos del día seleccionado ordenados por horario. Las tarjetas muestran nombre del paciente, horario, profesional y estado. Las flechas ← → navegan entre días.</p>
+            </div>
+            <div class="card">
+                <h2>Vista Semanal</h2>
+                <p>Toggle <span class="highlight">DÍA / SEMANA</span> en la toolbar. Muestra 7 días en columnas. El día de hoy aparece resaltado. Las flechas avanzan o retroceden 7 días. Ideal para ver disponibilidad de la semana de un vistazo.</p>
+            </div>
+        </div>
+
+        <div class="card card-green">
+            <h2>Estados de turno</h2>
+            <div class="grid-3" style="margin-top:12px">
+                <div><span class="badge badge-blue">Programado</span><br><br><p>Turno confirmado, paciente aún no llegó.</p></div>
+                <div><span class="badge badge-fluo">En curso</span><br><br><p>Paciente presente en la clínica.</p></div>
+                <div><span class="badge" style="background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.3)">Atendido</span><br><br><p>Turno completado.</p></div>
+                <div><span class="badge badge-orange">Reprogramado</span><br><br><p>El paciente cambió el horario.</p></div>
+                <div><span class="badge badge-red">Cancelado</span><br><br><p>El paciente canceló.</p></div>
+                <div><span class="badge" style="background:rgba(156,163,175,.15);color:#d1d5db;border:1px solid rgba(156,163,175,.3)">Ausente</span><br><br><p>No se presentó sin avisar.</p></div>
+            </div>
+        </div>
+
+        <div class="card card-blue">
+            <h2>PDF de agenda semanal</h2>
+            <p>Botón <span class="highlight">"📄 PDF Semanal"</span> en la toolbar. Genera un PDF con todos los turnos de la semana visualizada, con el header institucional de Sanalys. Útil para imprimir y tener en recepción.</p>
+        </div>
+
+        <div class="card">
+            <h2>WhatsApp desde la agenda</h2>
+            <p>Cada tarjeta de turno tiene un botón de WhatsApp que abre una conversación con el paciente con un mensaje de recordatorio pre-cargado. El número se toma automáticamente de la ficha del paciente.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ ENFERMERIA -->
+<section class="section" id="sec-enfermeria">
+    <div class="hero">
+        <div class="hero-tag">Módulo Clínico</div>
+        <div class="hero-title">Enfermería</div>
+        <div class="hero-sub">Sala de espera en tiempo real, vitales, inicio de tratamientos.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Flujo de atención</h2>
+            <div class="flow-step">
+                <span style="font-size:20px">🚶</span>
+                <div><h4 style="font-size:11px;font-weight:900;margin:0">Paciente llega a la clínica</h4><p style="margin:0;font-size:11px">Se registra en la sala de espera</p></div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">
+                <span style="font-size:20px">💉</span>
+                <div><h4 style="font-size:11px;font-weight:900;margin:0">Enfermería registra vitales y selecciona fórmula</h4><p style="margin:0;font-size:11px">Peso, presión, temperatura y otros indicadores</p></div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">
+                <span style="font-size:20px">✓</span>
+                <div><h4 style="font-size:11px;font-weight:900;margin:0">Confirmar tratamiento</h4><p style="margin:0;font-size:11px">El stock se descuenta automáticamente en Laboratorio</p></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Sala de espera</h2>
+            <p>Muestra en tiempo real los pacientes que tienen turno hoy y ya llegaron. Se actualiza automáticamente cada 30 segundos y también cuando alguien registra una llegada. Desde cada tarjeta podés:</p>
+            <br>
+            <ul>
+                <li>Ver los datos del paciente y sus alergias</li>
+                <li>Registrar sus vitales del día</li>
+                <li>Iniciar el tratamiento con la fórmula seleccionada</li>
+                <li>Ver el timer de la infusión en curso</li>
+            </ul>
+        </div>
+
+        <div class="card card-red">
+            <h2>Alerta de stock insuficiente</h2>
+            <p>Antes de confirmar una fórmula, el sistema verifica que haya suficiente stock de todos los componentes. Si algún insumo está por debajo de la dosis requerida, aparece un <span class="danger">aviso de stock insuficiente</span> antes de ejecutar el descuento.</p>
+        </div>
+
+        <div class="card card-orange">
+            <h2>Importante: vinculación con Caja</h2>
+            <p>El descuento de stock ocurre cuando se <span class="warn">confirma el ticket en Caja</span>, no cuando se inicia el tratamiento en Enfermería. Esto garantiza que el stock no se descuente si el cobro no se completa.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ LABORATORIO -->
+<section class="section" id="sec-laboratorio">
+    <div class="hero">
+        <div class="hero-tag">Módulo de Stock</div>
+        <div class="hero-title">Laboratorio</div>
+        <div class="hero-sub">Insumos, fórmulas, pedidos inteligentes e historial de stock.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Pestañas del módulo</h2>
+            <div class="grid-2" style="margin-top:12px">
+                <div class="card" style="margin:0">
+                    <h3>Stock de Insumos</h3>
+                    <p>Catálogo completo con nombre, concentración, stock disponible, costo y vencimiento. Permite agregar, editar y ajustar el stock manualmente.</p>
+                </div>
+                <div class="card" style="margin:0">
+                    <h3>Fórmulas</h3>
+                    <p>Protocolos de tratamiento compuestos por múltiples insumos con dosis específicas. El costo se calcula automáticamente. Cuando se aplica una fórmula, el stock de cada componente se descuenta.</p>
+                </div>
+                <div class="card" style="margin:0">
+                    <h3>Pedido Inteligente</h3>
+                    <p>Calcula automáticamente qué insumos hay que reponer basándose en el consumo real de los últimos 30 días y el stock disponible actual.</p>
+                </div>
+                <div class="card" style="margin:0">
+                    <h3>Historial de Pedidos</h3>
+                    <p>Registro de todos los pedidos realizados, con fecha, proveedor, cantidades y costos. Útil para proyectar compras futuras.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Cargar un insumo nuevo</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Completar el formulario de Alta de Insumo</h4>
+                    <p>Nombre del principio activo, laboratorio/proveedor, tipo de presentación, concentración, volumen por vial, costo y lote/vencimiento.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Indicar stock inicial</h4>
+                    <p>Cantidad de viales/unidades que entraron. Este es el stock disponible inicial.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Configurar el mínimo</h4>
+                    <p>El campo "Mínimo de viales" define cuándo aparece la alerta en el Index. Si lo dejás vacío, usa el mínimo global configurado en Admin.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-blue">
+            <h2>Crear una fórmula / protocolo</h2>
+            <p>En la pestaña <span class="highlight">Fórmulas</span>, ingresá el nombre del protocolo y agregá los insumos uno por uno con sus dosis. El sistema calcula el costo total automáticamente y verifica si hay stock suficiente para prepararla.</p>
+            <br>
+            <p class="warn">⚠ Si un componente tiene stock insuficiente, la fórmula aparece con una advertencia en rojo antes de confirmarla.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ LEGAL -->
+<section class="section" id="sec-legal">
+    <div class="hero">
+        <div class="hero-tag">Módulo Legal</div>
+        <div class="hero-title">Consentimientos</div>
+        <div class="hero-sub">Consentimientos informados digitales con firma en pantalla.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-orange">
+            <h2>Activación del módulo</h2>
+            <p>El módulo de consentimientos debe estar habilitado en <span class="warn">Admin → Config del Sistema → activar "Consentimientos Digitales"</span>. Si el panel aparece deshabilitado, es porque esta opción está apagada.</p>
+        </div>
+
+        <div class="card card-accent">
+            <h2>Crear un consentimiento</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Buscar al paciente</h4>
+                    <p>Ingresá el nombre o DNI. El sistema autocompleta los datos del paciente desde la base de expedientes, incluyendo las alergias declaradas.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Seleccionar el tipo de consentimiento</h4>
+                    <p>Los tipos disponibles se configuran en Admin. Al seleccionar uno, se carga automáticamente el texto predefinido, que podés editar antes de guardar.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Checklist obligatorio</h4>
+                    <p>El paciente debe confirmar que: se le explicaron los riesgos, conoce las alternativas, sus preguntas fueron respondidas, acepta voluntariamente y puede retirarse cuando quiera.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>Firma digital</h4>
+                    <p>El paciente firma en el canvas usando el dedo (tablet/celular) o el mouse. Clic en "Limpiar" para volver a firmar si es necesario.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">5</div>
+                <div class="step-content">
+                    <h4>Guardar y PDF</h4>
+                    <p>Al guardar, se genera automáticamente el PDF con header institucional, texto completo, checklist firmado y la firma digital del paciente.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-green">
+                <h2>Enviar por WhatsApp</h2>
+                <p>Después de guardar aparece el botón <span class="highlight">"💬 Enviar por WhatsApp"</span>. Abre una conversación con el paciente con un mensaje de confirmación pre-cargado. El número se toma de su ficha.</p>
+            </div>
+            <div class="card card-blue">
+                <h2>Historial de consentimientos</h2>
+                <p>La columna izquierda muestra todos los consentimientos emitidos, ordenados del más reciente al más antiguo, con indicador de si están firmados o pendientes. Clic en uno para regenerar el PDF.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Configurar textos predefinidos</h2>
+            <p>Los textos que se cargan automáticamente al seleccionar un tipo de tratamiento se editan en <span class="highlight">Admin → Config del Sistema → Textos Consentimientos</span>. Si un texto queda vacío, el área de texto aparece en blanco para escribir en el momento.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ CAJA -->
+<section class="section" id="sec-caja">
+    <div class="hero">
+        <div class="hero-tag">Módulo Financiero</div>
+        <div class="hero-title">Caja</div>
+        <div class="hero-sub">Ingresos, egresos, traspasos, tickets de cobro y cierre de turno.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Tipos de movimiento</h2>
+            <div class="grid-2" style="margin-top:12px">
+                <div><span class="badge badge-fluo">OI — Ingreso</span><br><br><p>Cobros por tratamientos, consultas y servicios. Siempre requiere DNI del paciente para vincular con la historia clínica.</p></div>
+                <div><span class="badge badge-red">OE — Egreso</span><br><br><p>Gastos operativos: insumos, servicios, sueldos, alquiler, etc.</p></div>
+                <div><span class="badge badge-orange">OT — Traspaso</span><br><br><p>Movimiento de fondos entre cuentas internas. No afecta la utilidad.</p></div>
+                <div><span class="badge badge-blue">OR — Retiro</span><br><br><p>Distribución de utilidades entre las socias.</p></div>
+                <div><span class="badge" style="background:rgba(167,139,250,.15);color:#c4b5fd;border:1px solid rgba(167,139,250,.3)">CC — Centro de Costo</span><br><br><p>Movimiento asignado a un centro de costo específico.</p></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Armar un ticket de cobro (flujo recomendado)</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Ingresar el DNI del paciente</h4>
+                    <p>El sistema verifica que exista en la base. El DNI vincula el cobro con la historia clínica del paciente.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Seleccionar el tratamiento o suero</h4>
+                    <p>Si el paciente recibió un suero IV, seleccioná la fórmula aplicada. El precio se completa automáticamente. Podés agregar múltiples ítems al mismo ticket.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Seleccionar medio de pago</h4>
+                    <p>Efectivo, banco, billetera virtual u otro. El saldo se acredita en la cuenta correspondiente.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>Confirmar cobro</h4>
+                    <p>El movimiento queda registrado con número correlativo (OI-26-XXXX), fecha, monto y profesional. Si la fórmula tenía sueros, el stock se descuenta automáticamente.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-amber">
+            <h2>Alerta de monto inusual</h2>
+            <p>Si cargás un monto mayor al máximo configurado (definido en Admin → Configuración de honorarios), el sistema te pide confirmar antes de guardar: <span class="highlight">"El monto es $X, es más alto que el máximo. ¿Es correcto?"</span>. Sirve para atrapar errores de tipeo (un cero de más, el punto mal puesto). No bloquea: podés confirmar si el monto es correcto. El máximo lo ajusta la administradora según la inflación.</p>
+        </div>
+
+        <div class="card card-purple">
+            <h2>Numeración correlativa</h2>
+            <p>Cada movimiento recibe un número único con formato <span class="highlight">TIPO-AÑO-NÚMERO</span>. Ejemplo: <span class="highlight">OI-26-0001</span>. La numeración reinicia cada año y es independiente por tipo de movimiento. Nunca se repite.</p>
+        </div>
+
+        <div class="card card-red">
+            <h2>Anular un movimiento</h2>
+            <p>Los movimientos <span class="danger">no se borran</span>. Para corregir un error, se anula el movimiento y se crea uno nuevo correcto. Al anular, el sistema pide obligatoriamente un motivo de anulación que queda registrado en auditoría.</p>
+        </div>
+
+        <div class="card">
+            <h2>Cierre de turno</h2>
+            <p>Al final de cada turno, el botón <span class="highlight">"🔒 Cierre de Turno"</span> abre el panel de arqueo. Ingresás los billetes físicos contados (o el total directamente) y el sistema compara contra el saldo calculado del software.</p>
+            <br>
+            <p class="warn">⚠ Si hay una diferencia (falta o sobra plata), el sistema te pide <span class="highlight">obligatoriamente un motivo</span> antes de cerrar. Esto te obliga a controlar por qué hay diferencia, o a cancelar y revisar antes de cerrar. El motivo queda guardado en el arqueo y aparece en el PDF, para control de las socias.</p>
+        </div>
+
+        <div class="card card-blue">
+            <h2>Consultar arqueos anteriores</h2>
+            <p>El botón <span class="highlight">"🔎 Consultar Arqueos"</span> abre un buscador de cierres de turno pasados, filtrable por fecha y por cajero. De cada arqueo podés descargar su PDF, que incluye los billetes contados, la diferencia y el motivo (si lo hubo). Ideal para que las socias revisen los cierres.</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-green">
+                <h2>PDF Reporte</h2>
+                <p>Genera un PDF del día actual con todos los movimientos, totales por cuenta y balance. Útil para entregar al final del turno.</p>
+            </div>
+            <div class="card card-blue">
+                <h2>Exportar Excel</h2>
+                <p>Botón <span class="highlight">"📊 Exportar Excel"</span>. Descarga todos los movimientos no anulados con todos los campos en un archivo .xlsx. Ideal para contabilidad externa.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ BALANCE -->
+<section class="section" id="sec-balance">
+    <div class="hero">
+        <div class="hero-tag">Módulo Financiero</div>
+        <div class="hero-title">Balance</div>
+        <div class="hero-sub">P&L, EBITDA, inversiones, deudas y libros contables.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Panel de indicadores</h2>
+            <div class="grid-3" style="margin-top:12px">
+                <div class="card" style="margin:0"><h3 style="color:var(--fluo)">Ingresos totales</h3><p>Suma de todos los cobros del período seleccionado.</p></div>
+                <div class="card" style="margin:0"><h3 style="color:#f87171">Egresos totales</h3><p>Suma de todos los gastos fijos y variables.</p></div>
+                <div class="card" style="margin:0"><h3 style="color:#60a5fa">EBITDA</h3><p>Resultado neto antes de impuestos y amortizaciones.</p></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Saldos por cuenta</h2>
+            <p>Muestra el saldo actual de cada cuenta (Efectivo, Bancos, Billeteras, Tránsito) calculado desde todos los movimientos de Caja. El saldo "en tránsito" corresponde a pagos entre socias que aún no se distribuyeron.</p>
+        </div>
+
+        <div class="card card-blue">
+            <h2>Libros contables</h2>
+            <p>Botón <span class="highlight">"📊 Libro Diario / Balance"</span>. Genera el Balance de Sumas y Saldos y el Libro Diario con filtros por fecha y cuenta contable. Los egresos aparecen destacados en rojo para facilitar la lectura contable.</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="card card-green">
+                <h2>Inversiones</h2>
+                <p>Registro de FCI, plazos fijos, criptomonedas y otros activos de la sociedad. Muestra capital invertido, valor actual y rendimiento porcentual en tiempo real.</p>
+            </div>
+            <div class="card card-red">
+                <h2>Deudas</h2>
+                <p>Registro de obligaciones pendientes (proveedores, préstamos, etc.) con monto, vencimiento y estado. El total de deudas aparece en el dashboard de Balance.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ CRM -->
+<section class="section" id="sec-crm">
+    <div class="hero">
+        <div class="hero-tag">Módulo de Gestión</div>
+        <div class="hero-title">CRM</div>
+        <div class="hero-sub">Pipeline de leads, seguimiento, bitácora y conversión a paciente.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Pipeline de etapas</h2>
+            <div class="grid-2" style="margin-top:12px">
+                <div><span class="badge badge-blue">Nuevas Consultas</span><br><br><p>Leads que acaban de entrar en contacto. Primera etapa del funnel.</p></div>
+                <div><span class="badge badge-orange">En Seguimiento</span><br><br><p>Leads con los que ya hubo contacto y están evaluando.</p></div>
+                <div><span class="badge badge-purple" style="background:rgba(167,139,250,.15);color:#c4b5fd;border:1px solid rgba(167,139,250,.3)">Presupuesto Enviado</span><br><br><p>Leads que recibieron información y precio.</p></div>
+                <div><span class="badge badge-fluo">Convertidos</span><br><br><p>Leads que se convirtieron en pacientes. Fin del pipeline.</p></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Cargar un lead nuevo</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Botón "+ Nuevo Lead" o "+ Nueva Consulta"</h4>
+                    <p>Abre el formulario de carga rápida con nombre, teléfono, origen e interés.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Completar los datos</h4>
+                    <p>Origen (Instagram, WhatsApp, Recomendación, Web) e interés (Sueros IV, Medicina Ortho, etc.) ayudan a segmentar y priorizar.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Asignar próximo contacto</h4>
+                    <p>La fecha de próximo contacto aparece en el Index cuando llega el día, para no perder de vista ningún seguimiento.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-blue">
+            <h2>Bitácora de seguimiento</h2>
+            <p>En el panel lateral de cada lead podés agregar notas de seguimiento clasificadas como:</p>
+            <br>
+            <ul>
+                <li><span class="highlight">Próximos Pasos:</span> acción definida a tomar</li>
+                <li><span class="highlight">Positivo:</span> señal de avance (interés confirmado, precio acordado)</li>
+                <li><span class="highlight">Neutro:</span> actualización sin evaluación</li>
+            </ul>
+        </div>
+
+        <div class="card card-green">
+            <h2>Convertir en paciente</h2>
+            <p>Cuando un lead confirma que quiere empezar, hacé clic en <span class="highlight">"✓ Convertir en Paciente"</span> al fondo del panel lateral. El sistema:</p>
+            <br>
+            <ul>
+                <li>Crea el expediente en Pacientes con nombre y teléfono pre-cargados</li>
+                <li>Marca el lead como "Convertido" en el CRM</li>
+                <li>Redirige a Pacientes con el expediente ya abierto</li>
+                <li>Te pide que completes DNI, fecha de nacimiento y alergias</li>
+            </ul>
+            <br>
+            <p class="warn">⚠ Si el lead ya fue convertido antes, el sistema avisa y no crea un duplicado.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ ADMIN -->
+<section class="section" id="sec-admin">
+    <div class="hero">
+        <div class="hero-tag">Módulo de Configuración</div>
+        <div class="hero-title">Admin</div>
+        <div class="hero-sub">El cerebro del sistema. Configura todo lo que usan los demás módulos.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-red">
+            <h2>Acceso restringido</h2>
+            <p>Solo los usuarios con permiso <span class="danger">admin</span> pueden acceder a este módulo. Los cambios en Admin afectan a toda la clínica en tiempo real.</p>
+        </div>
+
+        <div class="card card-accent">
+            <h2>Pestañas del módulo</h2>
+
+            <div class="space-y" style="margin-top:16px">
+                <div class="card card-accent" style="margin:0">
+                    <h3>Personas y Roles</h3>
+                    <p>Alta y edición de médicas, socias y otros profesionales. Configurá nombre, especialidad, matrícula, porcentaje de honorarios y participación en sociedad. Esta lista alimenta los selectores de "Profesional" en Caja y Agenda.</p>
+                </div>
+
+                <div class="card card-blue" style="margin:0">
+                    <h3>Honorarios y Reparto</h3>
+                    <p>Consulta de honorarios por día y por mes por profesional. Genera el PDF de liquidación mensual con desglose por profesional y totales. También configura el porcentaje de retiro de cada socia.</p>
+                </div>
+
+                <div class="card card-green" style="margin:0">
+                    <h3>Plan de Cuentas</h3>
+                    <p>Define las categorías de ingresos, egresos fijos, egresos variables y centros de costo. Estas categorías son las que aparecen en los selectores de Caja y Balance. Cambios en tiempo real.</p>
+                    <br>
+                    <p>Botón <span class="highlight">"📄 Descargar PDF"</span> genera un documento de Plan de Cuentas contable listo para imprimir.</p>
+                </div>
+
+                <div class="card card-orange" style="margin:0">
+                    <h3>Agenda y Espacios</h3>
+                    <p>Configura los horarios de atención (mañana y tarde), duración de los turnos, días habilitados y las salas/espacios físicos disponibles.</p>
+                </div>
+
+                <div class="card" style="margin:0">
+                    <h3>Usuarios y Accesos</h3>
+                    <p>Alta, edición y desactivación de usuarios del sistema. Para cada usuario configurás:</p>
+                    <br>
+                    <ul>
+                        <li>Nombre y email (el email debe existir en Firebase Authentication)</li>
+                        <li>Permisos por módulo: Pacientes, Inventario, Fórmulas, Tesorería, Balance, Agenda, Enfermería, Sueros/Lab, Legal, Administración total</li>
+                    </ul>
+                    <br>
+                    <p class="warn">⚠ Los botones "Desactivar" y "Activar" son reversibles. "Eliminar" es permanente y requiere confirmación.</p>
+                </div>
+
+                <div class="card card-purple" style="margin:0">
+                    <h3>Config del Sistema</h3>
+                    <p>Configuraciones globales que afectan a todos los módulos:</p>
+                    <br>
+                    <ul>
+                        <li><span class="highlight">Datos de la Clínica:</span> nombre, dirección, teléfono, email, redes sociales y slogan. Estos datos aparecen en el footer de todos los PDFs.</li>
+                        <li><span class="highlight">Alertas:</span> días de inactividad para alerta naranja en Index, y stock mínimo global para alerta roja.</li>
+                        <li><span class="highlight">Medios de Pago:</span> lista de cuentas disponibles en Caja.</li>
+                        <li><span class="highlight">Tipos de Tratamiento:</span> lista dinámica que alimenta el selector de Consentimientos.</li>
+                        <li><span class="highlight">Textos Consentimientos:</span> texto predefinido para cada tipo de tratamiento.</li>
+                        <li><span class="highlight">Funcionalidades:</span> activa o desactiva módulos como Consentimientos Digitales.</li>
+                    </ul>
+                </div>
+
+                <div class="card" style="margin:0">
+                    <h3>Auditoría y Respaldo</h3>
+                    <p>Registro completo de todas las acciones del sistema (quién hizo qué y cuándo). Backup descargable en formato JSON desde Admin → Backups.</p>
+                    <br>
+                    <p class="danger">⚠ La auditoría es permanente: no se puede borrar ni modificar.</p>
+                </div>
+
+                <div class="card" style="margin:0">
+                    <h3>Gestión de datos</h3>
+                    <p>Por seguridad, el sistema ya NO incluye funciones de borrado masivo ni "formateo" (se eliminaron porque eran un riesgo). Para borrar o restaurar datos de forma controlada, seguí las instrucciones detalladas en Admin → Backups → "Gestión de datos en producción", que te guían paso a paso desde Firebase Console.</p>
+                    <br>
+                    <p>Lo que se conserva siempre: usuarios, personas, configuración del sistema, plan de cuentas y auditoría.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ ROLES -->
+<section class="section" id="sec-roles">
+    <div class="hero">
+        <div class="hero-tag">Referencia</div>
+        <div class="hero-title">Roles y permisos</div>
+        <div class="hero-sub">Qué puede ver y hacer cada usuario según su perfil.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Permiso Admin</h2>
+            <p>Ve y usa absolutamente todos los módulos. Puede configurar el sistema, gestionar usuarios, ejecutar resets y acceder a la auditoría. Es el único que puede escribir en la colección <span class="highlight">config</span> y <span class="highlight">usuarios</span>.</p>
+        </div>
+
+        <div class="card">
+            <h2>Permisos disponibles</h2>
+            <div class="grid-2" style="margin-top:12px">
+                <div class="flow-step"><span>👤</span><div><h4 style="font-size:11px;font-weight:900;margin:0">pacientes</h4><p style="margin:0;font-size:11px">Expedientes, HC, evoluciones, exportar lista</p></div></div>
+                <div class="flow-step"><span>🗓</span><div><h4 style="font-size:11px;font-weight:900;margin:0">agenda</h4><p style="margin:0;font-size:11px">Turnos, vistas, PDF semanal</p></div></div>
+                <div class="flow-step"><span>💰</span><div><h4 style="font-size:11px;font-weight:900;margin:0">caja</h4><p style="margin:0;font-size:11px">Movimientos, tickets, cierres, exportar</p></div></div>
+                <div class="flow-step"><span>📊</span><div><h4 style="font-size:11px;font-weight:900;margin:0">balance</h4><p style="margin:0;font-size:11px">P&L, EBITDA, libros contables</p></div></div>
+                <div class="flow-step"><span>💉</span><div><h4 style="font-size:11px;font-weight:900;margin:0">enfermeria</h4><p style="margin:0;font-size:11px">Sala de espera, vitales, tratamientos</p></div></div>
+                <div class="flow-step"><span>🧪</span><div><h4 style="font-size:11px;font-weight:900;margin:0">sueros</h4><p style="margin:0;font-size:11px">Laboratorio, fórmulas, stock, pedidos</p></div></div>
+                <div class="flow-step"><span>🎯</span><div><h4 style="font-size:11px;font-weight:900;margin:0">leads</h4><p style="margin:0;font-size:11px">CRM, pipeline, conversiones</p></div></div>
+                <div class="flow-step"><span>📋</span><div><h4 style="font-size:11px;font-weight:900;margin:0">legal</h4><p style="margin:0;font-size:11px">Consentimientos digitales</p></div></div>
+                <div class="flow-step"><span>📦</span><div><h4 style="font-size:11px;font-weight:900;margin:0">stock</h4><p style="margin:0;font-size:11px">Inventario de insumos (alternativo a sueros)</p></div></div>
+                <div class="flow-step"><span>⚙️</span><div><h4 style="font-size:11px;font-weight:900;margin:0">admin</h4><p style="margin:0;font-size:11px">Acceso total a toda la plataforma</p></div></div>
+            </div>
+        </div>
+
+        <div class="card card-orange">
+            <h2>Los módulos no visibles = no accesibles</h2>
+            <p>Si un usuario no tiene el permiso para un módulo, la card de ese módulo <span class="warn">no aparece en el Index</span> y el sidebar tampoco lo muestra. Intentar acceder directamente por URL redirige al Index.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ SEGURIDAD -->
+<section class="section" id="sec-seguridad">
+    <div class="hero">
+        <div class="hero-tag">Referencia</div>
+        <div class="hero-title">Seguridad</div>
+        <div class="hero-sub">Capas de protección del sistema y buenas prácticas.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-red">
+            <h2>Capa 1 — Firebase Authentication</h2>
+            <p>El primer control es Firebase Auth. Sin una cuenta creada en Firebase, no se puede entrar al sistema aunque se tenga el email en Firestore. Las cuentas las crea el administrador desde la consola de Firebase.</p>
+        </div>
+
+        <div class="card card-orange">
+            <h2>Capa 2 — Documento de usuario activo</h2>
+            <p>Después del login, el sistema verifica que exista un documento en la colección <span class="warn">usuarios</span> con <span class="warn">activo: true</span>. Un usuario desactivado desde Admin no puede entrar aunque tenga cuenta en Firebase.</p>
+        </div>
+
+        <div class="card card-accent">
+            <h2>Capa 3 — Permisos por módulo</h2>
+            <p>Cada módulo verifica al cargar si el usuario tiene el permiso correspondiente. Si no lo tiene, redirige al Index. Los usuarios con permiso <span class="highlight">admin</span> saltan esta verificación y acceden a todo.</p>
+        </div>
+
+        <div class="card">
+            <h2>Capa 4 — Inactividad automática</h2>
+            <p>La sesión se cierra automáticamente después de <span class="highlight">30 minutos sin actividad</span>. Esto protege las estaciones de trabajo que quedan desbloqueadas sin supervisión.</p>
+        </div>
+
+        <div class="card card-purple">
+            <h2>Capa 5 — Cierre de sesión real</h2>
+            <p>Al cerrar sesión (manual o por inactividad), el sistema desconecta la sesión real de Firebase, no solo la pantalla. Esto evita que quede una sesión activa por detrás. El tiempo de inactividad antes del cierre automático lo configura la administradora desde Admin → Alertas y Sesión.</p>
+        </div>
+
+        <div class="card card-blue">
+            <h2>Auditoría permanente</h2>
+            <p>Todo queda registrado en la colección <span class="highlight">auditoria</span> de Firestore: qué se hizo, quién lo hizo, cuándo. Esta colección tiene una regla de Firestore que impide el borrado incluso desde la consola de Firebase. Es la caja negra del sistema.</p>
+        </div>
+
+        <div class="card">
+            <h2>Buenas prácticas</h2>
+            <ul>
+                <li>Nunca compartir contraseñas entre usuarios. Cada persona tiene su propio acceso.</li>
+                <li>Cerrar sesión al alejarse de la computadora.</li>
+                <li>Usar contraseñas de al menos 8 caracteres con letras y números.</li>
+                <li>Hacer backup mensual desde Admin → Backups.</li>
+                <li>Si un empleado deja la clínica, desactivar su usuario inmediatamente desde Admin → Usuarios.</li>
+                <li>Dar a cada usuario solo los permisos de los módulos que realmente necesita para su trabajo.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ FIREBASE -->
+<section class="section" id="sec-firebase">
+    <div class="hero">
+        <div class="hero-tag">Referencia Técnica</div>
+        <div class="hero-title">Configuración Firebase</div>
+        <div class="hero-sub">Alta de usuarios, Storage para archivos, reglas de seguridad y administración de la base de datos.</div>
+    </div>
+
+    <div class="space-y">
+
+        <!-- CREAR USUARIO -->
+        <div class="card card-accent">
+            <h2>Crear un usuario nuevo en Firebase Auth</h2>
+            <p>Hasta que esté disponible la Cloud Function de alta automática, los usuarios se crean manualmente en la consola de Firebase y después se registran en Admin.</p>
+            <br>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Ir a console.firebase.google.com</h4>
+                    <p>Seleccionar el proyecto <span class="highlight">sanalys-2263e</span>.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Authentication → Usuarios → Agregar usuario</h4>
+                    <p>Ingresar el email y una contraseña temporal. El usuario recibirá el acceso con esas credenciales.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Registrar el usuario en Sanalys Admin</h4>
+                    <p>Entrar al sistema → Admin → Usuarios y Accesos → completar nombre, email (mismo que en Firebase) y asignar los permisos correspondientes → Guardar.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>El usuario entra por primera vez</h4>
+                    <p>Cuando el usuario inicia sesión por primera vez, el sistema guarda automáticamente su UID de Firebase en Firestore. Desde ahí queda completamente operativo.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">5</div>
+                <div class="step-content">
+                    <h4>El usuario cambia su contraseña</h4>
+                    <p>Desde la pantalla de login → "¿Olvidaste tu contraseña?" → recibe el email de Firebase → setea su propia clave segura.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAMPO ACTIVO -->
+        <div class="card card-orange">
+            <h2>Agregar campo activo a usuarios existentes</h2>
+            <p>Si un usuario ya existía en Firestore antes de que se implementara el campo <span class="warn">activo</span>, hay que agregarlo manualmente una sola vez:</p>
+            <br>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Firestore → colección usuarios</h4>
+                    <p>Abrir el documento del usuario (identificado por su email).</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>+ Agregar campo</h4>
+                    <p>Campo: <span class="highlight">activo</span> — Tipo: <span class="highlight">boolean</span> — Valor: <span class="highlight">true</span> → Actualizar.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Repetir para cada usuario</h4>
+                    <p>Hacerlo en todos los documentos de la colección <span class="highlight">usuarios</span>.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- STORAGE -->
+        <div class="card card-blue">
+            <h2>Activar Firebase Storage (archivos y fotos)</h2>
+            <p>Para habilitar el guardado de PDFs, fotos de estudios y archivos adjuntos en las fichas de pacientes, hay que activar Firebase Storage. Requiere el <span class="highlight">plan Blaze</span> (pago por uso — el costo es mínimo para el volumen de una clínica).</p>
+            <br>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Actualizar al plan Blaze</h4>
+                    <p>En la consola de Firebase → menú inferior izquierdo → "Spark" → "Actualizar" → seleccionar Blaze → configurar facturación. El primer GB de storage es gratis.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Activar Storage</h4>
+                    <p>En el menú izquierdo → <span class="highlight">Storage</span> → "Comenzar" → elegir la región <span class="highlight">us-central1</span> (más cercana con menor latencia para Argentina).</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Configurar las reglas de Storage</h4>
+                    <p>En Storage → pestaña <span class="highlight">Rules</span> → reemplazar el contenido por:</p>
+                </div>
+            </div>
+            <div style="background:rgba(0,0,0,.4);border:1px solid rgba(96,165,250,.3);border-radius:10px;padding:16px;font-family:monospace;font-size:11px;color:#93c5fd;margin-top:8px;line-height:1.8">
+                rules_version = '2';<br>
+                service firebase.storage {<br>
+                &nbsp;&nbsp;match /b/{bucket}/o {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;match /{allPaths=**} {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if request.auth != null;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                &nbsp;&nbsp;}<br>
+                }
+            </div>
+            <br>
+            <p>Clic en <span class="highlight">Publicar</span>. Esto permite que cualquier usuario autenticado pueda subir y leer archivos.</p>
+        </div>
+
+        <!-- FIRESTORE REGLAS -->
+        <div class="card card-red">
+            <h2>Reglas de Firestore actuales</h2>
+            <p>Las reglas actuales del sistema están en modo permisivo — cualquier usuario autenticado puede leer y escribir. Esto es funcional pero no es la configuración más segura.</p>
+            <br>
+            <div style="background:rgba(0,0,0,.4);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:16px;font-family:monospace;font-size:11px;color:#fca5a5;line-height:1.8">
+                rules_version = '2';<br>
+                service cloud.firestore {<br>
+                &nbsp;&nbsp;match /databases/{database}/documents {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if true;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                &nbsp;&nbsp;}<br>
+                }
+            </div>
+            <br>
+            <p class="danger">⚠ La mejora de seguridad con Custom Claims está en el roadmap. Se implementará junto con la Cloud Function de alta de usuarios.</p>
+        </div>
+
+        <!-- BACKUP -->
+        <div class="card card-green">
+            <h2>Backup de Firestore</h2>
+            <p>Además del backup integrado en Admin, podés hacer un backup completo manual desde Firebase:</p>
+            <br>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Firestore → menú de tres puntos → Exportar datos</h4>
+                    <p>Exporta todas las colecciones a un bucket de Google Cloud Storage. Requiere plan Blaze.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Backup desde Admin (recomendado)</h4>
+                    <p>Admin → Auditoría y Respaldo → Backup completo. Descarga un JSON con todos los datos operativos. Guardarlo en un lugar seguro fuera del sistema.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLECCIONES FIRESTORE -->
+        <div class="card">
+            <h2>Colecciones de Firestore</h2>
+            <p>Referencia completa de todas las colecciones que usa el sistema:</p>
+            <br>
+            <div class="grid-2" style="margin-top:8px">
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">pacientes</h4><p style="margin:0;font-size:10px">Expedientes y datos personales</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">caja</h4><p style="margin:0;font-size:10px">Todos los movimientos financieros</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">turnos</h4><p style="margin:0;font-size:10px">Agenda de turnos</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">leads</h4><p style="margin:0;font-size:10px">Pipeline del CRM</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">insumos</h4><p style="margin:0;font-size:10px">Inventario de laboratorio</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">formulas</h4><p style="margin:0;font-size:10px">Protocolos y fórmulas IV</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">consentimientos</h4><p style="margin:0;font-size:10px">Consentimientos informados</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">personas</h4><p style="margin:0;font-size:10px">Médicas y socias</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">inversiones</h4><p style="margin:0;font-size:10px">Portfolio de inversiones</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">deudas</h4><p style="margin:0;font-size:10px">Obligaciones pendientes</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">usuarios</h4><p style="margin:0;font-size:10px">Permisos y accesos del equipo</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">config</h4><p style="margin:0;font-size:10px">Configuración del sistema</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">auditoria</h4><p style="margin:0;font-size:10px">Caja negra — solo escritura</p></div></div>
+                <div class="flow-step"><span style="color:var(--fluo)">◉</span><div><h4 style="font-size:10px;font-weight:900;margin:0;color:var(--fluo)">historialPedidos</h4><p style="margin:0;font-size:10px">Pedidos de laboratorio</p></div></div>
+            </div>
+        </div>
+
+        <!-- PROYECTO FIREBASE -->
+        <div class="card card-purple">
+            <h2>Datos del proyecto Firebase</h2>
+            <div class="grid-2" style="margin-top:12px">
+                <div>
+                    <p style="opacity:.4;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Proyecto</p>
+                    <p style="font-family:monospace;font-size:12px;opacity:.9">sanalys-2263e</p>
+                </div>
+                <div>
+                    <p style="opacity:.4;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Auth Domain</p>
+                    <p style="font-family:monospace;font-size:12px;opacity:.9">sanalys-2263e.firebaseapp.com</p>
+                </div>
+                <div>
+                    <p style="opacity:.4;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Consola</p>
+                    <p style="font-family:monospace;font-size:12px;opacity:.9">console.firebase.google.com</p>
+                </div>
+                <div>
+                    <p style="opacity:.4;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Plan actual</p>
+                    <p style="font-family:monospace;font-size:12px;color:#fcd34d">Spark (gratuito)</p>
+                </div>
+            </div>
+            <br>
+            <p class="warn">⚠ Para activar Storage hay que actualizar al plan Blaze. El costo es por uso real — para el volumen de una clínica boutique es de unos pocos dólares por mes.</p>
+        </div>
+
+    </div>
+</section>
+
+
+<section class="section" id="sec-netlify">
+    <div class="hero">
+        <div class="hero-tag">Referencia Técnica</div>
+        <div class="hero-title">Despliegue</div>
+        <div class="hero-sub">Cómo actualizar el sistema en producción via Netlify.</div>
+    </div>
+
+    <div class="space-y">
+        <div class="card card-accent">
+            <h2>Subir una actualización</h2>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Obtener el ZIP actualizado</h4>
+                    <p>El desarrollador entrega el archivo <span class="highlight">sanalys-v2.zip</span> con los archivos actualizados.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Entrar a Netlify</h4>
+                    <p>Ir a <span class="highlight">app.netlify.com</span> con la cuenta de Sanalys. Seleccionar el proyecto.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Pestaña "Deploys"</h4>
+                    <p>Arrastrar la carpeta <span class="highlight">sanalys-v2</span> (no el ZIP) al recuadro gris que dice "Drag and drop your site folder here". El deploy tarda 30-60 segundos.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>Verificar el deploy</h4>
+                    <p>Cuando aparece el indicador verde "Published", el sistema está actualizado. Refrescar el browser con <span class="kbd">Ctrl+Shift+R</span> para limpiar caché.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Testing local</h2>
+            <p>Para probar cambios antes de subir a producción:</p>
+            <br>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>Abrir VS Code</h4>
+                    <p>Abrir la carpeta completa <span class="highlight">sanalys-v2</span>.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>Live Server</h4>
+                    <p>Clic derecho en <span class="highlight">index.html</span> → "Open with Live Server". Se abre en <span class="highlight">http://127.0.0.1:5500</span>.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>Importante</h4>
+                    <p class="warn">⚠ Nunca abrir los archivos con doble clic (protocolo file://). Firebase y ES6 modules requieren un servidor HTTP como Live Server.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-red">
+            <h2>Stack tecnológico</h2>
+            <div class="grid-2" style="margin-top:12px">
+                <div><h3>Firebase</h3><p>Autenticación (Auth) + Base de datos (Firestore). Serverless, sincronización en tiempo real.</p></div>
+                <div><h3>Netlify</h3><p>Hosting estático. Deploy vía drag & drop. CDN global.</p></div>
+                <div><h3>Tailwind CSS</h3><p>Framework de estilos via CDN. Sin compilación.</p></div>
+                <div><h3>jsPDF + autoTable</h3><p>Generación de PDFs en el browser. Sin servidor.</p></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+</div><!-- /content -->
+
+<script>
+function show(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const sec = document.getElementById('sec-' + id);
+    if (sec) sec.classList.add('active');
+    event.currentTarget.classList.add('active');
+    document.getElementById('content').scrollTop = 0;
+    window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

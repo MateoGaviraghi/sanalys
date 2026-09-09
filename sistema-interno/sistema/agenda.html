@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys - Agenda Diaria</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="pdf-master.js?v=3.1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root { --verde-deep: #0A3D33; --fluo: #D0FF4E; }
+        body { background: #071f1a; color: white; font-family: 'Roboto Flex', sans-serif; }
+        .card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; }
+        .inp { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); padding: 10px; border-radius: 6px; width: 100%; color: white; outline: none; font-size: 11px; }
+        .inp:focus { border-color: var(--fluo); }
+        .btn-fluo { background: var(--fluo); color: var(--verde-deep); font-weight: 900; text-transform: uppercase; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .btn-fluo:hover { filter: brightness(1.1); }
+        .turno-item { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; margin-bottom: 8px; transition: 0.2s; }
+        .turno-item:hover { border-color: var(--fluo); }
+        .estado-pendiente { border-left: 4px solid #9ca3af; }
+        .estado-confirmado { border-left: 4px solid #3b82f6; }
+        .estado-espera { border-left: 4px solid #f97316; }
+        .estado-tratamiento { border-left: 4px solid #22c55e; }
+        .estado-finalizado { border-left: 4px solid #8b5cf6; }
+        .scroll::-webkit-scrollbar { width: 5px; }
+        .scroll::-webkit-scrollbar-thumb { background: var(--fluo); border-radius: 10px; }
+        select option { background: #0A3D33; }
+    </style>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="p-4 md:p-8 pb-20" onload="init()">
+
+<div id="modalTurno" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+    <div class="card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto scroll">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-lg font-black uppercase text-[var(--fluo)]">Turno</h2>
+            <button onclick="cerrarModal()" class="text-white hover:text-red-500 text-2xl font-bold">✕</button>
+        </div>
+
+        <input type="hidden" id="t_id">
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">Paciente</label>
+                <input type="text" id="t_paciente" list="listaPac" class="inp font-bold" placeholder="Buscar por nombre o DNI" oninput="autocompletarDatosPaciente()">
+                <datalist id="listaPac"></datalist>
+            </div>
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">DNI (auto-completa)</label>
+                <input type="text" id="t_dni" class="inp bg-white/5" readonly>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">📱 Teléfono</label>
+                <input type="text" id="t_telefono" class="inp" placeholder="Para recordatorios">
+            </div>
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">📧 Email</label>
+                <input type="email" id="t_email" class="inp" placeholder="Opcional">
+            </div>
+        </div>
+
+        <p id="aviso_disponibilidad" style="display:none;font-size:9px;font-weight:900;color:#f87171;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 12px;margin-bottom:8px"></p>
+
+        <div class="mb-4">
+            <input type="text" id="t_servicio" class="inp">
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 mb-4">
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">Fecha</label>
+                <input type="date" id="t_fecha" class="inp" onchange="onCambioSalaFecha()">
+            </div>
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">Hora</label>
+                <select id="t_hora" class="inp"></select>
+            </div>
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">Duración (min)</label>
+                <input type="number" id="t_duracion" class="inp" value="60">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">Sala</label>
+                <select id="t_sala" class="inp" onchange="onCambioSalaFecha()"></select>
+            </div>
+            <div>
+                <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">Estado</label>
+                <select id="t_estado" class="inp">
+                    <option value="PENDIENTE">Pendiente</option>
+                    <option value="CONFIRMADO">Confirmado</option>
+                    <option value="ESPERA">En recepción</option>
+                    <option value="TRATAMIENTO">En tratamiento</option>
+                    <option value="FINALIZADO">Finalizado</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="text-[9px] uppercase opacity-50 font-bold block mb-1">Notas</label>
+            <textarea id="t_notas" class="inp h-16 resize-none"></textarea>
+        </div>
+
+        <div class="flex gap-3">
+            <button onclick="guardarTurno()" class="btn-fluo flex-1 py-3 text-[10px]">💾 Guardar</button>
+            <button id="btnEliminar" onclick="eliminarTurno()" class="hidden bg-red-500 text-white px-6 py-3 rounded-lg text-[10px] font-bold uppercase hover:bg-red-600">🗑️ Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<header class="max-w-5xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/10 pb-6">
+    <div>
+        <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">sanalys<span style="color:var(--fluo)">.</span></h1>
+        <p style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:2px">Agenda & Turnos</p>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+        <button onclick="toggleAyuda()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-[9px] font-bold uppercase hover:bg-blue-500 transition">❓ Ayuda</button>
+        <button onclick="generarPDFSemanal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-[9px] font-bold uppercase hover:bg-purple-500 transition">📄 PDF Semana</button>
+        <a href="index.html" class="bg-white/10 px-4 py-2 rounded-lg text-[9px] font-bold uppercase hover:bg-white/20 transition text-white">Volver</a>
+    <div class="flex items-center gap-1 border-l border-white/10 pl-3 ml-1"><a href="pacientes.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Pacientes"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Pacientes</span></a><a href="caja.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Caja"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Caja</span></a></div>
+    </div>
+</header>
+
+<div id="panelAyuda" class="max-w-5xl mx-auto mb-6 hidden">
+    <div class="card p-6 border-l-4 border-blue-400">
+        <h2 class="text-[11px] font-black uppercase text-blue-400 mb-4">📘 Cómo usar la Agenda</h2>
+        <div class="space-y-3 text-[10px] leading-relaxed">
+            <p><strong>➡️ Ver turnos:</strong> Usa las flechas ◄ ► para navegar entre días, o elegí una fecha en el calendario</p>
+            <p><strong>➡️ Crear turno:</strong> Botón "+ Nuevo Turno" → Completá paciente (buscalo o escribí nombre), fecha, hora, sala, profesional y guardá</p>
+            <p><strong>➡️ Modificar turno:</strong> Click en cualquier tarjeta de turno → Se abre el modal → Cambiá lo que necesites → Guardar</p>
+            <p><strong>➡️ Eliminar turno:</strong> Al editar un turno existente aparece botón rojo "Eliminar"</p>
+            <p><strong>➡️ Ir a HC o Cobrar:</strong> Botones azul (📋 HC) y amarillo (💰 Cobrar) en cada turno llevan directo con el DNI precargado</p>
+            <p><strong>➡️ Recordatorios por WhatsApp:</strong> Botón verde 💬 en cada turno → Abre WhatsApp con mensaje personalizado. <span class="text-[var(--fluo)]">IMPORTANTE:</span> El turno NO se confirma automáticamente, debes marcarlo como confirmado manualmente cuando el paciente responda.</p>
+            <p><strong>➡️ Estados de turno:</strong> Usa los botones de estado para marcar turnos como CONFIRMADO (cuando el paciente responde), CUMPLIDO (cuando asiste), AUSENTE o CANCELADO</p>
+            <p><strong>➡️ PDF Semanal:</strong> Botón "📄 PDF Semana" → Genera documento con todos los turnos organizados por día, mostrando hora, paciente, motivo, profesional asignado y sala</p>
+            <p><strong class="text-[var(--fluo)]">💡 Tip:</strong> Configurá horarios, salas y profesionales desde Admin → Config del Sistema. Los textos de recordatorios también se editan desde Admin.</p>
+        </div>
+    </div>
+</div>
+
+<main class="max-w-5xl mx-auto">
+    
+    <div class="card p-6 mb-6">
+        <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+                <button onclick="cambiarDia(-1)" class="bg-white/10 hover:bg-[var(--fluo)] hover:text-black w-9 h-9 rounded-lg font-bold transition flex items-center justify-center">◄</button>
+                <input type="date" id="fechaAgenda" class="inp text-center font-black text-sm w-40" onchange="cargarTurnos()">
+                <button onclick="cambiarDia(1)" class="bg-white/10 hover:bg-[var(--fluo)] hover:text-black w-9 h-9 rounded-lg font-bold transition flex items-center justify-center">►</button>
+            </div>
+            <div class="flex rounded-lg overflow-hidden border border-white/10">
+                <button id="btnVistaDia" onclick="setVista('dia')" class="px-4 py-2 text-[10px] font-black uppercase transition bg-[var(--fluo)] text-black">DÍA</button>
+                <button id="btnVistaSem" onclick="setVista('semana')" class="px-4 py-2 text-[10px] font-black uppercase transition bg-white/5 text-white/50">SEMANA</button>
+            </div>
+            <button onclick="abrirNuevoTurno()" class="btn-fluo px-6 py-2 ml-auto text-[10px]">+ Nuevo Turno</button>
+        </div>
+    </div>
+
+    <div id="listaTurnos" class="space-y-2">
+        <p class="text-center opacity-30 py-10 animate-pulse">Cargando turnos...</p>
+    </div>
+
+</main>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const FC = { apiKey:"AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA", authDomain:"sanalys-2263e.firebaseapp.com", projectId:"sanalys-2263e", storageBucket:"sanalys-2263e.firebasestorage.app", messagingSenderId:"899593881035", appId:"1:899593881035:web:cd0ddfdb4f8af089e9224e" };
+    const app = initializeApp(FC);
+        const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let SESION = {}, pacientes = [], turnos = [], salas = [], configAgenda = {};
+    let vistaActual = 'dia';
+    let unsubSemana = null;
+
+    window.init = async () => {
+        const s = sessionStorage.getItem('usuario_sanalys');
+        if(!s) { window.location.href = 'login.html'; return; }
+        SESION = JSON.parse(s);
+            if(SESION.rol !== 'admin' && !SESION.permisos?.includes('agenda')) {
+                window.location.href = 'index.html'; return;
+            }
+
+        // ✅ CORRECCIÓN DE ZONA HORARIA: Carga el día correcto de Argentina
+        const hoy = new Date();
+        const offset = hoy.getTimezoneOffset();
+        document.getElementById('fechaAgenda').value = new Date(hoy.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+
+        // Cargar config y pacientes en paralelo
+        const [agendaSnap, pacientesSnap] = await Promise.all([
+            getDoc(doc(db,'config','agenda')),
+            getDocs(collection(db,'pacientes')),
+        ]);
+
+        if(agendaSnap.exists()) {
+            configAgenda = agendaSnap.data();
+            salas = configAgenda.salas || [];
+            generarHorarios();
+            const selSala = document.getElementById('t_sala');
+            selSala.innerHTML = salas.map(s => `<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
+        }
+
+        pacientes = pacientesSnap.docs.map(d => ({id:d.id,...d.data()}));
+        const dl = document.getElementById('listaPac');
+        dl.innerHTML = pacientes.map(p => `<option value="${esc(p.nombre)} (${p.dni})">`).join('');
+
+        // [CLINICA] Datos reales desde admin para PDFs
+        getDoc(doc(db,'config','datosClinica')).then(snap => {
+            if(snap.exists() && window.SanalysPDF) window.SanalysPDF.setClinica(snap.data());
+        }).catch(() => {});
+
+        cargarTurnos();
+    };
+
+    function generarHorarios() {
+        const horas = [];
+        const hInicioM = configAgenda.hInicioM || 8;
+        const hFinM = configAgenda.hFinM || 13;
+        const hInicioT = configAgenda.hInicioT || 16;
+        const hFinT = configAgenda.hFinT || 20;
+
+        for(let h=hInicioM; h<hFinM; h++) {
+            horas.push(`${String(h).padStart(2,'0')}:00`);
+            horas.push(`${String(h).padStart(2,'0')}:30`);
+        }
+        for(let h=hInicioT; h<hFinT; h++) {
+            horas.push(`${String(h).padStart(2,'0')}:00`);
+            horas.push(`${String(h).padStart(2,'0')}:30`);
+        }
+
+        const selHora = document.getElementById('t_hora');
+        selHora.innerHTML = horas.map(h => `<option value="${h}">${h}</option>`).join('');
+    }
+
+    window.cargarTurnos = () => {
+        if (vistaActual === 'semana') cargarSemana();
+        else cargarDia();
+    };
+
+    function cargarDia() {
+        const fecha = document.getElementById('fechaAgenda').value;
+        const [y,m,d] = fecha.split('-');
+        const fechaAntigua = `${parseInt(d)}/${parseInt(m)}/${y}`;
+        onSnapshot(query(collection(db,'turnos'), where('fecha','in',[fecha, fechaAntigua])), snap => {
+            turnos = snap.docs.map(doc => ({id:doc.id,...doc.data()}));
+            renderTurnos();
+        });
+    }
+
+    function cargarSemana() {
+        if (unsubSemana) { unsubSemana(); unsubSemana = null; }
+        const fechaBase = new Date(document.getElementById('fechaAgenda').value);
+        const dow = fechaBase.getDay();
+        const diffLun = dow === 0 ? -6 : 1 - dow;
+        const lunes = new Date(fechaBase);
+        lunes.setDate(fechaBase.getDate() + diffLun);
+        const semana = Array.from({length: 7}, (_, i) => {
+            const d = new Date(lunes);
+            d.setDate(lunes.getDate() + i);
+            return d.toISOString().split('T')[0];
+        });
+        unsubSemana = onSnapshot(
+            query(collection(db,'turnos'), where('fecha','in', semana)),
+            snap => {
+                const todos = snap.docs.map(doc => ({id:doc.id,...doc.data()}));
+                renderSemana(semana, todos);
+            }
+        );
+    }
+
+    const DIAS_CORTOS = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+
+    function renderSemana(semana, todos) {
+        const cont = document.getElementById('listaTurnos');
+        const hoyISO = new Date(new Date().getTime() - new Date().getTimezoneOffset()*60000).toISOString().split('T')[0];
+
+        const cols = semana.map(fecha => {
+            const [y,m,d] = fecha.split('-');
+            const dateObj = new Date(fecha + 'T12:00:00');
+            const nombreDia = DIAS_CORTOS[dateObj.getDay()];
+            const esHoy = fecha === hoyISO;
+
+            const turnosDia = todos
+                .filter(t => t.fecha === fecha)
+                .sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+
+            const cards = turnosDia.length
+                ? turnosDia.map(t => {
+                    const estadoColor =
+                        t.estado==='CONFIRMADO'  ? 'border-blue-400/40 text-blue-300' :
+                        t.estado==='ESPERA'      ? 'border-orange-400/40 text-orange-300' :
+                        t.estado==='TRATAMIENTO' ? 'border-green-400/40 text-green-300' :
+                        t.estado==='CUMPLIDO'    ? 'border-purple-400/40 text-purple-300' :
+                        t.estado==='AUSENTE'     ? 'border-red-400/40 text-red-400 opacity-50' :
+                        'border-white/10 text-white/40';
+                    return `
+                    <div class="rounded-lg border ${estadoColor} bg-black/20 p-1.5 mb-1 cursor-pointer hover:border-[var(--fluo)]/60 transition text-left"
+                         onclick="abrirEdicion('${t.id}')">
+                        <div class="text-[9px] font-black text-white/70">${t.hora||''}</div>
+                        <div class="text-[9px] font-black text-[var(--fluo)] leading-tight truncate">${t.paciente||''}</div>
+                        <div class="text-[7px] text-white/40 truncate mt-0.5">${esc(t.servicio||'')}</div>
+                    </div>`;
+                }).join('')
+                : '<p class="text-[8px] text-white/20 text-center py-2">—</p>';
+
+            return `
+            <div class="flex flex-col min-w-0">
+                <div class="text-center mb-2 pb-2 border-b ${esHoy ? 'border-[var(--fluo)]' : 'border-white/10'}">
+                    <div class="text-[8px] uppercase font-bold ${esHoy ? 'text-[var(--fluo)]' : 'text-white/40'}">${nombreDia}</div>
+                    <div class="text-[15px] font-black ${esHoy ? 'text-[var(--fluo)]' : 'text-white'}">${parseInt(d)}</div>
+                </div>
+                <div class="flex-1 overflow-y-auto" style="max-height:420px">${cards}</div>
+            </div>`;
+        }).join('');
+
+        cont.innerHTML = `<div class="grid gap-2" style="grid-template-columns:repeat(7,1fr)">${cols}</div>`;
+    }
+
+    function renderTurnos() {
+        const cont = document.getElementById('listaTurnos');
+        if(!turnos.length) {
+            cont.innerHTML = '<p class="text-center opacity-30 py-10">Sin turnos para este día.</p>';
+            return;
+        }
+
+        turnos.sort((a,b) => a.hora.localeCompare(b.hora));
+
+        cont.innerHTML = turnos.map(t => {
+            const sala = salas.find(s => s.id === t.salaId);
+            const pac = pacientes.find(p => p.dni === t.dni);
+            const alergias = pac?.alergias;
+            const badgeAlergia = alergias && alergias.trim() && alergias.toUpperCase()!=='NINGUNA' 
+                ? '<span class="bg-red-500 text-white text-[7px] font-black px-2 py-0.5 rounded ml-2">⚠ ALERGIA</span>' 
+                : '';
+
+            return `<div class="turno-item estado-${t.estado.toLowerCase()} cursor-pointer" onclick="abrirEdicion('${t.id}')">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center">
+                            <span class="text-[11px] font-black text-white">${t.hora}</span>
+                            <span class="mx-2 opacity-30">·</span>
+                            <span class="text-[13px] font-black uppercase text-[var(--fluo)]">${t.paciente}${badgeAlergia}</span>
+                        </div>
+                        <p class="text-[10px] opacity-60 mt-1">${esc(t.servicio || 'Sin motivo')} · ${sala?.nombre || 'Sin sala'}</p>
+                        <div class="flex gap-1 mt-2">
+                            <span class="text-[8px] px-2 py-1 rounded font-bold uppercase ${
+                                t.estado==='PENDIENTE' ? 'bg-gray-500/20 text-gray-300' :
+                                t.estado==='CONFIRMADO' ? 'bg-blue-500/20 text-blue-300' :
+                                t.estado==='ESPERA' ? 'bg-orange-500/20 text-orange-300' :
+                                t.estado==='TRATAMIENTO' ? 'bg-green-500/20 text-green-300' :
+                                'bg-purple-500/20 text-purple-300'
+                            }">${t.estado}</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1" onclick="event.stopPropagation()">
+                        <div class="flex gap-1">
+                            ${(t.dni && (SESION.permisos?.includes('pacientes') || SESION.rol === 'admin')) ? `<a href="pacientes.html" onclick="sessionStorage.setItem('sanalys_buscar_paciente','${t.dni}')" class="bg-blue-500 text-white text-[8px] font-black px-2 py-1 rounded uppercase hover:bg-blue-600 transition">HC</a>` : ''}
+                            ${t.dni ? `<a href="caja.html" onclick="sessionStorage.setItem('sanalys_caja_dni','${t.dni}'); sessionStorage.setItem('sanalys_caja_nombre','${esc(t.paciente)}'); sessionStorage.setItem('sanalys_caja_motivo','${esc(t.motivo || '')}'); sessionStorage.setItem('sanalys_caja_medica','${t.medica || ''}')" class="bg-[var(--fluo)] text-[var(--verde-deep)] text-[8px] font-black px-2 py-1 rounded uppercase hover:brightness-110 transition">💰</a>` : ''}
+                            ${pac?.tel ? `<button onclick="enviarRecordatorioIndividual('${t.id}')" class="bg-green-600 text-white text-[8px] font-black px-2 py-1 rounded uppercase hover:bg-green-500 transition">💬</button>` : ''}
+                        </div>
+                        <div class="flex gap-1">
+                            ${t.estado !== 'CONFIRMADO' ? `<button onclick="cambiarEstado('${t.id}','CONFIRMADO')" class="bg-blue-500/30 text-blue-200 text-[7px] font-black px-2 py-0.5 rounded hover:bg-blue-500 transition">✓</button>` : ''}
+                            ${t.estado !== 'PENDIENTE' ? `<button onclick="cambiarEstado('${t.id}','PENDIENTE')" class="bg-gray-500/30 text-gray-300 text-[7px] font-black px-2 py-0.5 rounded hover:bg-gray-500 transition">○</button>` : ''}
+                            <button onclick="cancelarTurno('${t.id}')" class="bg-red-500/30 text-red-300 text-[7px] font-black px-2 py-0.5 rounded hover:bg-red-500 transition">✕</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    window.abrirNuevoTurno = () => {
+        limpiarModal();
+        document.getElementById('t_fecha').value = document.getElementById('fechaAgenda').value;
+        document.getElementById('modalTurno').classList.remove('hidden');
+    };
+
+    window.abrirEdicion = async (id) => {
+        const t = turnos.find(x => x.id === id);
+        if(!t) return;
+
+        document.getElementById('t_id').value = t.id;
+        document.getElementById('t_paciente').value = t.paciente;
+        document.getElementById('t_dni').value = t.dni || '';
+        document.getElementById('t_servicio').value = t.servicio || '';
+        // profesional viene de la sala
+        
+        // ✅ CORRECCIÓN: Adaptar la fecha al input YYYY-MM-DD sin importar cómo venga
+        let fechaFormato = t.fecha;
+        if(fechaFormato.includes('/')) {
+            const [dia, mes, ano] = fechaFormato.split('/');
+            fechaFormato = `${ano}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+        }
+        document.getElementById('t_fecha').value = fechaFormato;
+
+        document.getElementById('t_hora').value = t.hora;
+        document.getElementById('t_duracion').value = t.duracion || 60;
+        document.getElementById('t_sala').value = t.salaId;
+        document.getElementById('t_estado').value = t.estado;
+        document.getElementById('t_notas').value = t.notas || '';
+
+        // Cargar teléfono — del turno o buscar en la ficha del paciente
+        if (t.telefono) {
+            document.getElementById('t_telefono').value = t.telefono;
+        } else if (t.dni) {
+            const pSnap = await getDocs(query(collection(db,'pacientes'), where('dni','==',t.dni)));
+            if (!pSnap.empty) {
+                const pac = pSnap.docs[0].data();
+                document.getElementById('t_telefono').value = pac.tel || '';
+                document.getElementById('t_email').value    = pac.email || '';
+            }
+        }
+
+        document.getElementById('btnEliminar').classList.remove('hidden');
+        document.getElementById('modalTurno').classList.remove('hidden');
+    };
+
+    // onCambioSalaFecha: genera horarios según la sala y valida disponibilidad
+    window.onCambioSalaFecha = () => {
+        const salaId = document.getElementById('t_sala').value;
+        const fecha  = document.getElementById('t_fecha').value;
+        const sala   = (salas||[]).find(s => s.id === salaId);
+        if (!sala || !fecha) return;
+
+        // Obtener día de la semana (1=lun...7=dom)
+        const jsDay  = new Date(fecha + 'T12:00:00').getDay();
+        const diaNum = jsDay === 0 ? 7 : jsDay;
+
+        // Verificar bloqueos
+        const bloqueado = (sala.bloqueos||[]).find(b => fecha >= b.desde && fecha <= b.hasta);
+        const selHora = document.getElementById('t_hora');
+        const aviso   = document.getElementById('aviso_disponibilidad');
+
+        if (bloqueado) {
+            selHora.innerHTML = '<option>— Bloqueado —</option>';
+            if (aviso) { aviso.textContent = '⚠ Este espacio tiene ese día bloqueado: ' + (bloqueado.motivo||''); aviso.style.display='block'; }
+            return;
+        }
+
+        // Obtener franjas del día
+        const horarios = sala.horarios || {};
+        const franjas  = horarios[diaNum] || [];
+
+        if (!franjas.length) {
+            selHora.innerHTML = '<option>— Sin horario —</option>';
+            if (aviso) { aviso.textContent = '⚠ Este espacio no tiene horario para ese día'; aviso.style.display='block'; }
+            return;
+        }
+
+        if (aviso) aviso.style.display = 'none';
+
+        // Generar slots de 30 min dentro de cada franja
+        const duracion = configAgenda.duracion || 30;
+        const slots = [];
+        franjas.forEach(f => {
+            let [hD,mD] = f.desde.split(':').map(Number);
+            let [hH,mH] = f.hasta.split(':').map(Number);
+            let cur = hD*60+mD, end = hH*60+mH;
+            while(cur < end) {
+                slots.push(String(Math.floor(cur/60)).padStart(2,'0')+':'+String(cur%60).padStart(2,'0'));
+                cur += duracion;
+            }
+        });
+        selHora.innerHTML = slots.map(h=>`<option value="${h}">${h}</option>`).join('');
+    };
+
+    window.guardarTurno = async () => {
+        const pacienteRaw = document.getElementById('t_paciente').value.trim();
+        if(!pacienteRaw) return toast('El paciente es obligatorio.', 'warn');
+
+        // Validar disponibilidad — no dejar guardar si hay aviso
+        const aviso = document.getElementById('aviso_disponibilidad');
+        if (aviso && aviso.style.display !== 'none' && aviso.textContent) {
+            return toast('Corregí la disponibilidad antes de guardar.', 'error');
+        }
+
+        const salaId = document.getElementById('t_sala').value;
+        const fecha  = document.getElementById('t_fecha').value;
+        const hora   = document.getElementById('t_hora').value;
+        const sala   = (salas||[]).find(s => s.id === salaId);
+
+        // Validar cupos — aplica a todos los espacios
+        if (sala && salaId && fecha && hora) {
+            const snap = await getDocs(query(
+                collection(db,'turnos'),
+                where('fecha','==',fecha),
+                where('salaId','==',salaId),
+                where('hora','==',hora)
+            ));
+            const idActual = document.getElementById('t_id').value;
+            const ocupados = snap.docs.filter(d => d.id !== idActual && !['cancelado','ausente','CANCELADO','AUSENTE'].includes((d.data().estado||'').toLowerCase())).length;
+            const capacidad = sala.capacidad || 1;
+            if (ocupados >= capacidad) {
+                const tipo = sala.tipo === 'consulta' ? 'consultorio' : 'sala';
+                return toast(`${esc(sala.nombre)} — ya tiene un turno en ese horario.`.replace('consultorio', capacidad > 1 ? `sala llena (${ocupados}/${capacidad} cupos)` : 'consultorio ocupado en ese horario'), 'error');
+            }
+        }
+
+        let nombre = pacienteRaw;
+        let dni = document.getElementById('t_dni').value.trim();
+
+        if(pacienteRaw.includes('(')) {
+            const partes = pacienteRaw.split('(');
+            nombre = partes[0].trim();
+            dni = partes[1].replace(')','').trim();
+        }
+
+        // ✅ CORRECCIÓN: Guardamos la fecha directo en el formato sistema (YYYY-MM-DD)
+        const fechaUniversalBD = document.getElementById('t_fecha').value; 
+
+        const data = {
+            paciente: nombre,
+            dni: dni,
+            telefono: document.getElementById('t_telefono').value.trim(),
+            email: document.getElementById('t_email').value.trim(),
+            servicio: document.getElementById('t_servicio').value.trim(),
+            motivo: document.getElementById('t_servicio').value.trim(),
+            fecha: fechaUniversalBD,
+            hora: document.getElementById('t_hora').value,
+            duracion: parseInt(document.getElementById('t_duracion').value) || 60,
+            salaId: document.getElementById('t_sala').value,
+            estado: document.getElementById('t_estado').value,
+            notas: document.getElementById('t_notas').value.trim(),
+            puesto: 1,
+            pacienteNombre: nombre,
+            profesionalId: (() => { const s = (salas||[]).find(x=>x.id===document.getElementById('t_sala').value); return s?.profesionalId||''; })(),
+            medica: (() => { const s = (salas||[]).find(x=>x.id===document.getElementById('t_sala').value); return s?.tipo==='consulta'?s.nombre:''; })(),
+        };
+
+        const id = document.getElementById('t_id').value;
+        if(id) {
+            await updateDoc(doc(db,'turnos',id), data);
+            toast('Turno actualizado.', 'ok');
+        } else {
+            await addDoc(collection(db,'turnos'), data);
+            toast('Turno guardado.', 'ok');
+
+            // Notificación automática por WhatsApp al agendar turno nuevo
+            const tel = data.telefono;
+            if (tel) {
+                const fechaDisplay = data.fecha
+                    ? new Date(data.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })
+                    : data.fecha;
+                const n = window.waNumero ? window.waNumero(tel) : '549' + tel.replace(/\D/g,'').replace(/^0/,'');
+                // Cargar template desde Firestore, con fallback al default
+                try {
+                    const snap = await getDoc(doc(db,'config','mensajes'));
+                    const template = (snap.exists() && snap.data().confirmacion_turno)
+                        ? snap.data().confirmacion_turno
+                        : `Hola {nombre}! 👋\n\nTe confirmamos tu turno en *Sanalys*:\n\n📅 *{fecha}*\n🕐 *{hora} hs*\n💉 {servicio}\n\nSi necesitás cancelar o reprogramar avisanos con anticipación.\n\n_Sanalys — La ciencia de estar bien_ 🌿`;
+                    const msg = template
+                        .replace(/{nombre}/g,   data.paciente.split(' ')[0])
+                        .replace(/{fecha}/g,    fechaDisplay)
+                        .replace(/{hora}/g,     data.hora)
+                        .replace(/{servicio}/g, data.servicio || 'Consulta')
+                        .replace(/{clinica}/g,  'Sanalys');
+                    setTimeout(() => {
+                        if (confirm(`¿Enviar confirmación de turno por WhatsApp a ${data.paciente}?`)) {
+                            window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }
+                    }, 400);
+                } catch(e) { console.warn('[AGENDA/TEMPLATE]:', e?.message || e); }
+            }
+        }
+
+        cerrarModal();
+    };
+    
+    window.autocompletarDatosPaciente = () => {
+        const valor = document.getElementById('t_paciente').value.trim();
+        if(!valor) return;
+        
+        let paciente = null;
+        if(valor.includes('(')) {
+            const dni = valor.split('(')[1].replace(')','').trim();
+            paciente = pacientes.find(p => p.dni === dni);
+        } else {
+            paciente = pacientes.find(p => p.nombre === valor || p.dni === valor);
+        }
+        
+        if(paciente) {
+            document.getElementById('t_dni').value = paciente.dni || '';
+            document.getElementById('t_telefono').value = paciente.tel || '';
+            document.getElementById('t_email').value = paciente.email || '';
+        }
+    };
+
+    window.eliminarTurno = async () => {
+        const id = document.getElementById('t_id').value;
+        if(!id) return;
+        if(!confirm('¿Eliminar este turno?')) return;
+        await deleteDoc(doc(db,'turnos',id));
+        cerrarModal();
+    };
+
+    window.cerrarModal = () => {
+        document.getElementById('modalTurno').classList.add('hidden');
+        limpiarModal();
+    };
+    
+    window.enviarRecordatorioIndividual = async (turnoId) => {
+        const turno = turnos.find(t => t.id === turnoId);
+        if(!turno) return;
+        
+        const pac = pacientes.find(p => p.dni === turno.dni);
+        if(!pac || !pac.tel) {
+            toast('El paciente no tiene teléfono registrado', 'info');
+            return;
+        }
+        
+        const tel = pac.tel.replace(/\D/g, '');
+        if(tel.length < 10) {
+            toast('Teléfono inválido', 'error');
+            return;
+        }
+        
+        const sala = salas.find(s => s.id === turno.salaId);
+        let fechaMostrada = turno.fecha;
+        if(fechaMostrada && fechaMostrada.includes('-')) {
+            const [y,m,d] = fechaMostrada.split('-');
+            fechaMostrada = `${d}/${m}/${y}`;
+        }
+
+        const mensaje = `Hola ${turno.paciente.split(' ')[0]}! Te recordamos tu turno el ${fechaMostrada} a las ${turno.hora}hs en ${sala?.nombre || 'Sanalys'}.`;
+        const telWA = tel ? (tel.startsWith('54') ? tel : '549' + tel.replace(/^0/,'')) : '';
+        const link = telWA ? `https://wa.me/${telWA}?text=${encodeURIComponent(mensaje)}` : '';
+        window.open(link, '_blank');
+    };
+    
+    window.cambiarEstado = async (turnoId, nuevoEstado) => {
+        const turno = turnos.find(t => t.id === turnoId);
+        if(!turno) return;
+        
+        const confirmacion = confirm(`¿Cambiar estado de ${turno.paciente} a ${nuevoEstado}?`);
+        if(!confirmacion) return;
+        
+        await updateDoc(doc(db, 'turnos', turnoId), { estado: nuevoEstado });
+    };
+    
+    window.cancelarTurno = async (turnoId) => {
+        const turno = turnos.find(t => t.id === turnoId);
+        if(!turno) return;
+        
+        const motivo = prompt('¿Por qué se cancela el turno?', 'Cancelado por paciente');
+        if(!motivo) return;
+        
+        const confirmar = confirm(`¿Eliminar turno de ${turno.paciente}?`);
+        if(!confirmar) return;
+        
+        await deleteDoc(doc(db, 'turnos', turnoId));
+    };
+
+    function limpiarModal() {
+        document.getElementById('t_id').value = '';
+        document.getElementById('t_paciente').value = '';
+        document.getElementById('t_dni').value = '';
+        document.getElementById('t_servicio').value = '';
+        document.getElementById('t_duracion').value = '60';
+        document.getElementById('t_notas').value = '';
+        document.getElementById('t_estado').value = 'PENDIENTE';
+        document.getElementById('btnEliminar').classList.add('hidden');
+    }
+
+    window.setVista = (vista) => {
+        vistaActual = vista;
+        const btnDia = document.getElementById('btnVistaDia');
+        const btnSem = document.getElementById('btnVistaSem');
+        if (vista === 'dia') {
+            btnDia.className = 'px-3 py-2 text-[10px] font-black uppercase transition bg-[var(--fluo)] text-black';
+            btnSem.className = 'px-3 py-2 text-[10px] font-black uppercase transition bg-white/5 text-white/50';
+            if (unsubSemana) { unsubSemana(); unsubSemana = null; }
+            cargarDia();
+        } else {
+            btnSem.className = 'px-3 py-2 text-[10px] font-black uppercase transition bg-[var(--fluo)] text-black';
+            btnDia.className = 'px-3 py-2 text-[10px] font-black uppercase transition bg-white/5 text-white/50';
+            cargarSemana();
+        }
+    };
+
+    window.cambiarDia = (dias) => {
+        const input = document.getElementById('fechaAgenda');
+        const fecha = new Date(input.value);
+        const avance = vistaActual === 'semana' ? dias * 7 : dias;
+        fecha.setDate(fecha.getDate() + avance);
+        input.value = fecha.toISOString().split('T')[0];
+        cargarTurnos();
+    };
+
+    window.toggleAyuda = () => {
+        const panel = document.getElementById('panelAyuda');
+        panel.classList.toggle('hidden');
+    };
+
+    window.generarPDFSemanal = async () => {
+        try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Recarga la pagina con Ctrl+Shift+R', 'info'); return; }
+
+            const hoy = new Date();
+            const dow = hoy.getDay();
+            const diffLun = dow === 0 ? -6 : 1 - dow;
+            const lunes = new Date(hoy);
+            lunes.setDate(hoy.getDate() + diffLun);
+
+            // Construir array de fechas de la semana
+            const fechasSemana = Array.from({length:5}, (_,i) => {
+                const d = new Date(lunes); d.setDate(lunes.getDate()+i);
+                return d.toISOString().split('T')[0];
+            });
+
+            // Traer solo los turnos de esa semana
+            const snap = await getDocs(query(collection(db,'turnos'), where('fecha','in', fechasSemana)));
+            const semana = [];
+
+            for (let i = 0; i < 5; i++) {
+                const dia = new Date(lunes);
+                dia.setDate(lunes.getDate() + i);
+                const fechaISO = fechasSemana[i];
+                const tDia = snap.docs.map(d => d.data())
+                    .filter(t => t.fecha === fechaISO)
+                    .sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+                semana.push({
+                    nombre: ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'][dia.getDay()],
+                    fecha:  dia.toLocaleDateString('es-AR'),
+                    turnos: tDia,
+                });
+            }
+
+            const T = SanalysPDF.T;
+            const rango = `${semana[0].fecha} al ${semana[4].fecha}`;
+
+            const { doc: _d, startY } = SanalysPDF.crear({
+                titulo:    'Agenda Semanal',
+                subtitulo: `Semana del ${rango}`,
+                emisor:    SESION?.nombre,
+            });
+
+            let y = startY;
+
+            semana.forEach(dia => {
+                if (y > 250) { _d.addPage(); y = 16; }
+
+                y = SanalysPDF.sectionTitle(_d, `${esc(dia.nombre)}  -  ${dia.fecha}`, y, T.VERDE);
+
+                if (dia.turnos.length === 0) {
+                    _d.setFont(T.FONT, 'normal'); _d.setFontSize(7.5);
+                    _d.setTextColor(...T.GRIS);
+                    _d.text('Sin turnos programados.', T.M + 6, y);
+                    y += 10;
+                    return;
+                }
+
+                const rows = dia.turnos.map(t => {
+                    const sala = salas.find(s => s.id === t.salaId);
+                    return [
+                        t.hora || '-',
+                        (t.paciente || 'Sin nombre').substring(0, 30),
+                        (t.servicio || '-').substring(0, 24),
+                        (sala?.nombre || '-').substring(0, 18),
+                        t.estado || 'PENDIENTE',
+                    ];
+                });
+
+                const estadoColors = dia.turnos.map(t => (
+                    t.estado === 'CONFIRMADO'  ? T.VERDE_OK :
+                    t.estado === 'ESPERA'       ? T.AMARILLO :
+                    t.estado === 'TRATAMIENTO'  ? [59, 130, 246] :
+                    t.estado === 'CUMPLIDO'     ? [139, 92, 246] :
+                    t.estado === 'AUSENTE'      ? T.ROJO :
+                    T.GRIS
+                ));
+
+                _d.autoTable(SanalysPDF.tableConfig({
+                    head: [['HORA', 'PACIENTE', 'TRATAMIENTO', 'SALA', 'ESTADO']],
+                    body: rows,
+                    startY: y,
+                    styles:     { fontSize: 7.5, overflow: 'ellipsize' },
+                    headStyles: { fontSize: 7 },
+                    columnStyles: {
+                        0: { cellWidth: 14, halign: 'center' },
+                        1: { cellWidth: 52 },
+                        2: { cellWidth: 46 },
+                        3: { cellWidth: 40 },
+                        4: { cellWidth: 26, halign: 'center' },
+                    },
+                    _didParseCell(data) {
+                        if (data.section === 'body' && data.column.index === 4) {
+                            data.cell.styles.textColor = estadoColors[data.row.index] || T.GRIS;
+                        }
+                    },
+                }));
+
+                y = _d.lastAutoTable.finalY + 8;
+            });
+
+            SanalysPDF.save(_d, `Agenda_Semanal_${new Date().toISOString().split('T')[0]}.pdf`,
+                { disclaimer: 'Sanalys Clinica Ortomolecular  -  Agenda Semanal  -  Uso interno' });
+
+        } catch(err) { console.error('[AGENDA/PDF]:', err?.message || err); toast('Error al generar PDF: ' + err.message, 'error'); }
+    };
+</script>
+<script src="sidebar.js"></script></body>
+</html>

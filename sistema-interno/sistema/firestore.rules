@@ -1,0 +1,104 @@
+// =============================================================================
+// FIRESTORE SECURITY RULES - SANALYS SMS
+// =============================================================================
+// VERSION DIA 1 SIMPLIFICADA
+//
+// Objetivo: Cerrar el acceso anonimo (API Key sin login) y proteger la
+// auditoria como caja negra. NO se aplica granularidad por rol todavia
+// (eso requiere Custom Claims, viene en Dia 3-4 del checklist Fase 0).
+//
+// Migracion futura (Dia 3-4):
+//   - Reemplazar isAuth() por verificaciones de custom claims
+//   - Granularizar permisos por coleccion (caja, pacientes, etc.)
+//   - Bloquear write directo a caja y mover a Cloud Function
+//
+// Deploy: firebase deploy --only firestore:rules
+// =============================================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // HELPER
+    // -------------------------------------------------------------------------
+    // Cualquier usuario con sesion valida en Firebase Auth.
+    // No verifica rol ni estado activo (eso requiere custom claims = Dia 3-4).
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // -------------------------------------------------------------------------
+    // AUDITORIA - CAJA NEGRA
+    // -------------------------------------------------------------------------
+    // Inmutable: nadie puede modificar ni borrar registros. Ni siquiera admin.
+    // Para Dia 3-4: el create tambien se movera a Cloud Function trigger.
+    match /auditoria/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // OPERATIVAS - requiere autenticacion (granularidad en Dia 3-4)
+    // -------------------------------------------------------------------------
+    match /usuarios/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /pacientes/{id} {
+      allow read, write: if isAuth();
+      match /{document=**} {
+        allow read, write: if isAuth();
+      }
+    }
+
+    match /caja/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /turnos/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /personas/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /insumos/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /formulas/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /leads/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /inversiones/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /consentimientos/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /historialPedidos/{id} {
+      allow read, write: if isAuth();
+    }
+
+    match /config/{id} {
+      allow read, write: if isAuth();
+    }
+
+    // -------------------------------------------------------------------------
+    // DEFAULT DENY
+    // -------------------------------------------------------------------------
+    // Cualquier coleccion no listada arriba esta prohibida.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

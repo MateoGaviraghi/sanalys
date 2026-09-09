@@ -1,0 +1,21 @@
+# Brand source files (2 GB of .ai/.psd/.zip) — reference material, never committed.
+# Web-ready extracts go to packages/brand/assets/.
+brandign-sanalys/
+
+# Hookify rules are per-machine
+.claude/*.local.md
+
+# Dependencies and build output
+node_modules/
+.next/
+.turbo/
+dist/
+*.tsbuildinfo
+
+# Local env — values live only in the host env store
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db

@@ -1,0 +1,87 @@
+# =============================================================================
+# netlify.toml — Sanalys SMS
+# Headers de seguridad — Fase 0 / Día 3 (C6 ampliado + ajustes post-deploy)
+# =============================================================================
+#
+# Cambios respecto a la version Dia 2:
+#   - CSP movida al bloque global (antes solo aplicaba a /*.html)
+#     Esto sube la calificacion de securityheaders.com de A a A+.
+#   - `connect-src` ampliado con www.gstatic.com y cdnjs.cloudflare.com
+#     para permitir source maps (.map) de las librerias y silenciar
+#     errores cosmeticos en consola.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Build settings
+# -----------------------------------------------------------------------------
+[build]
+  publish = "."
+
+
+# -----------------------------------------------------------------------------
+# Headers globales — aplican a TODAS las rutas (incluida la /)
+# -----------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # HSTS: fuerza HTTPS por 1 anio en este dominio y subdominios.
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # Previene clickjacking via iframes.
+    X-Frame-Options = "DENY"
+
+    # Bloquea MIME sniffing.
+    X-Content-Type-Options = "nosniff"
+
+    # Politica de Referrer.
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Bloquea APIs del browser que el sistema no usa.
+    Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()"
+
+    # Aislamiento de origen.
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Content Security Policy (ahora global, no solo HTML)
+    # ─────────────────────────────────────────────────────────────────────
+    # connect-src incluye gstatic + cdnjs para permitir source maps.
+    # `unsafe-inline` en script-src es necesario por scripts inline existentes
+    # (se endurece en Fase 2 de la remediacion).
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net wss://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+
+
+# -----------------------------------------------------------------------------
+# Headers especificos para archivos HTML — no-cache adicional
+# -----------------------------------------------------------------------------
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    # HTML no se cachea — siempre version fresca para reflejar fixes/cambios.
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+
+# -----------------------------------------------------------------------------
+# Headers para JS y CSS — cache corto (1 hora)
+# -----------------------------------------------------------------------------
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+
+# -----------------------------------------------------------------------------
+# Redirect: raiz del dominio -> login.html
+# -----------------------------------------------------------------------------
+[[redirects]]
+  from = "/"
+  to = "/login.html"
+  status = 301
+  force = false

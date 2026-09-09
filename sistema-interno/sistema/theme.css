@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════════
+   Sanalys Theme v2 — Shared styles across all modules
+   Loaded after each module's own styles to override.
+   DOES NOT touch any functional elements.
+═══════════════════════════════════════════════════ */
+
+:root {
+    --verde:   #0A3D33;
+    --verde-deep: #071f1a;
+    --fluo:    #D0FF4E;
+    --glass:   rgba(255,255,255,.03);
+    --border:  rgba(255,255,255,.06);
+    --border2: rgba(255,255,255,.1);
+}
+
+/* Background */
+body {
+    background-color: #071f1a !important;
+    background: #071f1a !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fluo); border-radius: 4px; }
+
+/* Cards */
+.card, .card-sanalys, .card-contable, .bento-card {
+    background: rgba(255,255,255,.03) !important;
+    border: 1px solid rgba(255,255,255,.06) !important;
+    border-radius: 18px !important;
+    transition: border-color .2s, box-shadow .2s !important;
+}
+.card:hover, .card-sanalys:hover { border-color: rgba(255,255,255,.12) !important; }
+
+/* Inputs */
+.input-sanalys, .inp {
+    background: rgba(255,255,255,.04) !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    border-radius: 10px !important;
+    transition: border-color .2s !important;
+}
+.input-sanalys:focus, .inp:focus {
+    border-color: rgba(208,255,78,.5) !important;
+    background: rgba(255,255,255,.06) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(208,255,78,.08) !important;
+}
+
+/* Primary fluo button */
+.btn-fluo {
+    background: var(--fluo) !important;
+    color: #071f1a !important;
+    font-weight: 900 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    transition: opacity .2s, transform .15s !important;
+}
+.btn-fluo:hover { opacity: .9 !important; transform: translateY(-1px) !important; }
+
+/* Badges / Tags */
+.badge-ok      { background: rgba(74,222,128,.12) !important; color: #4ade80 !important; border: 1px solid rgba(74,222,128,.25) !important; border-radius: 6px !important; }
+.badge-warn    { background: rgba(251,191,36,.12) !important; color: #fbbf24 !important; border: 1px solid rgba(251,191,36,.25) !important; border-radius: 6px !important; }
+.badge-danger  { background: rgba(248,113,113,.12) !important; color: #f87171 !important; border: 1px solid rgba(248,113,113,.25) !important; border-radius: 6px !important; }
+
+/* Table header consistency */
+.tabla-sanalys thead th,
+table thead th {
+    background: #0A3D33 !important;
+    color: var(--fluo) !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: .12em !important;
+    text-transform: uppercase !important;
+    padding: 12px 14px !important;
+}
+
+/* Modal overlays */
+.modal, [id*="modal"], [id*="Modal"] {
+    backdrop-filter: blur(4px) !important;
+}
+[id*="modal"] > div, [id*="Modal"] > div {
+    background: #0f2d27 !important;
+    border: 1px solid rgba(255,255,255,.08) !important;
+    border-radius: 20px !important;
+}
+
+/* Section headers consistency */
+h2, h3 {
+    letter-spacing: -.01em;
+}
+
+/* Tabs */
+.tab-btn {
+    border-radius: 10px !important;
+    transition: background .2s, color .2s !important;
+}
+.tab-btn.active, .tab-btn.on {
+    background: var(--fluo) !important;
+    color: #071f1a !important;
+}

@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys — Dashboard</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --verde:   #0A3D33;
+            --verde2:  #0D4F43;
+            --fluo:    #D0FF4E;
+            --fluo-dim:rgba(208,255,78,.08);
+            --glass:   rgba(255,255,255,.03);
+            --border:  rgba(255,255,255,.06);
+            --sidebar: 72px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0;}
+        html{scroll-behavior:smooth;}
+        body{
+            background:#071f1a;
+            color:#fff;
+            font-family:'Roboto Flex',sans-serif;
+            min-height:100vh;
+            padding-left:var(--sidebar);
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar{width:4px;}
+        ::-webkit-scrollbar-track{background:transparent;}
+        ::-webkit-scrollbar-thumb{background:var(--fluo);border-radius:4px;}
+
+        /* ── Cards ── */
+        .card{
+            background:rgba(255,255,255,.03);
+            border:1px solid var(--border);
+            border-radius:20px;
+            transition:border-color .25s,transform .25s,box-shadow .25s;
+        }
+        .card:hover{border-color:rgba(255,255,255,.1);}
+
+        /* ── Primary Action Cards ── */
+        .cta{
+            position:relative; overflow:hidden;
+            display:flex; flex-direction:column; justify-content:flex-end;
+            padding:28px; border-radius:20px;
+            text-decoration:none; color:#fff;
+            background:rgba(0,0,0,.25);
+            border:1px solid var(--border);
+            transition:transform .25s cubic-bezier(.16,1,.3,1),
+                        box-shadow .25s,border-color .25s;
+            min-height:170px;
+        }
+        .cta::before{
+            content:'';
+            position:absolute; inset:0;
+            opacity:0; transition:opacity .3s;
+            background:var(--fluo-dim);
+        }
+        .cta:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.4);}
+        .cta:hover::before{opacity:1;}
+        .cta:hover{border-color:rgba(208,255,78,.3);}
+
+        .cta-accent{
+            position:absolute; top:0; left:0; right:0;
+            height:3px; border-radius:20px 20px 0 0;
+        }
+        .cta-icon{
+            position:absolute; top:24px; right:24px;
+            width:42px; height:42px; border-radius:12px;
+            display:flex; align-items:center; justify-content:center;
+            background:rgba(255,255,255,.06);
+            transition:background .25s,transform .25s;
+        }
+        .cta:hover .cta-icon{transform:scale(1.08);}
+        .cta-label{
+            font-size:9px; font-weight:800; letter-spacing:.16em;
+            text-transform:uppercase; opacity:.4; margin-bottom:6px;
+        }
+        .cta-title{
+            font-size:22px; font-weight:900; letter-spacing:-.02em;
+            text-transform:uppercase; line-height:1.05;
+        }
+        .cta-sub{font-size:10px; opacity:.45; margin-top:6px; line-height:1.5;}
+
+        /* ── KPI Cards ── */
+        .kpi{
+            padding:20px; border-radius:16px;
+            background:rgba(255,255,255,.03);
+            border:1px solid var(--border);
+        }
+        .kpi-label{font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.4;margin-bottom:8px;}
+        .kpi-val{font-size:26px;font-weight:900;letter-spacing:-.03em;line-height:1;}
+        .kpi-sub{font-size:8px;opacity:.35;margin-top:4px;}
+
+        /* ── Saldos ── */
+        .saldo-row{
+            display:flex; justify-content:space-between; align-items:center;
+            padding:10px 0; border-bottom:1px solid rgba(255,255,255,.05);
+        }
+        .saldo-row:last-child{border:none;}
+        .saldo-label{font-size:10px;font-weight:700;opacity:.65;}
+        .saldo-val{font-size:16px;font-weight:900;letter-spacing:-.02em;}
+
+        /* ── Sala de Espera ── */
+        .espera-card{
+            background:rgba(249,115,22,.08);
+            border:1px solid rgba(249,115,22,.3);
+            border-radius:16px; padding:16px 20px;
+        }
+        .espera-card.en-sala{
+            background:rgba(34,197,94,.08);
+            border-color:rgba(34,197,94,.3);
+        }
+
+        /* ── Alert ── */
+        .alert-critical{
+            display:flex;align-items:center;gap:14px;
+            background:rgba(239,68,68,.1);
+            border:1px solid rgba(239,68,68,.35);
+            border-radius:16px; padding:14px 20px;
+            text-decoration:none; color:#fff;
+            transition:background .2s;
+        }
+        .alert-critical:hover{background:rgba(239,68,68,.18);}
+
+        /* ── Inactivos / cumpleaños ── */
+        .pac-row{
+            display:flex; justify-content:space-between; align-items:center;
+            padding:9px 0; border-bottom:1px solid rgba(255,255,255,.04);
+        }
+        .pac-row:last-child{border:none;}
+        .wsp-btn{
+            background:#25D366; color:#fff;
+            font-size:8px; font-weight:900; letter-spacing:.1em;
+            text-transform:uppercase; padding:4px 10px;
+            border-radius:8px; text-decoration:none;
+            transition:background .2s; flex-shrink:0;
+        }
+        .wsp-btn:hover{background:#1ca854;}
+
+        /* ── Search ── */
+        #buscadorGlobal{
+            width:100%; background:rgba(0,0,0,.3);
+            border:1.5px solid rgba(208,255,78,.2);
+            border-radius:14px; padding:13px 18px;
+            color:#fff; font-size:13px; font-family:inherit;
+            outline:none; transition:border-color .2s;
+        }
+        #buscadorGlobal:focus{border-color:var(--fluo);}
+        #buscadorGlobal::placeholder{color:rgba(255,255,255,.3);}
+
+        /* ── Utility ── */
+        .section-label{
+            font-size:8px; font-weight:800; letter-spacing:.18em;
+            text-transform:uppercase; opacity:.35; margin-bottom:14px;
+        }
+        .dot{
+            width:6px; height:6px; border-radius:50%;
+            display:inline-block; margin-right:6px; flex-shrink:0;
+        }
+        .tag{
+            font-size:7px; font-weight:900; letter-spacing:.12em;
+            text-transform:uppercase; padding:3px 8px;
+            border-radius:6px; white-space:nowrap;
+        }
+
+        @media(max-width:768px){
+            body{padding-left:60px;}
+            :root{--sidebar:60px;}
+        }
+        @media(max-width:640px){
+            .cta{min-height:140px;}
+            .cta-title{font-size:17px;}
+        }
+    </style>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="p-5 md:p-7" onload="init()">
+
+<!-- ══════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════ -->
+<header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 max-w-screen-2xl mx-auto">
+    <div class="flex items-center gap-4">
+        <div>
+            <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">
+                sanalys<span style="color:var(--fluo)">.</span>
+            </h1>
+            <p style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:2px">
+                Hola, <span id="userName" style="color:#fff;opacity:1">…</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="relative flex-1 max-w-lg">
+        <svg style="position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:.3;pointer-events:none" width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" id="buscadorGlobal" placeholder="Buscar paciente por nombre o DNI…"
+               style="padding-left:42px" oninput="buscarPacienteGlobal(this.value)">
+        <div id="resultadosBusqueda"
+             style="position:absolute;top:calc(100% + 8px);left:0;right:0;background:#0d2e27;border:1px solid rgba(208,255,78,.3);border-radius:14px;overflow:hidden;display:none;max-height:280px;overflow-y:auto;z-index:9000;"></div>
+    </div>
+
+    <div class="flex gap-2 flex-shrink-0">
+        <a href="manual.html"   style="background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.25);color:#2dd4bf;padding:8px 16px;border-radius:12px;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;transition:background .2s" onmouseover="this.style.background='rgba(20,184,166,.2)'" onmouseout="this.style.background='rgba(20,184,166,.08)'">Manual</a>
+        <a href="balance.html" id="card_balance" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);color:#93c5fd;padding:8px 16px;border-radius:12px;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;transition:background .2s" onmouseover="this.style.background='rgba(59,130,246,.2)'" onmouseout="this.style.background='rgba(59,130,246,.08)'">Balance</a>
+        <a href="admin.html" id="card_admin" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);padding:8px 16px;border-radius:12px;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;transition:background .2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">Admin</a>
+        <button onclick="window.cerrarSesion()" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#fca5a5;padding:8px 16px;border-radius:12px;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .2s" onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">Salir</button>
+    </div>
+</header>
+
+<div class="max-w-screen-2xl mx-auto space-y-4">
+
+<!-- ══ FILA SUPERIOR: SALA DE ESPERA + ALERTAS ══════════════════ -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;min-height:0">
+
+    <!-- Sala de espera — altura fija con scroll interno -->
+    <div id="widgetSalaEspera" class="card p-4" style="display:none;border-left:4px solid #f97316">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span class="dot" style="background:#f97316;box-shadow:0 0 8px rgba(249,115,22,.5)"></span>
+            <span style="font-size:9px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:#fb923c">Sala de Espera</span>
+        </div>
+        <div id="listaSalaEspera" class="space-y-2 overflow-y-auto pr-1" style="max-height:160px"></div>
+    </div>
+
+    <!-- Alertas — misma altura, scroll interno si hay muchas -->
+    <div id="zonaAlertas" class="hidden" style="display:flex;flex-direction:column;gap:8px">
+        <a href="sueros.html" id="alertaStockMinimo" class="alert-critical" style="display:none;border-left-color:#f87171">
+            <svg width="18" height="18" fill="none" stroke="#f87171" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <div class="flex-1 min-w-0">
+                <p id="alertaStockTxt" style="font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#f87171"></p>
+                <p id="alertaStockNombres" style="font-size:8px;opacity:.6;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></p>
+            </div>
+            <svg style="margin-left:auto;flex-shrink:0;opacity:.4" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+        <a href="sueros.html" id="alertaVencimiento" class="alert-critical" style="display:none;border-left-color:#f59e0b">
+            <svg width="18" height="18" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+                <p id="alertaVencimientoTxt" style="font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#fbbf24"></p>
+                <p style="font-size:8px;opacity:.6;margin-top:2px">Vencen en 30 días → Laboratorio</p>
+            </div>
+            <svg style="margin-left:auto;flex-shrink:0;opacity:.4" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+    </div>
+
+</div>
+
+<!-- ══ MÓDULOS — ACCESO DIRECTO ══════════════════════════════════ -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+    <a href="enfermeria.html" id="card_enfermeria" class="cta" style="min-height:150px">
+        <div class="cta-accent" style="background:#2dd4bf"></div>
+        <div class="cta-icon"><svg width="18" height="18" fill="none" stroke="#2dd4bf" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="cta-label">Asistencial</div>
+        <div class="cta-title">Enfermería</div>
+        <div class="cta-sub">Sala, vitales e infusiones</div>
+    </a>
+
+    <a href="pacientes.html" id="card_pacientes" class="cta" style="min-height:150px">
+        <div class="cta-accent" style="background:#60a5fa"></div>
+        <div class="cta-icon"><svg width="18" height="18" fill="none" stroke="#60a5fa" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="cta-label">Clínico</div>
+        <div class="cta-title">Pacientes</div>
+        <div class="cta-sub">Historias clínicas y planes</div>
+    </a>
+
+    <a href="agenda.html" id="card_agenda" class="cta" style="min-height:150px">
+        <div class="cta-accent" style="background:var(--fluo)"></div>
+        <div class="cta-icon"><svg width="18" height="18" fill="none" stroke="var(--fluo)" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01" stroke-linecap="round"/></svg></div>
+        <div class="cta-label">Operaciones</div>
+        <div class="cta-title">Agenda</div>
+        <div class="cta-sub">Turnos, salas y recordatorios</div>
+    </a>
+
+    <a href="caja.html" id="card_caja" class="cta" style="min-height:150px">
+        <div class="cta-accent" style="background:#4ade80"></div>
+        <div class="cta-icon"><svg width="18" height="18" fill="none" stroke="#4ade80" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h2m4 0h2" stroke-linecap="round"/></svg></div>
+        <div class="cta-label">Finanzas</div>
+        <div class="cta-title">Caja</div>
+        <div class="cta-sub">Cobros, egresos y arqueo</div>
+    </a>
+
+</div>
+
+<div class="grid grid-cols-3 gap-3">
+
+    <a href="consentimiento.html" id="card_consentimiento" class="cta hidden" style="min-height:100px">
+        <div class="cta-accent" style="background:#f472b6"></div>
+        <div class="cta-icon"><svg width="15" height="15" fill="none" stroke="#f472b6" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+        <div class="cta-label">Documentación</div>
+        <div class="cta-title" style="font-size:17px">Legal</div>
+        <div class="cta-sub">Consentimientos y firma</div>
+    </a>
+
+    <a href="sueros.html" id="card_sueros" class="cta" style="min-height:100px">
+        <div class="cta-accent" style="background:#a78bfa"></div>
+        <div class="cta-icon"><svg width="15" height="15" fill="none" stroke="#a78bfa" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 3v11.5a3.5 3.5 0 007 0V3M9 3h7M9 3H6M16 3h3" stroke-linecap="round"/></svg></div>
+        <div class="cta-label">Insumos</div>
+        <div class="cta-title" style="font-size:17px">Laboratorio</div>
+        <div class="cta-sub">Stock, fórmulas y pedidos</div>
+    </a>
+
+    <a href="crm.html" id="card_crm" class="cta" style="min-height:100px">
+        <div class="cta-accent" style="background:#fbbf24"></div>
+        <div class="cta-icon"><svg width="15" height="15" fill="none" stroke="#fbbf24" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 20H2v-2a3 3 0 013-3h2m10 5v-2a3 3 0 00-3-3H9m8 5h3M9 11a4 4 0 100-8 4 4 0 000 8zm8 1a3 3 0 100-6 3 3 0 000 6z"/></svg></div>
+        <div class="cta-label">Marketing</div>
+        <div class="cta-title" style="font-size:17px">CRM</div>
+        <div class="cta-sub">Pipeline y conversión</div>
+        <div id="kpi_leads_hoy" style="font-size:9px;font-weight:900;color:#fbbf24;margin-top:4px;letter-spacing:.04em;min-height:12px"></div>
+    </a>
+
+</div>
+
+<!-- ══ KPIs ══════════════════════════════════════════════════════ -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="kpi" style="border-left:3px solid var(--fluo)">
+        <div class="kpi-label">Ingresos hoy</div>
+        <div class="kpi-val" id="kpi_ingresos_hoy" style="color:var(--fluo)">…</div>
+        <div class="kpi-sub">En todas las cuentas</div>
+    </div>
+    <div class="kpi" style="border-left:3px solid #60a5fa">
+        <div class="kpi-label">Turnos hoy</div>
+        <div class="kpi-val" id="kpi_turnos_hoy" style="color:#93c5fd">…</div>
+        <div class="kpi-sub">Programados</div>
+    </div>
+    <div class="kpi" style="border-left:3px solid #c084fc">
+        <div class="kpi-label">Pacientes activos</div>
+        <div class="kpi-val" id="kpi_pacientes" style="color:#d8b4fe">…</div>
+        <div class="kpi-sub">En base de datos</div>
+    </div>
+    <div class="kpi" style="border-left:3px solid #fb923c">
+        <div class="kpi-label">Sin visita</div>
+        <div class="kpi-val" id="kpi_sin_visita" style="color:#fdba74">…</div>
+        <div class="kpi-sub" id="kpi_sin_visita_label">Últimos 30 días</div>
+    </div>
+</div>
+
+<!-- ══ SEGUIMIENTO ════════════════════════════════════════════════ -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <div id="moduloCumpleanos" class="card p-5" style="border-left:3px solid #f472b6">
+        <div class="section-label" style="color:#f9a8d4;margin-bottom:8px">🎂 Cumpleaños</div>
+        <div id="listaCumpleanos" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <p style="font-size:10px;opacity:.4;text-align:center;padding:12px 0">Sin cumpleaños esta semana</p>
+        </div>
+    </div>
+
+    <div class="card p-5" style="border-left:3px solid #fb923c">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div>
+                <div class="section-label" style="margin-bottom:2px">Seguimiento</div>
+                <h2 id="titulo_inactivos" style="font-size:12px;font-weight:800;color:#fdba74">Pacientes Inactivos (30 días)</h2>
+            </div>
+            <span id="badge_inactivos" style="background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.25);color:#fdba74;padding:4px 10px;border-radius:8px;font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase">Cargando…</span>
+        </div>
+        <div id="listaPacientesInactivos" class="max-h-52 overflow-y-auto pr-1"></div>
+    </div>
+
+</div>
+
+<!-- ══ SALDOS ═════════════════════════════════════════════════════ -->
+<div class="card" style="padding:14px 20px;border-left:3px solid var(--fluo)">
+    <div class="section-label">Saldos disponibles</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div style="background:rgba(208,255,78,.04);border:1px solid rgba(208,255,78,.1);border-radius:12px;padding:11px 14px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span class="dot" style="background:var(--fluo)"></span><span class="saldo-label">Efectivo Caja</span></div>
+            <span class="saldo-val" id="totEfectivo" style="color:var(--fluo);font-size:14px">…</span>
+        </div>
+        <div style="background:rgba(192,132,252,.04);border:1px solid rgba(192,132,252,.1);border-radius:12px;padding:11px 14px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span class="dot" style="background:#c084fc"></span><span class="saldo-label">Bancos</span></div>
+            <span class="saldo-val" id="totBanco" style="font-size:14px">…</span>
+        </div>
+        <div style="background:rgba(45,212,191,.04);border:1px solid rgba(45,212,191,.1);border-radius:12px;padding:11px 14px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span class="dot" style="background:#2dd4bf"></span><span class="saldo-label">Billeteras</span></div>
+            <span class="saldo-val" id="totVirtual" style="font-size:14px">…</span>
+        </div>
+        <div style="background:rgba(251,146,60,.04);border:1px solid rgba(251,146,60,.1);border-radius:12px;padding:11px 14px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span class="dot" style="background:#fb923c"></span><span class="saldo-label">Honorarios x Pagar</span></div>
+            <span class="saldo-val" id="totSocias" style="font-size:14px">…</span>
+        </div>
+    </div>
+</div>
+
+</div><!-- /max-w -->
+
+<script type="module">
+    import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, getDoc, doc, getDocs, query, where }
+        from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey:"AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA",
+        authDomain:"sanalys-2263e.firebaseapp.com",
+        projectId:"sanalys-2263e",
+        storageBucket:"sanalys-2263e.firebasestorage.app",
+        messagingSenderId:"899593881035",
+        appId:"1:899593881035:web:cd0ddfdb4f8af089e9224e"
+    };
+    const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+    const db  = getFirestore(app);
+    // Persistir ocultos en sessionStorage para sobrevivir al refresh del día
+    const _ocultosKey = 'sanalys_ocultos_' + new Date().toDateString();
+    const _ocultosIndex = new Set(JSON.parse(sessionStorage.getItem(_ocultosKey) || '[]'));
+
+    window.init = async () => {
+        const sesionText = sessionStorage.getItem('usuario_sanalys');
+        if(!sesionText) { window.location.href = 'login.html'; return; }
+        const sesionData = JSON.parse(sesionText);
+        document.getElementById('userName').innerText = sesionData.nombre;
+
+        const hoy = new Date().toLocaleDateString();
+
+        // Sala de espera
+        cargarSalaEspera();
+        setInterval(cargarSalaEspera, 30000);
+
+        // Config inactividad
+        let diasInactividad = 30;
+        try {
+            const alertasSnap = await getDoc(doc(db,'config','alertas'));
+            if(alertasSnap.exists() && alertasSnap.data().diasInactividad)
+                diasInactividad = alertasSnap.data().diasInactividad;
+        } catch(e){}
+        document.getElementById('titulo_inactivos').innerText = `Pacientes Inactivos (${diasInactividad} días)`;
+        document.getElementById('kpi_sin_visita_label').innerText = `Últimos ${diasInactividad} días`;
+
+        // ── CAJA ──────────────────────────────────────
+        onSnapshot(collection(db,"caja"), snap => {
+            let ef=0,ba=0,vir=0,soc=0,ingresosHoy=0;
+            snap.docs.forEach(d => {
+                const m = d.data();
+                if(m.anulado) return;
+                const v = parseFloat(m.mon)||0;
+                const f = m.tipo==='INGRESO'?1:-1;
+                if(m.med==='Efectivo')                                  ef  += v*f;
+                else if(m.med==='Banco')                                ba  += v*f;
+                else if(m.med==='Billetera Virtual')                    vir += v*f;
+                else if(m.med.includes('Honorarios x Pagar'))           soc += v*f;
+                if(m.fecha===hoy && m.tipo==='INGRESO' && !m.esTraspaso && !m.esHonorario)
+                    ingresosHoy += v;
+            });
+            document.getElementById('totEfectivo').innerText       = `$ ${ef.toLocaleString()}`;
+            document.getElementById('totBanco').innerText           = `$ ${ba.toLocaleString()}`;
+            document.getElementById('totVirtual').innerText         = `$ ${vir.toLocaleString()}`;
+            document.getElementById('totSocias').innerText          = `$ ${Math.abs(soc).toLocaleString()}`;
+            document.getElementById('kpi_ingresos_hoy').innerText   = `$ ${ingresosHoy.toLocaleString()}`;
+        });
+
+        // ── INSUMOS ───────────────────────────────────
+        let stockMinimoGlobal = 5; // default, se pisa desde config
+        getDoc(doc(db,'config','alertas')).then(s => {
+            if(s.exists() && s.data().stockMinimo) stockMinimoGlobal = s.data().stockMinimo;
+        });
+
+        onSnapshot(collection(db,"insumos"), snap => {
+            let bajosStock = [];
+            let vencenProx = 0;
+            const hoy30 = new Date(); hoy30.setDate(hoy30.getDate() + 30);
+            snap.docs.forEach(d => {
+                const ins = d.data();
+                // Stock bajo mínimo — usa minimoViales del insumo si existe, sino el global
+                const minimo = ins.minimoViales || stockMinimoGlobal;
+                const stock  = ins.stockDisp || 0;
+                if (stock <= minimo) bajosStock.push({ nombre: ins.nombre||'Sin nombre', stock, minimo });
+                // Vencimiento próximo
+                if(ins.lote && ins.lote.includes('/')) {
+                    const vMatch = ins.lote.match(/(\d{1,2})\/(\d{4})/);
+                    if(vMatch) {
+                        const vence = new Date(parseInt(vMatch[2]), parseInt(vMatch[1])-1, 1);
+                        if(vence <= hoy30) vencenProx++;
+                    }
+                }
+                if(ins.fechaVencimiento) {
+                    const fv = new Date(ins.fechaVencimiento);
+                    if(!isNaN(fv) && fv <= hoy30) vencenProx++;
+                }
+            });
+
+            const zona = document.getElementById('zonaAlertas');
+            if(bajosStock.length > 0 || vencenProx > 0) zona.classList.remove('hidden');
+
+            // Alerta stock mínimo
+            const alertStock = document.getElementById('alertaStockMinimo');
+            if(bajosStock.length > 0) {
+                alertStock.style.display = 'flex';
+                document.getElementById('alertaStockTxt').innerText =
+                    bajosStock.length + ' insumo' + (bajosStock.length>1?'s':'') + ' bajo stock mínimo';
+                document.getElementById('alertaStockNombres').innerText =
+                    bajosStock.map(i => `${esc(i.nombre)} (${i.stock}/${i.minimo})`).join(' · ');
+            } else {
+                alertStock.style.display = 'none';
+            }
+
+            if(vencenProx > 0) {
+                const alertEl = document.getElementById('alertaVencimiento');
+                const txtEl   = document.getElementById('alertaVencimientoTxt');
+                if(alertEl) alertEl.style.display = 'flex';
+                if(txtEl)   txtEl.innerText = vencenProx + ' insumo' + (vencenProx > 1 ? 's' : '') + ' vence' + (vencenProx > 1 ? 'n' : '') + ' en 30 días';
+            }
+        });
+
+        // ── LEADS HOY ──────────────────────────────
+        onSnapshot(collection(db,"leads"), snapLeads => {
+            const _hoyD = new Date();
+            const hoyStr = `${_hoyD.getFullYear()}-${String(_hoyD.getMonth()+1).padStart(2,'0')}-${String(_hoyD.getDate()).padStart(2,'0')}`;
+            const n = snapLeads.docs
+                .map(d => d.data())
+                .filter(l => l.proximoContacto === hoyStr && l.etapa !== 'ganado' && l.etapa !== 'perdido')
+                .length;
+            const el = document.getElementById('kpi_leads_hoy');
+            if(el) el.textContent = n > 0 ? n + ' lead' + (n>1?'s':'') + ' para contactar hoy' : '';
+        });
+
+        // ── TURNOS ────────────────────────────────────
+        onSnapshot(collection(db,"turnos"), snapT => {
+            const _h = new Date();
+            const hoyISO2 = `${_h.getFullYear()}-${String(_h.getMonth()+1).padStart(2,'0')}-${String(_h.getDate()).padStart(2,'0')}`;
+            const hoyTurnos = snapT.docs.map(d=>d.data()).filter(x => x.fecha === hoyISO2);
+            document.getElementById('kpi_turnos_hoy').innerText = hoyTurnos.length+' turnos';
+        });
+
+        // ── PACIENTES ─────────────────────────────────
+        let cachePacientes = [];
+        onSnapshot(collection(db,"pacientes"), snapPac => {
+            cachePacientes = snapPac.docs.map(d=>({id:d.id,...d.data()}));
+            const pacs = cachePacientes;
+
+            document.getElementById('kpi_pacientes').innerText = pacs.length;
+
+            const fechaLimite = new Date();
+            fechaLimite.setDate(fechaLimite.getDate() - diasInactividad);
+
+            // Helper: parsear fecha dd/mm/yyyy
+            function parseFechaEvo(str) {
+                if (!str) return null;
+                const p = str.split('/');
+                if (p.length < 3) return null;
+                const d = new Date(p[2], p[1]-1, p[0]);
+                return isNaN(d) ? null : d;
+            }
+
+            // KPI sin visita — excluye nuevos sin evoluciones
+            const sinVisita = pacs.filter(p => {
+                const evos = p.evoluciones || [];
+                if (!evos.length) return false;
+                const ultima = parseFechaEvo(evos[0].fecha);
+                return ultima ? ultima < fechaLimite : false;
+            }).length;
+            document.getElementById('kpi_sin_visita').innerText = sinVisita;
+
+            // Cumpleaños
+            // ── CUMPLEAÑOS HOY Y ESTA SEMANA ─────────────────────────────
+            (async () => {
+            const hoyFecha = new Date();
+
+            function mmdd(fecha) {
+                if (!fecha) return null;
+                // Soporta yyyy-mm-dd y dd/mm/yyyy
+                let parts;
+                if (fecha.includes('-')) { parts = fecha.split('-'); return `${parts[1]}-${parts[2]}`; }
+                if (fecha.includes('/')) { parts = fecha.split('/'); return `${parts[1]}-${parts[0]}`; }
+                return null;
+            }
+
+            const mmddHoy = `${String(hoyFecha.getMonth()+1).padStart(2,'0')}-${String(hoyFecha.getDate()).padStart(2,'0')}`;
+
+            // Próximos 7 días como array de mmdd
+            const proximos7 = Array.from({length:7}, (_,i) => {
+                const d = new Date(hoyFecha); d.setDate(d.getDate()+i+1);
+                return `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            });
+
+            const cumpleHoy    = pacs.filter(p => p.fechaNac && mmdd(p.fechaNac) === mmddHoy);
+            const cumpleSemana = pacs.filter(p => p.fechaNac && proximos7.includes(mmdd(p.fechaNac)));
+
+            // Cargar templates frescos desde Firestore cada vez
+            const _msgsSnap = await getDoc(doc(db,'config','mensajes'));
+            const _msgs = _msgsSnap.exists() ? _msgsSnap.data() : {};
+            const templateHoy  = _msgs.cumpleanos || '¡Hola {nombre}! 🎉 Desde Sanalys te deseamos un muy feliz cumpleaños. 🥂✨';
+            const templateGift = _msgs.gift_card  || 'Hola {nombre}! 🎁 Tu cumpleaños se acerca y queremos celebrarlo con vos. En Sanalys tenemos Gift Cards especiales para regalar salud y bienestar. ¿Se lo hacemos saber a alguien especial? ✨';
+
+            let htmlCump = '';
+
+            if (cumpleHoy.length) {
+                cumpleHoy.forEach(pac => {
+                    let tel = (pac.tel||'').replace(/\D/g,'');
+                    if (tel && !tel.startsWith('54')) tel = '549' + tel.replace(/^0/,'');
+                    const msg = encodeURIComponent(templateHoy.replace(/{nombre}/g, pac.nombre.split(' ')[0]).replace(/{clinica}/g,'Sanalys'));
+                    htmlCump += `<div class="pac-row">
+                        <div>
+                            <p style="font-size:10px;font-weight:800;text-transform:uppercase">${esc(pac.nombre)}</p>
+                            <p style="font-size:8px;color:#f9a8d4;font-weight:700">🎂 Hoy es su cumpleaños</p>
+                        </div>
+                        ${tel?`<a href="https://wa.me/${tel}?text=${msg}" target="_blank" rel="noopener noreferrer" class="wsp-btn">🎉 Saludar</a>`:''}
+                    </div>`;
+                });
+            }
+
+            if (cumpleSemana.length) {
+                cumpleSemana.forEach(pac => {
+                    let tel = (pac.tel||'').replace(/\D/g,'');
+                    if (tel && !tel.startsWith('54')) tel = '549' + tel.replace(/^0/,'');
+                    const msg = encodeURIComponent(templateGift.replace(/{nombre}/g, pac.nombre.split(' ')[0]).replace(/{clinica}/g,'Sanalys'));
+                    // Calcular en cuántos días
+                    const mdPac = mmdd(pac.fechaNac);
+                    const diaIdx = proximos7.indexOf(mdPac) + 1;
+                    htmlCump += `<div class="pac-row">
+                        <div>
+                            <p style="font-size:10px;font-weight:800;text-transform:uppercase">${esc(pac.nombre)}</p>
+                            <p style="font-size:8px;color:#fbbf24;font-weight:700">🎁 Cumple en ${diaIdx} día${diaIdx>1?'s':''}</p>
+                        </div>
+                        ${tel?`<a href="https://wa.me/${tel}?text=${msg}" target="_blank" rel="noopener noreferrer" class="wsp-btn" style="background:#f59e0b">🎁 Gift</a>`:''}
+                    </div>`;
+                });
+            }
+
+            document.getElementById('listaCumpleanos').innerHTML = htmlCump ||
+                '<p style="font-size:10px;opacity:.4;text-align:center;padding:12px 0">Sin cumpleaños esta semana</p>';
+            })();
+
+            // Inactivos — excluye archivados y pacientes sin evoluciones (nuevos)
+            const inactivos = pacs.filter(p => {
+                if (p.archivado === true) return false;
+                const evos = p.evoluciones || [];
+                if (!evos.length) return false;
+                const ultima = parseFechaEvo(evos[0].fecha);
+                return ultima ? ultima < fechaLimite : false;
+            });
+            document.getElementById('badge_inactivos').innerText = `${inactivos.length} pacientes`;
+            const divInac = document.getElementById('listaPacientesInactivos');
+            divInac.innerHTML = !inactivos.length
+                ? '<p style="text-align:center;font-size:11px;color:var(--fluo);padding:16px 0">Todos los pacientes visitaron recientemente ✓</p>'
+                : inactivos.slice(0,20).map(p => {
+                    let tel = p.tel ? p.tel.replace(/\D/g,'') : '';
+                    if (tel && !tel.startsWith('54')) tel = '549' + tel.replace(/^0/,'');
+                    const templateInac = (window._msgTemplates && window._msgTemplates.inactivo)
+                        ? window._msgTemplates.inactivo
+                        : 'Hola {nombre}! Te escribimos de Sanalys para recordarte que hace un tiempo no te vemos. ¿Querés retomar tu tratamiento?';
+                    const msg = encodeURIComponent(templateInac.replace(/{nombre}/g, p.nombre.split(' ')[0]).replace(/{clinica}/g,'Sanalys'));
+                    const ultima = parseFechaEvo((p.evoluciones||[])[0]?.fecha);
+                    const diasSin = ultima ? Math.floor((new Date()-ultima)/86400000) : '?';
+                    return `<div class="pac-row">
+                        <div><p style="font-size:10px;font-weight:700">${esc(p.nombre)}</p><p style="font-size:8px;opacity:.4">${diasSin} dias sin visita · ${p.tel||'sin telefono'}</p></div>
+                        ${tel ? `<a href="https://wa.me/${tel}?text=${msg}" target="_blank" rel="noopener noreferrer" class="wsp-btn">WSP</a>` : '<span style="font-size:8px;opacity:.3">sin tel</span>'}
+                    </div>`;
+                }).join('');
+        });
+
+        // Buscador en memoria
+        window.buscarPacienteGlobal = termino => {
+            const divRes = document.getElementById('resultadosBusqueda');
+            if(!termino || termino.length < 2) { divRes.style.display='none'; return; }
+            const q = termino.toLowerCase();
+            const resultados = cachePacientes
+                .filter(p => (p.nombre||'').toLowerCase().includes(q) || (p.dni||'').includes(q))
+                .slice(0,6);
+            if(!resultados.length) {
+                divRes.innerHTML = '<div style="padding:14px;text-align:center;font-size:11px;opacity:.4">Sin resultados</div>';
+            } else {
+                divRes.innerHTML = resultados.map(p => `
+                    <div onclick="irAPaciente('${p.dni}')" style="padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s" onmouseover="this.style.background='rgba(208,255,78,.08)'" onmouseout="this.style.background='transparent'">
+                        <p style="font-size:12px;font-weight:700">${esc(p.nombre)}</p>
+                        <p style="font-size:10px;opacity:.45">DNI: ${p.dni||'N/A'}</p>
+                    </div>`).join('');
+            }
+            divRes.style.display='block';
+        };
+        document.addEventListener('click', e => {
+            if(!e.target.closest('#buscadorGlobal') && !e.target.closest('#resultadosBusqueda'))
+                document.getElementById('resultadosBusqueda').style.display='none';
+        });
+        window.irAPaciente = dni => {
+            sessionStorage.setItem('dni_paciente_activo', dni);
+            window.location.href = 'pacientes.html';
+        };
+
+        window.marcarAtendido = (turnoId) => {
+            _ocultosIndex.add(turnoId);
+            sessionStorage.setItem(_ocultosKey, JSON.stringify([..._ocultosIndex]));
+            cargarSalaEspera();
+        };
+
+        function cargarSalaEspera() {
+            const hoy = new Date();
+            const hoyISO = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+            getDocs(query(collection(db,"turnos"), where("fecha","==",hoyISO))).then(snap => {
+                const todos = snap.docs.map(d=>({id:d.id,...d.data()}))
+                    .filter(t => !_ocultosIndex.has(t.id))
+                    .sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+                const enSala   = todos.filter(t => ['en recepción','en recepcion','en tratamiento','espera','pagado'].includes((t.estado||'').toLowerCase().trim()));
+                const pendientes = todos.filter(t => ['confirmado','pendiente'].includes((t.estado||'').toLowerCase().trim()));
+                const widget = document.getElementById('widgetSalaEspera');
+                if (!enSala.length && !pendientes.length) { widget.style.display='none'; return; }
+                widget.style.display='block';
+                let html = '';
+                enSala.forEach(t => {
+                    html += `<div class="espera-card en-sala" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <div style="flex:1;min-width:0">
+                            <p style="font-size:11px;font-weight:800;text-transform:uppercase">${t.pacienteNombre||t.paciente||''}</p>
+                            <p style="font-size:9px;opacity:.5">${t.hora||''} · ${t.motivo||t.servicio||''}</p>
+                        </div>
+                        <div style="display:flex;gap:6px;flex-shrink:0">
+                            <span class="tag" style="background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25)">En sala</span>
+                            <button onclick="marcarAtendido('${t.id}')" style="background:rgba(208,255,78,.1);border:1px solid rgba(208,255,78,.25);color:var(--fluo);font-size:8px;font-weight:900;padding:3px 8px;border-radius:6px;cursor:pointer">✓ Listo</button>
+                        </div>
+                    </div>`;
+                });
+                pendientes.forEach(t => {
+                    let tel = (t.telefono||'').replace(/\D/g,'');
+                    if (tel && !tel.startsWith('54')) tel = '549' + tel.replace(/^0/,'');
+                    const msg = encodeURIComponent(`Hola ${t.pacienteNombre||t.paciente}! Te recordamos tu turno de las ${t.hora} hs hoy en Sanalys. Te esperamos!`);
+                    html += `<div class="espera-card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <div style="flex:1;min-width:0">
+                            <p style="font-size:11px;font-weight:800;text-transform:uppercase">${t.pacienteNombre||t.paciente||''}</p>
+                            <p style="font-size:9px;opacity:.5">${t.hora||''} · ${t.motivo||t.servicio||''}</p>
+                        </div>
+                        <div style="display:flex;gap:6px;flex-shrink:0">
+                            ${tel?`<a href="https://wa.me/${tel}?text=${msg}" target="_blank" rel="noopener noreferrer" class="wsp-btn">💬</a>`:''}
+                            <button onclick="marcarAtendido('${t.id}')" style="background:rgba(208,255,78,.1);border:1px solid rgba(208,255,78,.25);color:var(--fluo);font-size:8px;font-weight:900;padding:3px 8px;border-radius:6px;cursor:pointer">✓ Listo</button>
+                        </div>
+                    </div>`;
+                });
+                document.getElementById('listaSalaEspera').innerHTML = html;
+            }).catch(e => console.error('[SalaEspera]:', e?.message || e));
+        }
+
+        // Cargar templates de mensajes
+        const msgSnap = await getDoc(doc(db,'config','mensajes'));
+        window._msgTemplates = msgSnap.exists() ? msgSnap.data() : {};
+
+        // Consentimiento feature flag
+        const confSnap = await getDoc(doc(db,'config','funcionalidades'));
+        if(confSnap.exists() && confSnap.data().consentimientosDigitales===true)
+            document.getElementById('card_consentimiento').classList.remove('hidden');
+
+        // ── OCULTAR MÓDULOS SIN PERMISO ──────────────────────────────────
+        const permisos = sesionData.permisos || [];
+        const esAdmin  = permisos.includes('admin');
+
+        if (!esAdmin) {
+            // Mapa módulo → permiso requerido
+            const modPermisos = {
+                card_enfermeria: 'enfermeria',
+                card_pacientes:  'pacientes',
+                card_agenda:     'agenda',
+                card_caja:       'caja',
+                card_sueros:     'sueros',
+                card_crm:        'leads',
+                card_balance:    'balance',
+                card_admin:      'admin',
+                card_consentimiento: 'legal',
+            };
+            Object.entries(modPermisos).forEach(([id, perm]) => {
+                const el = document.getElementById(id);
+                if (el && !permisos.includes(perm)) el.style.display = 'none';
+            });
+        }
+    };
+
+    window.cerrarSesion = async () => {
+        try { await signOut(auth); } catch(e) {}
+        sessionStorage.removeItem('usuario_sanalys');
+        window.location.href='login.html';
+    };
+</script>
+<script src="sidebar.js"></script>
+</body>
+</html>

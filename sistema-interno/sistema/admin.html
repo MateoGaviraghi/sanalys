@@ -1,0 +1,2788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys S.M.S. - Panel de Administración</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="pdf-master.js?v=3.1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        /* Disponibilidad por profesional */
+        .disp-dia { border-right:1px solid rgba(255,255,255,.06); padding:8px 6px; min-height:120px; display:flex; flex-direction:column; gap:4px; }
+        .disp-dia:last-child { border-right:none; }
+        .disp-dia-header { font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.1em; opacity:.5; text-align:center; margin-bottom:4px; }
+        .disp-franja { background:rgba(20,184,166,.15); border:1px solid rgba(20,184,166,.3); border-radius:6px; padding:3px 5px; font-size:8px; font-weight:700; color:#2dd4bf; display:flex; justify-content:space-between; align-items:center; gap:2px; }
+        .disp-franja button { background:none; border:none; color:rgba(239,68,68,.6); cursor:pointer; font-size:10px; line-height:1; padding:0 1px; }
+        .disp-add-btn { background:rgba(255,255,255,.05); border:1px dashed rgba(255,255,255,.15); border-radius:6px; color:rgba(255,255,255,.3); font-size:14px; cursor:pointer; padding:3px; margin-top:auto; transition:.2s; width:100%; }
+        .disp-add-btn:hover { background:rgba(20,184,166,.1); border-color:rgba(20,184,166,.4); color:#2dd4bf; }
+        :root { --verde-deep: #0A3D33; --fluo: #D0FF4E; }
+        * { box-sizing: border-box; }
+        body { background-color: #071f1a; color: white; font-family: 'Roboto Flex', sans-serif; }
+        .card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; }
+        .inp { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); padding: 10px 12px; border-radius: 6px; width: 100%; color: white; outline: none; font-size: 11px; font-family: 'Roboto Flex', sans-serif; transition: 0.2s; }
+        .inp:focus { border-color: var(--fluo); background: rgba(255,255,255,0.1); }
+        .btn-fluo { background: var(--fluo); color: var(--verde-deep); font-weight: 900; text-transform: uppercase; cursor: pointer; border-radius: 6px; transition: 0.2s; font-family: 'Roboto Flex', sans-serif; }
+        .btn-fluo:hover { filter: brightness(1.1); }
+        .btn-ghost { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 6px; cursor: pointer; transition: 0.2s; font-family: 'Roboto Flex', sans-serif; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+        .check-acc { accent-color: var(--fluo); width: 15px; height: 15px; cursor: pointer; }
+        .check-pink { accent-color: #ec4899; transform: scale(1.2); cursor: pointer; }
+        .scroll::-webkit-scrollbar { width: 5px; }
+        .scroll::-webkit-scrollbar-thumb { background: var(--fluo); border-radius: 10px; }
+        .badge { font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+        .badge-blue { background: rgba(59,130,246,0.2); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+        .badge-fluo { background: rgba(208,255,78,0.15); color: var(--fluo); }
+        .badge-orange { background: rgba(249,115,22,0.2); color: #fdba74; }
+        .badge-purple { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+        .row-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 7px 10px; margin-bottom: 3px; border-radius: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .tab-nav { display: flex; gap: 2px; border-bottom: 1px solid rgba(255,255,255,0.1); overflow-x: auto; }
+        .tab-nav::-webkit-scrollbar { display: none; }
+        .tab-btn { padding: 10px 16px; font-size: 10px; font-weight: 900; text-transform: uppercase; border-bottom: 2px solid transparent; opacity: 0.45; transition: 0.2s; cursor: pointer; white-space: nowrap; background: none; color: white; border-top: none; border-left: none; border-right: none; }
+        .tab-btn.on { opacity: 1; border-bottom-color: var(--fluo); color: var(--fluo); }
+        .tab-pane { display: none; }
+        .tab-pane.on { display: block; animation: fi 0.2s ease; }
+        @keyframes fi { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+        .persona-card { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 14px; margin-bottom: 8px; transition: 0.2s; }
+        .persona-card:hover { border-color: rgba(208,255,78,0.3); }
+        .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; flex-shrink: 0; }
+        .kpi { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; }
+        .danger-btn { border: 2px solid #ef4444; color: #ef4444; background: rgba(239,68,68,0.05); border-radius: 8px; padding: 12px; cursor: pointer; font-weight: 900; font-size: 10px; text-transform: uppercase; transition: 0.2s; width: 100%; font-family: 'Roboto Flex', sans-serif; margin-bottom: 8px; }
+        .danger-btn:hover { background: #ef4444; color: white; }
+        select option { background: #0A3D33; color: white; }
+    </style>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="p-4 md:p-8 pb-24" onload="init()">
+
+<header class="max-w-7xl mx-auto mb-8 flex justify-between items-center border-b border-white/10 pb-6">
+    <div>
+        <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">sanalys<span style="color:var(--fluo)">.</span></h1>
+        <p style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:2px">Configuración</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <span id="sesionLabel" class="text-[9px] opacity-50 font-bold uppercase hidden"></span>
+        <a href="index.html" class="btn-ghost px-5 py-2.5 text-[10px] font-bold uppercase">Volver</a>
+    <div class="flex items-center gap-1 border-l border-white/10 pl-3 ml-1"><a href="balance.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Balance"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Balance</span></a><a href="caja.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Caja"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Caja</span></a></div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto">
+    <div class="tab-nav mb-0">
+        <button class="tab-btn on" onclick="st('personas')">Personas y Roles</button>
+        <button class="tab-btn" onclick="st('honorarios')">Honorarios y Reparto</button>
+        <button class="tab-btn" onclick="st('cuentas')">Plan de Cuentas</button>
+        <button class="tab-btn" onclick="st('agenda')">Agenda y Espacios</button>
+        <button class="tab-btn" onclick="st('accesos')">Usuarios y Accesos</button>
+        <button class="tab-btn" onclick="st('inversiones')">Inversiones</button>
+        <button class="tab-btn" onclick="st('sistema')">⚙️ Config del Sistema</button>
+        <button class="tab-btn" onclick="st('seguridad')">Auditoria y Respaldo</button>
+        <button class="tab-btn" onclick="st('analisis')">📊 Análisis de Pacientes</button>
+        <button class="tab-btn" onclick="st('alertas')">Alertas y Sesion</button>
+    </div>
+
+    <div id="tab-personas" class="tab-pane on pt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6 border-l-4 border-orange-400">
+                <h2 class="text-[11px] font-black uppercase text-orange-400 tracking-widest mb-4">Alta y Edicion de Persona</h2>
+                <input type="hidden" id="p_id">
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Nombre completo</label><input type="text" id="p_nombre" class="inp font-bold" placeholder="Apellido, Nombre"></div>
+                    <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">DNI</label><input type="text" id="p_dni" class="inp"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Telefono</label><input type="text" id="p_tel" class="inp"></div>
+                    <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Email</label><input type="email" id="p_email" class="inp"></div>
+                </div>
+                <div class="mb-4"><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Especialidad / Cargo</label><input type="text" id="p_especialidad" class="inp" placeholder="Ej: Medicina Ortomolecular"></div>
+
+                <div class="bg-black/30 p-4 rounded-xl border border-white/8 mb-4">
+                    <p class="text-[9px] font-black uppercase text-[var(--fluo)] mb-3">Roles en la organizacion</p>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <label class="flex items-start gap-2 cursor-pointer bg-white/5 p-3 rounded-lg border border-white/8 hover:border-orange-400/40 transition">
+                            <input type="checkbox" id="p_rol_medica" class="check-acc mt-0.5" onchange="toggleRolMedica()">
+                            <div><p class="text-[10px] font-black text-orange-300">Medica / Profesional</p><p class="text-[8px] opacity-50 mt-0.5">Cobra % por acto medico</p></div>
+                        </label>
+                        <label class="flex items-start gap-2 cursor-pointer bg-white/5 p-3 rounded-lg border border-white/8 hover:border-purple-400/40 transition">
+                            <input type="checkbox" id="p_rol_socia" class="check-acc mt-0.5" onchange="toggleRolSocia()">
+                            <div><p class="text-[10px] font-black text-purple-300">Socia / Propietaria</p><p class="text-[8px] opacity-50 mt-0.5">Recibe distribucion de utilidades</p></div>
+                        </label>
+                    </div>
+                    <div id="box_parte_socia" class="hidden bg-purple-900/20 p-3 rounded-lg border border-purple-500/30 mb-3">
+                        <label class="text-[8px] font-black uppercase text-purple-300 block mb-1">Participacion societaria (%)</label>
+                        <input type="number" id="p_parte_pct" class="inp text-xl font-black text-purple-300 text-center" placeholder="Ej: 33.33" step="0.01">
+                        <p class="text-[8px] text-purple-300 opacity-60 mt-1">La suma de todas las socias debe ser 100%.</p>
+                    </div>
+                    <div id="box_pct_medica" class="hidden bg-orange-900/20 p-3 rounded-lg border border-orange-500/30 mb-3">
+                        <label class="text-[8px] font-black uppercase text-orange-300 block mb-1">Matricula Provincial</label>
+                        <input type="text" id="p_matricula" class="inp font-bold mb-3" placeholder="Ej: MN 12345 / MP 67890">
+                        <label class="text-[8px] font-black uppercase text-orange-300 block mb-1">% Honorario individual (deja vacio para usar el global)</label>
+                        <input type="number" id="p_pct_medica" class="inp text-xl font-black text-orange-300 text-center" placeholder="Ej: 60" step="1">
+                        <p class="text-[8px] text-orange-300 opacity-60 mt-1">Si se deja vacio, aplica el % global.</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="guardarPersona()" class="btn-fluo flex-1 py-3 text-[10px]">Guardar</button>
+                    <button onclick="limpiarPersona()" class="btn-ghost px-4 py-3 text-[10px] font-bold uppercase">Limpiar</button>
+                </div>
+            </div>
+            <div>
+                <div class="text-[9px] font-bold uppercase tracking-widest opacity-50 mb-3">Equipo Sanalys</div>
+                <div id="lista_personas" class="space-y-2 max-h-[480px] overflow-y-auto scroll pr-1">
+                    <p class="text-center opacity-30 text-xs mt-10 animate-pulse">Cargando...</p>
+                </div>
+                <div id="resumen_sociedad" class="mt-4 bg-black/30 p-4 rounded-xl border border-purple-500/20 hidden">
+                    <p class="text-[9px] font-black uppercase text-purple-300 mb-2">Distribucion societaria</p>
+                    <div id="barras_sociedad"></div>
+                    <div id="alerta_partes" class="text-[9px] font-black mt-2 hidden"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-honorarios" class="tab-pane pt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-5">
+                <div class="card p-6 border-l-4 border-purple-400">
+                    <h2 class="text-[11px] font-black uppercase text-purple-400 tracking-widest mb-1">Algoritmo Global de Honorarios</h2>
+                    <p class="text-[9px] opacity-60 mb-4">Valores por defecto. Cada médica puede tener su propio % para consultas en Personas y Roles.</p>
+                    <div class="space-y-4">
+                        <div class="bg-black/30 p-4 rounded-xl border border-white/5">
+                            <label class="text-[8px] font-black uppercase text-orange-300 block mb-1">% Honorario Consultas Médicas</label>
+                            <div class="flex items-center gap-3"><input type="number" id="conf_medica" class="inp text-2xl font-black text-orange-300 text-center" value="60"><span class="text-orange-300 font-black text-xl">%</span></div>
+                        </div>
+                        
+                        <div class="bg-blue-900/20 p-4 rounded-xl border border-blue-500/30">
+                            <label class="text-[9px] font-black uppercase text-blue-300 block mb-1">% Honorario Sueroterapia / Fórmulas</label>
+                            <div class="flex items-center gap-3"><input type="number" id="conf_sueros" class="inp text-2xl font-black text-blue-300 text-center" value="0"><span class="text-blue-300 font-black text-xl">%</span></div>
+                            <p class="text-[8px] opacity-60 text-blue-200 mt-1">Si es 0, la médica no cobra comisión por sueros y el 100% de ese ingreso queda para la sociedad (EBITDA).</p>
+                        </div>
+                        
+                    </div>
+                </div>
+                <div class="card p-6 border-l-4 border-[var(--fluo)]">
+                    <h2 class="text-[11px] font-black uppercase text-[var(--fluo)] tracking-widest mb-1">Distribucion de Utilidades</h2>
+                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 mb-3">
+                        <label class="text-[8px] font-black uppercase text-[var(--fluo)] block mb-1">% Fondo de reserva (se aparta antes de repartir)</label>
+                        <div class="flex items-center gap-3"><input type="number" id="conf_reserva" class="inp text-2xl font-black text-[var(--fluo)] text-center" value="5"><span class="text-[var(--fluo)] font-black text-xl">%</span></div>
+                    </div>
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 mb-4">
+                        <p class="text-[8px] font-black uppercase opacity-50 mb-2">Modo de distribucion entre socias</p>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="modo_dist" id="dist_proporcional" value="proporcional" class="check-acc" checked><div><p class="text-[10px] font-bold">Proporcional a participacion societaria</p><p class="text-[8px] opacity-50">Usa los % definidos en cada socia.</p></div></label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="modo_dist" id="dist_igualitaria" value="igualitaria" class="check-acc"><div><p class="text-[10px] font-bold">Partes iguales entre todas las socias</p><p class="text-[8px] opacity-50">Divide sin importar participacion.</p></div></label>
+                        </div>
+                    </div>
+                    <div class="bg-black/20 p-4 rounded-xl border border-amber-500/20 mb-4">
+                        <label class="text-[8px] font-black uppercase text-amber-300 block mb-1">⚠️ Monto máximo por operación (alerta anti-error)</label>
+                        <div class="flex items-center gap-3"><span class="text-amber-300 font-black text-xl">$</span><input type="number" id="conf_monto_max" class="inp text-xl font-black text-amber-300" value="1000000" placeholder="1000000"></div>
+                        <p class="text-[8px] opacity-60 text-amber-200 mt-1">Si cargás un monto mayor a este en Caja, el sistema te pedirá confirmar (para atrapar errores de tipeo). NO bloquea, solo avisa. Ajustalo según la inflación.</p>
+                    </div>
+                    <button onclick="guardarConfigHonorarios()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase py-3 rounded-lg transition">Guardar Configuracion</button>
+                </div>
+            </div>
+            
+            <div class="card p-6 border-t-4 border-white">
+                <h2 class="text-[11px] font-black uppercase tracking-widest mb-1">Simulador de Liquidacion</h2>
+                <p class="text-[9px] opacity-60 mb-4">Ve como se distribuiria un cobro segun la configuracion actual.</p>
+                
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Ingreso total ($)</label>
+                        <input type="number" id="sim_monto" class="inp text-2xl font-black text-[var(--fluo)] text-center" placeholder="0" oninput="simularReparto()">
+                    </div>
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Tipo de Práctica</label>
+                        <select id="sim_tipo" class="inp text-xs font-bold" onchange="simularReparto()">
+                            <option value="consulta">Consulta Médica</option>
+                            <option value="suero">Sueroterapia / Fórmula</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4"><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Medica que realizo el acto</label><select id="sim_medica" class="inp" onchange="simularReparto()"><option value="">Seleccionar medica</option></select></div>
+                <div id="resultado_simulador"><p class="text-center opacity-30 text-xs py-4">Ingresa un monto para simular.</p></div>
+            </div>
+            
+            <div class="card p-6 border-l-4 border-orange-400">
+                <h2 class="text-[11px] font-black uppercase text-orange-400 tracking-widest mb-4">Consulta de Honorarios</h2>
+                <p class="text-[9px] opacity-60 mb-4">Ve cuánto se le debe a cada médica en un día específico.</p>
+                
+                <div class="mb-4">
+                    <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Fecha</label>
+                    <input type="date" id="fecha_consulta_honorarios" class="inp" value="">
+                </div>
+                
+                <button onclick="consultarHonorarios()" class="btn-fluo w-full py-3 text-[10px] mb-2">Consultar</button>
+                <button onclick="generarPDFDia()" class="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-lg text-[10px] font-black uppercase transition mb-4">📄 PDF del Día</button>
+
+                <div id="resultado_honorarios" class="bg-black/30 p-4 rounded-xl border border-white/5 hidden">
+                    <p class="text-[9px] font-black uppercase text-orange-300 mb-3">Honorarios del día</p>
+                    <div id="lista_honorarios"></div>
+                </div>
+            </div>
+
+            <div class="card p-6 border-l-4 border-[var(--fluo)]">
+                <h2 class="text-[11px] font-black uppercase text-[var(--fluo)] tracking-widest mb-1">Liquidacion Mensual PDF</h2>
+                <p class="text-[9px] opacity-60 mb-4">Genera el PDF de honorarios de un mes para cada profesional.</p>
+
+                <div class="mb-4">
+                    <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Mes</label>
+                    <input type="month" id="mes_liquidacion" class="inp" value="">
+                </div>
+
+                <button onclick="generarLiquidacionPDF()" class="btn-fluo w-full py-3 text-[10px]">📄 Generar PDF Liquidacion</button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="tab-cuentas" class="tab-pane pt-6">
+        <div class="card p-6 border-t-4 border-teal-500">
+            <div class="flex items-center justify-between mb-1">
+                <h2 class="text-[11px] font-black uppercase text-teal-400 tracking-widest">Plan de Cuentas</h2>
+                <button onclick="generarPDFPlanCuentas()" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase transition">📄 Descargar PDF</button>
+            </div>
+            <p class="text-[9px] opacity-60 mb-5">Alimenta la Caja, el Balance y todos los selectores del sistema. Cambios en tiempo real.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <h3 class="text-[9px] font-black uppercase text-[var(--fluo)] border-b border-white/10 pb-2 mb-3">Ingresos</h3>
+                    <div class="flex gap-1 mb-2"><input type="text" id="nuevo_ing" class="inp py-2 text-[10px]" placeholder="Ej: Tratamiento Facial"><button onclick="agregarItem('ingresos','nuevo_ing')" class="btn-ghost px-3 text-[var(--fluo)] font-black rounded">+</button></div>
+                    <div id="lista_ingresos" class="space-y-1"></div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <h3 class="text-[9px] font-black uppercase text-red-400 border-b border-white/10 pb-2 mb-3">Egresos Fijos</h3>
+                    <div class="flex gap-1 mb-2"><input type="text" id="nuevo_egr" class="inp py-2 text-[10px]" placeholder="Ej: Alquiler, Sueldos"><button onclick="agregarItem('egresos','nuevo_egr')" class="btn-ghost px-3 text-red-400 font-black rounded">+</button></div>
+                    <div id="lista_egresos" class="space-y-1"></div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <h3 class="text-[9px] font-black uppercase text-pink-400 border-b border-white/10 pb-2 mb-3">Egresos Variables</h3>
+                    <div class="flex gap-1 mb-2"><input type="text" id="nuevo_egr_var" class="inp py-2 text-[10px]" placeholder="Ej: Insumos, Comisiones"><button onclick="agregarItem('egresosVariables','nuevo_egr_var')" class="btn-ghost px-3 text-pink-400 font-black rounded">+</button></div>
+                    <div id="lista_egresosVariables" class="space-y-1"></div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                    <h3 class="text-[9px] font-black uppercase text-blue-400 border-b border-white/10 pb-2 mb-3">Centros de Costo</h3>
+                    <div class="flex gap-1 mb-2"><input type="text" id="nuevo_cc" class="inp py-2 text-[10px]" placeholder="Ej: Sueros IV, Pellets"><button onclick="agregarItem('centrosCosto','nuevo_cc')" class="btn-ghost px-3 text-blue-400 font-black rounded">+</button></div>
+                    <div id="lista_centrosCosto" class="space-y-1"></div>
+                </div>
+            </div>
+
+            <div class="card p-6 border-l-4 border-emerald-400">
+                <h2 class="text-[11px] font-black uppercase text-emerald-400 tracking-widest mb-4">Medios de Pago y Cuentas</h2>
+                
+                <p class="text-[8px] opacity-60 mb-4">Configura los medios de pago disponibles en Caja. Estos aparecen en selectores de ingresos, egresos y traspasos.</p>
+                
+                <div id="lista_medios_pago" class="space-y-2 mb-4">
+                    </div>
+                
+                <div class="flex gap-2">
+                    <input type="text" id="nuevo_medio_pago" class="inp flex-1" placeholder="Ej: MercadoPago, Cuenta USD">
+                    <button onclick="agregarMedioPago()" class="btn-fluo px-4 text-[10px]">+ Agregar</button>
+                </div>
+                
+                <div class="bg-emerald-900/20 p-3 rounded-lg border border-emerald-500/30 mt-4">
+                    <p class="text-[9px] font-bold text-emerald-300 mb-1">⚙️ Configuración Importante</p>
+                    <p class="text-[8px] opacity-60">Estas cuentas alimentan CAJA, BALANCE y módulos de inversiones. Si eliminas una cuenta que tiene movimientos, esos registros quedarán huérfanos.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="tab-agenda" class="tab-pane pt-6">
+        <div class="space-y-6">
+
+        <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
+
+            <div class="card p-6 border-l-4 border-pink-500">
+                <h2 class="text-[11px] font-black uppercase text-pink-400 tracking-widest mb-4">Espacios de la Clínica</h2>
+
+                <!-- Tabs -->
+                <div class="flex gap-2 mb-4">
+                    <button id="tab_cons_btn" onclick="switchEspacioTab('consultorios')" class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition bg-blue-600 text-white">🏥 Consultorios</button>
+                    <button id="tab_sue_btn"  onclick="switchEspacioTab('sueros')"       class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition bg-white/10 text-white/50">💉 Salas de Suero</button>
+                </div>
+
+                <!-- Lista de espacios -->
+                <div id="lista_espacios" class="space-y-2 mb-4 max-h-[220px] overflow-y-auto scroll pr-1"></div>
+
+                <!-- Botón agregar -->
+                <button id="btn_agregar_espacio" onclick="abrirFormEspacio(null)" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-black text-[10px] uppercase py-2 rounded-lg transition">+ Agregar</button>
+
+                <!-- Formulario inline -->
+                <div id="form_espacio" class="hidden mt-4 bg-black/30 p-4 rounded-xl border border-white/10 space-y-4">
+                    <input type="hidden" id="esp_edit_id">
+                    <input type="hidden" id="esp_tipo">
+
+                    <div id="esp_prof_row">
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Profesional</label>
+                        <select id="esp_profesional" class="inp text-[10px]"><option value="">-- Seleccionar --</option></select>
+                    </div>
+                    <div id="esp_nombre_row" class="hidden">
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Nombre de la sala</label>
+                        <input type="text" id="esp_nombre" class="inp text-[10px]" placeholder="Ej: Sala Suero A">
+                    </div>
+                    <div id="esp_cupos_row" class="hidden">
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Cupos simultáneos</label>
+                        <input type="number" id="esp_cupos" class="inp text-center font-black text-lg" value="4" min="1">
+                    </div>
+
+                    <!-- Horario por día -->
+                    <div>
+                        <label class="text-[8px] font-black uppercase text-[var(--fluo)] block mb-1">Horario por día</label>
+                        <p class="text-[8px] opacity-40 mb-3">Dejá vacío los días que no trabaja. Podés agregar múltiples franjas por día.</p>
+                        <div id="dias_horario_container" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Bloqueos -->
+                    <div>
+                        <label class="text-[8px] font-black uppercase text-red-400 block mb-2">Excepciones / Bloqueos</label>
+                        <div id="esp_bloqueos" class="space-y-1 mb-2"></div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="date" id="esp_bloq_desde"  class="inp text-[10px]">
+                            <input type="date" id="esp_bloq_hasta"  class="inp text-[10px]">
+                            <input type="text" id="esp_bloq_motivo" class="inp text-[10px]" placeholder="Motivo (ej: Vacaciones)">
+                        </div>
+                        <button onclick="agregarBloqEsp()" class="w-full mt-2 bg-red-700 hover:bg-red-600 text-white font-black text-[9px] uppercase py-2 rounded-lg transition">+ Agregar bloqueo</button>
+                    </div>
+
+                    <div class="flex gap-2 pt-2 border-t border-white/10">
+                        <button onclick="guardarEspacio()" class="btn-fluo flex-1 py-2 text-[10px]">💾 Guardar</button>
+                        <button onclick="cerrarFormEspacio()" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase transition">Cancelar</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        </div><!-- /space-y-6 -->
+    </div>
+
+    <div id="tab-accesos" class="tab-pane pt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6 border-l-4 border-white">
+                <h2 class="text-[11px] font-black uppercase tracking-widest mb-1" id="u_titulo">Nuevo Usuario del Sistema</h2>
+                <p class="text-[8px] opacity-40 mb-4" id="u_subtitulo">El email debe existir en Firebase Auth.</p>
+                <input type="hidden" id="u_email_original">
+                <div class="space-y-3 mb-4">
+                    <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Nombre completo</label><input type="text" id="u_nombre" class="inp font-bold"></div>
+                    <div id="u_email_row"><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Email</label><input type="email" id="u_email" class="inp"></div>
+                    <div class="bg-black/30 p-4 rounded-xl border border-white/8">
+                        <p class="text-[9px] font-black uppercase text-[var(--fluo)] mb-3">Modulos habilitados</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="pacientes" class="check-acc perm-cb"> Pacientes</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="stock" class="check-acc perm-cb"> Inventario</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="formulas" class="check-acc perm-cb"> Formulas</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="caja" class="check-acc perm-cb"> Tesoreria</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="balance" class="check-acc perm-cb"> Balance</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="agenda" class="check-acc perm-cb"> Agenda</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="enfermeria" class="check-acc perm-cb"> Enfermeria</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="sueros" class="check-acc perm-cb"> Sueros / Lab</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="legal" class="check-acc perm-cb"> Legal / Consentimientos</label>
+                            <label class="flex items-center gap-2 text-[10px] cursor-pointer p-2 bg-white/5 rounded-lg"><input type="checkbox" value="admin" class="check-acc perm-cb"> Administracion total</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="guardarUsuario()" class="btn-fluo flex-1 py-3 text-[10px]" id="u_btn_guardar">Guardar</button>
+                    <button onclick="cancelarEdicionUsuario()" id="u_btn_cancelar" class="hidden bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-lg text-[10px] font-black uppercase transition">Cancelar</button>
+                </div>
+            </div>
+            <div>
+                <p class="text-[9px] font-bold uppercase tracking-widest opacity-50 mb-3">Usuarios activos</p>
+                <div id="listaUsuarios" class="space-y-2 max-h-[500px] overflow-y-auto scroll pr-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-inversiones" class="tab-pane pt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6 border-l-4 border-green-400">
+                <h2 class="text-[11px] font-black uppercase text-green-400 tracking-widest mb-1">Registrar Inversion / Fondo</h2>
+                <p class="text-[9px] opacity-60 mb-4">FCI, plazo fijo, criptomonedas, inmuebles u otros activos de la sociedad.</p>
+                <div class="space-y-3">
+                    <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Descripcion</label><input type="text" id="inv_desc" class="inp font-bold" placeholder="Ej: FCI Renta Fija - Banco Nacion"></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Tipo</label>
+                            <select id="inv_tipo" class="inp"><option value="FCI">FCI / Fondo Comun</option><option value="Plazo Fijo">Plazo Fijo</option><option value="Criptomonedas">Criptomonedas</option><option value="Acciones">Acciones / ETFs</option><option value="Inmueble">Inmueble</option><option value="Fondo Reserva">Fondo de Reserva</option><option value="Otro">Otro</option></select>
+                        </div>
+                        <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Entidad / Broker</label><input type="text" id="inv_entidad" class="inp" placeholder="Ej: IOL, Lemon..."></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="text-[8px] font-black uppercase text-[var(--fluo)] block mb-1">Capital invertido ($)</label><input type="number" id="inv_capital" class="inp text-xl font-black text-[var(--fluo)] text-center" placeholder="0"></div>
+                        <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Valor actual ($)</label><input type="number" id="inv_valor_actual" class="inp text-xl font-black text-green-400 text-center" placeholder="0"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Fecha inicio</label><input type="date" id="inv_fecha_inicio" class="inp"></div>
+                        <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Vencimiento (si aplica)</label><input type="date" id="inv_fecha_venc" class="inp"></div>
+                    </div>
+                    <div><label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Notas</label><textarea id="inv_notas" class="inp h-16 resize-none" placeholder="Tasa, condiciones..."></textarea></div>
+                    <button onclick="guardarInversion()" class="w-full bg-green-600 hover:bg-green-500 text-white font-black text-[10px] uppercase py-3 rounded-lg transition">Registrar Inversion</button>
+                </div>
+            </div>
+            <div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="kpi"><p class="text-[8px] opacity-50 uppercase font-bold">Capital total</p><p class="text-xl font-black text-[var(--fluo)]" id="kpi_capital">$ 0</p></div>
+                    <div class="kpi"><p class="text-[8px] opacity-50 uppercase font-bold">Valor actual</p><p class="text-xl font-black text-green-400" id="kpi_valor">$ 0</p></div>
+                    <div class="kpi col-span-2"><p class="text-[8px] opacity-50 uppercase font-bold">Rendimiento total</p><p class="text-xl font-black" id="kpi_rend">$ 0 (0%)</p></div>
+                </div>
+                <p class="text-[9px] font-bold uppercase tracking-widest opacity-50 mb-2">Portfolio activo</p>
+                <div id="lista_inversiones" class="space-y-2 max-h-[380px] overflow-y-auto scroll pr-1"><p class="text-center opacity-30 text-xs py-6">Sin inversiones.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-seguridad" class="tab-pane pt-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="card p-6 border-l-4 border-[var(--fluo)] bg-[var(--fluo)]/5">
+                <h2 class="text-[12px] font-black uppercase text-[var(--fluo)] tracking-widest mb-2">Backup y Respaldo</h2>
+                <p class="text-[9px] opacity-70 mb-4">Copia total de todos los datos: pacientes, caja, stock, formulas, turnos y configuracion.</p>
+                <button onclick="descargarBackup()" id="btnBackup" class="btn-fluo w-full py-4 rounded-xl text-[10px] mb-3">Descargar Backup Completo (.json)</button>
+                <p class="text-[8px] opacity-40 text-center">Recomendado: backup semanal. Guardalo en lugar seguro (Drive, disco externo).</p>
+            </div>
+
+            <!-- ANÁLISIS DE PERFILES (export para IA) -->
+            <div class="card p-6 border-l-4 border-blue-400 bg-blue-900/10">
+                <h2 class="text-[12px] font-black uppercase text-blue-300 tracking-widest mb-2">🤖 Análisis de Perfiles (para IA)</h2>
+                <p class="text-[9px] opacity-70 mb-4 leading-relaxed">
+                    Exporta los perfiles relacionales (etiquetas, observaciones, notas) para procesarlos con una IA como ChatGPT o Claude y detectar patrones de comportamiento.
+                </p>
+
+                <div class="bg-amber-900/20 border border-amber-500/30 rounded-lg p-3 mb-4">
+                    <p class="text-[9px] text-amber-200 leading-relaxed">
+                        ⚠️ <b>Importante (Ley 25.326):</b> los archivos con nombres son <b>confidenciales</b>. Solo subí a la IA el archivo ANÓNIMO. La tabla de equivalencias guardala solo vos, para identificar después.
+                    </p>
+                </div>
+
+                <button onclick="window.exportarPerfilesConNombres()" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-400/40 w-full py-3 rounded-lg text-[10px] font-bold uppercase mb-2 transition">
+                    📋 Con nombres (uso interno)
+                </button>
+                <button onclick="window.exportarPerfilesAnonimo()" class="bg-green-500/20 hover:bg-green-500/30 text-green-200 border border-green-400/40 w-full py-3 rounded-lg text-[10px] font-bold uppercase mb-2 transition">
+                    🤖 Anonimizado (para IA)
+                </button>
+                <button onclick="window.exportarTablaEquivalencias()" class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-400/40 w-full py-3 rounded-lg text-[10px] font-bold uppercase transition">
+                    🔑 Tabla de equivalencias (solo para vos)
+                </button>
+            </div>
+
+            <!-- Panel informativo: gestión de datos en producción -->
+            <div class="card p-6 border-l-4 border-blue-400 bg-blue-900/10">
+                <h2 class="text-[12px] font-black uppercase text-blue-300 tracking-widest mb-2">📘 Gestión de datos en producción</h2>
+                <p class="text-[9px] opacity-70 mb-4 leading-relaxed">
+                    Si alguna vez necesitás <b>borrar o restaurar datos</b>, acá tenés el manual paso a paso.
+                    Las funciones de borrado masivo desde Admin se eliminaron por seguridad (C2 — Fase 0).
+                </p>
+
+                <!-- ⚠️ ANTES DE TOCAR NADA -->
+                <div class="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                    <p class="text-[10px] font-black text-yellow-300 mb-1">⚠️ ANTES DE TOCAR NADA — Descargá un backup</p>
+                    <p class="text-[9px] opacity-80 leading-relaxed">
+                        Hacé click arriba en <b>"Descargar Backup Completo"</b> y guardá el .json en lugar seguro (Drive, disco externo).
+                        Si te equivocás en algún borrado, ese archivo es tu salvavidas.
+                    </p>
+                </div>
+
+                <!-- ───── OPCIÓN 1 ───── -->
+                <details class="bg-black/30 p-3 rounded-lg border border-blue-400/20 mb-3 group">
+                    <summary class="cursor-pointer text-[10px] font-black text-blue-300 hover:text-blue-200 list-none flex justify-between items-center">
+                        <span>1) Borrar UN documento puntual</span>
+                        <span class="text-[14px] group-open:hidden">▸</span>
+                        <span class="text-[14px] hidden group-open:inline">▾</span>
+                    </summary>
+                    <div class="mt-3 text-[9px] opacity-90 leading-relaxed space-y-2">
+                        <p class="italic opacity-70">📌 Casos típicos: borrar un paciente cargado por error, un movimiento de caja duplicado, un turno mal cargado, un consentimiento que se firmó mal.</p>
+
+                        <p class="font-bold text-blue-200 mt-3">Pasos:</p>
+                        <ol class="list-decimal pl-5 space-y-1.5">
+                            <li>Abrí <a href="https://console.firebase.google.com/project/sanalys-2263e/firestore/data" target="_blank" rel="noopener noreferrer" class="underline text-blue-200 hover:text-blue-100">Firebase Console → Firestore Database</a> (link directo).</li>
+                            <li>Si te pide login, usá <code class="bg-black/50 px-1 rounded">sanalys.sf@gmail.com</code> (es la cuenta dueña del proyecto).</li>
+                            <li>En el panel del medio (columna "usuarios", "pacientes", "caja", etc.) buscá la colección donde está el doc. Por ejemplo, para borrar un paciente → click en <b>"pacientes"</b>.</li>
+                            <li>Se abre la columna de la derecha con la lista de documentos. Cada documento tiene un ID (a veces es un mail, a veces un código aleatorio).</li>
+                            <li>Hacé click en el doc que querés borrar. Se abre el panel más a la derecha con los campos del documento. <b>Verificá visualmente que sea el correcto</b> (mirá nombre, DNI, fecha, lo que corresponda).</li>
+                            <li>Arriba a la derecha de ese panel hay un menú <b>⋮</b> (tres puntos verticales) → click → <b>"Eliminar documento"</b>.</li>
+                            <li>Te pide confirmación → <b>"Eliminar"</b>. Listo, el doc se borra para siempre.</li>
+                        </ol>
+
+                        <div class="bg-yellow-900/20 border border-yellow-500/20 rounded p-2 mt-3">
+                            <p class="text-yellow-200"><b>⚠️ Cuidado:</b> es irreversible. No hay papelera de reciclaje. Por eso descargá un backup ANTES.</p>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- ───── OPCIÓN 2 ───── -->
+                <details class="bg-black/30 p-3 rounded-lg border border-orange-400/20 mb-3 group">
+                    <summary class="cursor-pointer text-[10px] font-black text-orange-300 hover:text-orange-200 list-none flex justify-between items-center">
+                        <span>2) Borrar una COLECCIÓN entera</span>
+                        <span class="text-[14px] group-open:hidden">▸</span>
+                        <span class="text-[14px] hidden group-open:inline">▾</span>
+                    </summary>
+                    <div class="mt-3 text-[9px] opacity-90 leading-relaxed space-y-2">
+                        <p class="italic opacity-70">📌 Casos típicos: querés vaciar TODA la caja (todos los movimientos), TODOS los turnos, TODOS los leads. Raro pero puede pasar al inicio del año fiscal o al empezar con datos reales.</p>
+
+                        <p class="font-bold text-orange-200 mt-3">Pasos:</p>
+                        <ol class="list-decimal pl-5 space-y-1.5">
+                            <li>Abrí <a href="https://console.firebase.google.com/project/sanalys-2263e/firestore/data" target="_blank" rel="noopener noreferrer" class="underline text-orange-200 hover:text-orange-100">Firebase Console → Firestore Database</a>.</li>
+                            <li>Si te pide login → <code class="bg-black/50 px-1 rounded">sanalys.sf@gmail.com</code>.</li>
+                            <li>En la columna del medio, hacé click en el <b>nombre de la colección</b> que querés vaciar (ejemplo: "caja").</li>
+                            <li>Arriba de la columna donde aparece la lista de docs, vas a ver un ícono de <b>⋮</b> (tres puntos verticales) al lado del nombre de la colección → click.</li>
+                            <li>Aparece un menú desplegable → <b>"Eliminar colección"</b>.</li>
+                            <li>Te abre un popup que dice: <i>"Para confirmar, escribí el nombre de la colección"</i>. Escribilo exactamente igual a como se ve (ejemplo: <code class="bg-black/50 px-1 rounded">caja</code>).</li>
+                            <li>Click en <b>"Eliminar"</b>. Firebase puede tardar unos segundos si hay muchos documentos.</li>
+                            <li>Volvé a Sanalys, refrescá con Ctrl+Shift+R y verificá que la colección esté vacía.</li>
+                        </ol>
+
+                        <div class="bg-red-900/20 border border-red-500/30 rounded p-2 mt-3">
+                            <p class="text-red-200"><b>🚨 IRREVERSIBLE</b>. No se puede deshacer. Si no estás 100% segura, descargá un backup PRIMERO.</p>
+                        </div>
+
+                        <p class="opacity-60 italic mt-2">Tip: las colecciones <code class="bg-black/50 px-1 rounded">usuarios</code>, <code class="bg-black/50 px-1 rounded">config</code>, <code class="bg-black/50 px-1 rounded">auditoria</code> y <code class="bg-black/50 px-1 rounded">personas</code> <b>jamás</b> deberían borrarse — son la columna vertebral del sistema.</p>
+                    </div>
+                </details>
+
+                <!-- ───── OPCIÓN 3 ───── -->
+                <details class="bg-black/30 p-3 rounded-lg border border-green-400/20 mb-3 group">
+                    <summary class="cursor-pointer text-[10px] font-black text-green-300 hover:text-green-200 list-none flex justify-between items-center">
+                        <span>3) Restaurar datos desde un backup .json</span>
+                        <span class="text-[14px] group-open:hidden">▸</span>
+                        <span class="text-[14px] hidden group-open:inline">▾</span>
+                    </summary>
+                    <div class="mt-3 text-[9px] opacity-90 leading-relaxed space-y-2">
+                        <p class="italic opacity-70">📌 Casos típicos: borraste algo por error y descargaste un backup ayer. Necesitás recuperar UN dato o TODO.</p>
+
+                        <p class="font-bold text-green-200 mt-3">🅰️ Recuperar UN dato puntual (manual, muy fácil)</p>
+                        <ol class="list-decimal pl-5 space-y-1.5">
+                            <li>Abrí el archivo <code class="bg-black/50 px-1 rounded">Sanalys_Backup_AAAA-MM-DD.json</code> con el Bloc de Notas (click derecho → Abrir con → Bloc de notas) o con VS Code.</li>
+                            <li>Apretá <b>Ctrl+F</b> para buscar. Buscá por nombre, DNI o un campo que te ayude a identificar el doc que perdiste.</li>
+                            <li>Cuando lo encuentres, vas a ver un bloque JSON con todos sus campos. Anotá los valores en un papel.</li>
+                            <li>Abrí <a href="https://console.firebase.google.com/project/sanalys-2263e/firestore/data" target="_blank" rel="noopener noreferrer" class="underline text-green-200">Firebase Console</a> → entrá a la colección correspondiente → <b>"Agregar documento"</b>.</li>
+                            <li>Pegá los campos uno por uno con los valores que anotaste.</li>
+                        </ol>
+
+                        <p class="font-bold text-green-200 mt-4">🅱️ Restauración masiva (varios datos o todo)</p>
+                        <p>Esto requiere un script Python de 20 líneas que lee tu .json y lo sube a Firestore. Lo escribimos en el momento.</p>
+                        <ol class="list-decimal pl-5 space-y-1.5 mt-2">
+                            <li>Tené a mano: el archivo .json del backup y la versión actual de PowerShell abierta en la carpeta <code class="bg-black/50 px-1 rounded">sanalys-v2</code>.</li>
+                            <li>Contactá soporte técnico (o usá Claude) y mencioná: <i>"necesito restaurar de un backup .json a Firestore del proyecto sanalys-2263e"</i>.</li>
+                            <li>Te pasan un script <code class="bg-black/50 px-1 rounded">restaurar.py</code> + un comando para correrlo. Toma unos 5 minutos en total.</li>
+                        </ol>
+
+                        <div class="bg-blue-900/20 border border-blue-500/20 rounded p-2 mt-3">
+                            <p class="text-blue-200"><b>💡 Importante:</b> los backups que descargás con el botón de arriba contienen <b>todos los datos</b> (excepto subcolecciones de pacientes). Es tu seguro de vida — descargá uno por semana mínimo y guardalos en Drive/disco externo.</p>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- ───── CHECKLIST PARA PRODUCCIÓN ───── -->
+                <details class="bg-black/30 p-3 rounded-lg border border-teal-400/20 mb-3 group">
+                    <summary class="cursor-pointer text-[10px] font-black text-teal-300 hover:text-teal-200 list-none flex justify-between items-center">
+                        <span>✅ Checklist antes de salir a producción</span>
+                        <span class="text-[14px] group-open:hidden">▸</span>
+                        <span class="text-[14px] hidden group-open:inline">▾</span>
+                    </summary>
+                    <div class="mt-3 text-[9px] opacity-90 leading-relaxed space-y-2">
+                        <p class="italic opacity-70">📌 Cosas a revisar/configurar antes del uso real, mientras el sistema está en etapa de prueba.</p>
+
+                        <p class="font-bold text-teal-200 mt-3">PERMISOS DE USUARIOS</p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li>Revisar los permisos de cada usuaria en <b>Admin → Usuarios</b>. En prueba se asignaron permisos amplios; ajustar a lo que cada una realmente necesita.</li>
+                            <li><b>Permiso "admin" (Administración):</b> dáselo SOLO a quien deba configurar el sistema y crear usuarios. Si una socia no debe tocar la configuración, sacale el permiso "admin".</li>
+                            <li>Definir si las socias necesitan <b>enfermería, sueros, legal y leads</b> (hoy no los tienen marcados).</li>
+                            <li>Revisar si el usuario <b>socia@sanalys.com</b> es real o de prueba. Si es de prueba, desactivarlo o borrarlo (menos cuentas admin = más seguro).</li>
+                        </ul>
+
+                        <p class="font-bold text-teal-200 mt-3">SEGURIDAD (en Firebase Console)</p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li><b>Política de contraseñas:</b> activar en Firebase Console → Authentication → Settings → Password policy (mín. 8 caracteres + 1 número).</li>
+                            <li>Considerar activar <b>2FA</b> (verificación en 2 pasos) para las cuentas admin.</li>
+                            <li><b>Firebase Storage (subir estudios PDF):</b> hoy la subida de archivos a pacientes está deshabilitada porque Storage no está activo (da error CORS). Activar Storage en Firebase Console (puede requerir plan Blaze). Una vez activo, reactivar el formulario de subida en la pestaña Archivos del paciente.</li>
+                        </ul>
+
+                        <p class="font-bold text-teal-200 mt-3">DATOS</p>
+                        <ul class="list-disc pl-5 space-y-1.5">
+                            <li>Antes del uso real, revisar que no queden <b>datos de prueba</b> cargados (pacientes, movimientos de caja, turnos ficticios).</li>
+                            <li>Verificar el <b>monto máximo por operación</b> (config de honorarios) según los valores reales actuales.</li>
+                        </ul>
+
+                        <p class="text-teal-200/70 italic mt-3">💡 Esta lista es un recordatorio. Tachá mentalmente cada punto a medida que lo configures.</p>
+                    </div>
+                </details>
+
+                <!-- ───── GESTIÓN DE USUARIOS ───── -->
+                <details class="bg-black/30 p-3 rounded-lg border border-purple-400/20 mb-3 group">
+                    <summary class="cursor-pointer text-[10px] font-black text-purple-300 hover:text-purple-200 list-none flex justify-between items-center">
+                        <span>👥 Cómo crear y gestionar usuarios</span>
+                        <span class="text-[14px] group-open:hidden">▸</span>
+                        <span class="text-[14px] hidden group-open:inline">▾</span>
+                    </summary>
+                    <div class="mt-3 text-[9px] opacity-90 leading-relaxed space-y-2">
+                        <p class="italic opacity-70">📌 Los usuarios se crean en 2 pasos: primero la cuenta de acceso (Firebase), después sus permisos (acá en el sistema).</p>
+
+                        <p class="font-bold text-purple-200 mt-3">PASO 1 — Crear la cuenta de acceso (una sola vez por persona)</p>
+                        <ol class="list-decimal pl-5 space-y-1.5">
+                            <li>Abrí <a href="https://console.firebase.google.com/project/sanalys-2263e/authentication/users" target="_blank" rel="noopener noreferrer" class="underline text-purple-200">Firebase Console → Authentication</a> (link directo).</li>
+                            <li>Si pide login, usá <code class="bg-black/50 px-1 rounded">sanalys.sf@gmail.com</code> (cuenta dueña).</li>
+                            <li>Click en <b>"Agregar usuario"</b> (botón arriba a la derecha).</li>
+                            <li>Escribí el <b>email</b> de la persona y una <b>contraseña</b> inicial (mínimo 6 caracteres).</li>
+                            <li>✍️ <b>Anotá esa contraseña</b> para dársela a la persona. Ella puede cambiarla después.</li>
+                            <li>Click en <b>"Agregar usuario"</b>. Listo, ya tiene cuenta de acceso.</li>
+                        </ol>
+
+                        <p class="font-bold text-purple-200 mt-3">PASO 2 — Darle permisos (acá en el sistema)</p>
+                        <ol class="list-decimal pl-5 space-y-1.5">
+                            <li>Andá a la pestaña <b>Usuarios</b> de este panel de Admin.</li>
+                            <li>Click en <b>"Nuevo Usuario"</b>.</li>
+                            <li>Escribí el <b>mismo email</b> que usaste en el Paso 1 (tiene que coincidir exactamente).</li>
+                            <li>Escribí el <b>nombre</b> de la persona.</li>
+                            <li>Marcá los <b>módulos</b> que puede usar (Pacientes, Caja, Agenda, etc.). Marcá solo los que necesita para su trabajo.</li>
+                            <li>Click en <b>"Guardar"</b>. La persona ya puede entrar con su email + contraseña y verá solo los módulos que le marcaste.</li>
+                        </ol>
+
+                        <div class="bg-purple-900/20 border border-purple-500/20 rounded p-2 mt-3">
+                            <p class="text-purple-200"><b>💡 Permiso "Administración total":</b> dáselo SOLO a quien deba tener control completo (crear usuarios, ver balance, configurar todo). El resto del personal: marcá solo sus módulos de trabajo.</p>
+                        </div>
+
+                        <p class="font-bold text-purple-200 mt-3">Para DESACTIVAR un usuario (ej: alguien que se va)</p>
+                        <ol class="list-decimal pl-5 space-y-1.5">
+                            <li>En la pestaña Usuarios, buscá a la persona y editá su ficha → desmarcá todos los permisos o ponela como inactiva.</li>
+                            <li>Para bloquear el acceso por completo: <a href="https://console.firebase.google.com/project/sanalys-2263e/authentication/users" target="_blank" rel="noopener noreferrer" class="underline text-purple-200">Firebase Console → Authentication</a> → buscá su email → menú ⋮ → <b>"Inhabilitar cuenta"</b> (o "Borrar").</li>
+                        </ol>
+
+                        <p class="font-bold text-purple-200 mt-3">Si un usuario olvidó su contraseña</p>
+                        <ol class="list-decimal pl-5 space-y-1.5">
+                            <li><a href="https://console.firebase.google.com/project/sanalys-2263e/authentication/users" target="_blank" rel="noopener noreferrer" class="underline text-purple-200">Firebase Console → Authentication</a> → buscá su email.</li>
+                            <li>Menú ⋮ → <b>"Borrar usuario"</b>, después <b>"Agregar usuario"</b> con el mismo email y una contraseña nueva.</li>
+                            <li>✍️ Anotá la contraseña nueva y dásela. Sus permisos en el sistema NO se pierden (están guardados aparte).</li>
+                        </ol>
+                    </div>
+                </details>
+
+                <!-- ───── INFO TÉCNICA ───── -->
+                <details class="bg-black/30 p-3 rounded-lg border border-gray-500/20 group">
+                    <summary class="cursor-pointer text-[10px] font-black text-gray-300 hover:text-gray-200 list-none flex justify-between items-center">
+                        <span>ℹ️ Información técnica útil</span>
+                        <span class="text-[14px] group-open:hidden">▸</span>
+                        <span class="text-[14px] hidden group-open:inline">▾</span>
+                    </summary>
+                    <div class="mt-3 text-[9px] opacity-80 leading-relaxed space-y-2">
+                        <p><b>Proyecto Firebase:</b> <code class="bg-black/50 px-1 rounded">sanalys-2263e</code></p>
+                        <p><b>Cuenta dueña:</b> <code class="bg-black/50 px-1 rounded">sanalys.sf@gmail.com</code></p>
+                        <p><b>Acceso a la consola:</b> <a href="https://console.firebase.google.com/project/sanalys-2263e/overview" target="_blank" rel="noopener noreferrer" class="underline text-blue-300">console.firebase.google.com/project/sanalys-2263e</a></p>
+                        <p><b>Acceso a Firestore directo:</b> <a href="https://console.firebase.google.com/project/sanalys-2263e/firestore/data" target="_blank" rel="noopener noreferrer" class="underline text-blue-300">link directo a la base de datos</a></p>
+                        <p class="mt-2"><b>Auditoría de operaciones:</b> todo lo que hagas en Firebase Console queda registrado por Google (en GCP → IAM & Admin → Audit Logs). Si alguna vez hay duda de quién hizo qué, ese log es la fuente de verdad.</p>
+                        <p class="mt-2 italic opacity-70">Si te trabaste o no te sale algo, no entres en pánico: el backup descargado tiene todo, siempre se puede volver atrás.</p>
+                    </div>
+                </details>
+
+            </div>
+        </div>
+
+        <div class="card p-6 border-t-4 border-gray-500">
+            <h2 class="text-[12px] font-black uppercase text-gray-300 tracking-widest mb-1">Caja Negra del Sistema</h2>
+            <p class="text-[9px] opacity-60 mb-4">Registro de todas las acciones criticas: anulaciones, formateos, cambios de configuracion.</p>
+            <div class="bg-black/40 rounded-xl border border-white/5 overflow-x-auto">
+                <table class="w-full text-left text-[10px] uppercase">
+                    <thead class="opacity-50 border-b border-white/10"><tr><th class="p-3">Fecha y Hora</th><th class="p-3">Usuario</th><th class="p-3 text-red-400">Accion</th><th class="p-3">Detalle</th></tr></thead>
+                    <tbody id="listaAuditoria"><tr><td colspan="4" class="text-center py-8 opacity-30 italic">Cargando...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-sistema" class="tab-pane pt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <div class="card p-6 border-l-4 border-blue-400">
+                <h2 class="text-[11px] font-black uppercase text-blue-400 tracking-widest mb-4">Modulos y Funcionalidades</h2>
+                
+                <div class="space-y-3">
+                    <label class="flex items-start gap-3 cursor-pointer bg-white/5 p-4 rounded-lg border border-white/8 hover:border-blue-400/40 transition">
+                        <input type="checkbox" id="cfg_consentimientos" class="check-acc mt-1">
+                        <div class="flex-1">
+                            <p class="text-[10px] font-black text-white">Consentimientos Informados Digitales</p>
+                            <p class="text-[8px] opacity-50 mt-0.5">Habilita el modulo de consentimientos con firma digital. Al activarlo aparecera en el menu principal.</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-3 cursor-pointer bg-white/5 p-4 rounded-lg border border-white/8 hover:border-blue-400/40 transition">
+                        <input type="checkbox" id="cfg_trazabilidad_lotes" class="check-acc mt-1">
+                        <div class="flex-1">
+                            <p class="text-[10px] font-black text-white">Trazabilidad de Lotes (Stock)</p>
+                            <p class="text-[8px] opacity-50 mt-0.5">Obliga a cargar numero de lote en cada insumo para trazabilidad completa.</p>
+                        </div>
+                    </label>
+                </div>
+
+                <button onclick="guardarFuncionalidades()" class="btn-fluo w-full py-3 mt-4 text-[10px]">Guardar Configuracion</button>
+            </div>
+
+            <div class="card p-6 border-l-4 border-green-400">
+                <h2 class="text-[11px] font-black uppercase text-green-400 tracking-widest mb-4">Recordatorios Automaticos</h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Texto del recordatorio</label>
+                        <textarea id="cfg_recordatorio_texto" class="inp h-24 resize-none text-[10px]" placeholder="Ej: Hola {NOMBRE}! Te recordamos tu turno mañana {FECHA} a las {HORA}hs en Sanalys."></textarea>
+                        <p class="text-[8px] opacity-40 mt-1">Variables: {NOMBRE}, {FECHA}, {HORA}, {SALA}</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Hora de envio</label>
+                            <select id="cfg_recordatorio_hora" class="inp">
+                                <option value="18">18:00 hs</option>
+                                <option value="19">19:00 hs</option>
+                                <option value="20">20:00 hs</option>
+                                <option value="21">21:00 hs</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Horas antes</label>
+                            <select id="cfg_recordatorio_anticipacion" class="inp">
+                                <option value="24">24 horas (dia anterior)</option>
+                                <option value="48">48 horas (2 dias antes)</option>
+                                <option value="72">72 horas (3 dias antes)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="guardarRecordatorios()" class="btn-fluo w-full py-3 mt-4 text-[10px]">Guardar Configuracion</button>
+            </div>
+
+            <div class="card p-6 border-l-4 border-cyan-400 mb-6">
+                <h2 class="text-[11px] font-black uppercase text-cyan-400 tracking-widest mb-4">Tipos de Tratamiento</h2>
+                
+                <p class="text-[8px] opacity-60 mb-4">Configura los tipos de tratamiento que aparecen en el selector de consentimientos. Podes agregar, editar o eliminar segun tus necesidades.</p>
+                
+                <div id="lista_tipos_tratamiento" class="space-y-2 mb-4">
+                    </div>
+                
+                <div class="flex gap-2">
+                    <input type="text" id="nuevo_tipo_tratamiento" class="inp flex-1" placeholder="Ej: Plasma Rico en Plaquetas">
+                    <button onclick="agregarTipoTratamiento()" class="btn-fluo px-4 text-[10px]">+ Agregar</button>
+                </div>
+            </div>
+
+            <div class="card p-6 border-l-4 border-pink-400">
+                <h2 class="text-[11px] font-black uppercase text-pink-400 tracking-widest mb-4">Textos Consentimientos</h2>
+                <div class="space-y-3">
+                    <p class="text-[8px] opacity-60">Edita los textos predefinidos que aparecen al crear consentimientos. Quedan guardados para todo el equipo. Si el campo queda vacio, el area de texto queda en blanco para escribir en el momento.</p>
+                    <div id="contenedor_textos_cons" class="space-y-4">
+                        <p class="text-[9px] opacity-40 text-center py-4">Cargando tipos de tratamiento...</p>
+                    </div>
+                </div>
+                <button onclick="guardarTextosConsentimiento()" class="btn-fluo w-full py-3 mt-4 text-[10px]">Guardar Textos</button>
+            </div>
+
+            <div class="card p-6 border-l-4 border-yellow-400">
+                <h2 class="text-[11px] font-black uppercase text-yellow-400 tracking-widest mb-4">Archivado Automatico</h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Archivar pacientes inactivos despues de:</label>
+                        <select id="cfg_archivo_meses" class="inp">
+                            <option value="0">Desactivado (no archivar)</option>
+                            <option value="6">6 meses sin visita</option>
+                            <option value="12">12 meses sin visita</option>
+                            <option value="18">18 meses sin visita</option>
+                            <option value="24">24 meses sin visita</option>
+                        </select>
+                        <p class="text-[8px] opacity-40 mt-1">Los pacientes archivados no aparecen en busquedas pero se pueden restaurar desde Admin.</p>
+                    </div>
+
+                    <div class="bg-yellow-900/20 p-3 rounded-lg border border-yellow-500/30">
+                        <p class="text-[9px] font-bold text-yellow-300 mb-1">Estadisticas</p>
+                        <p class="text-[8px] opacity-60">Pacientes archivados: <span id="stats_archivados" class="font-black text-white">0</span></p>
+                        <p class="text-[8px] opacity-60">Activos totales: <span id="stats_activos" class="font-black text-white">0</span></p>
+                    </div>
+                </div>
+
+                <button onclick="guardarArchivado()" class="btn-fluo w-full py-3 mt-4 text-[10px]">Guardar Configuracion</button>
+            </div>
+
+
+
+
+
+            <div class="card p-6 border-l-4 border-purple-400">
+                <h2 class="text-[11px] font-black uppercase text-purple-400 tracking-widest mb-4">Datos de la Clinica</h2>
+                
+                <div class="space-y-3">
+                    <p class="text-[8px] opacity-60">Esta info aparece en PDFs, consentimientos y documentos oficiales.</p>
+                    
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Nombre completo</label>
+                        <input type="text" id="cfg_clinica_nombre" class="inp" placeholder="Ej: Sanalys Clinica Ortomolecular">
+                    </div>
+                    
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Direccion completa</label>
+                        <input type="text" id="cfg_clinica_direccion" class="inp" placeholder="Ej: Brasil 800, Capital Federal">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Telefono / WhatsApp</label>
+                            <input type="text" id="cfg_clinica_tel" class="inp" placeholder="342-...">
+                        </div>
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Email</label>
+                            <input type="email" id="cfg_clinica_email" class="inp" placeholder="info@...">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Instagram</label>
+                            <input type="text" id="cfg_clinica_instagram" class="inp" placeholder="@sanalys.sf">
+                        </div>
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Sitio web</label>
+                            <input type="text" id="cfg_clinica_web" class="inp" placeholder="sanalys.com.ar">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Facebook</label>
+                            <input type="text" id="cfg_clinica_facebook" class="inp" placeholder="facebook.com/sanalys">
+                        </div>
+                        <div>
+                            <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">TikTok</label>
+                            <input type="text" id="cfg_clinica_tiktok" class="inp" placeholder="@sanalys">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Slogan / Descripcion corta (opcional)</label>
+                        <input type="text" id="cfg_clinica_slogan" class="inp" placeholder="Ej: La ciencia de estar bien.">
+                    </div>
+                </div>
+
+                <button onclick="guardarDatosClinica()" class="btn-fluo w-full py-3 mt-4 text-[10px]">Guardar Datos</button>
+            </div>
+
+            <!-- MENSAJES DEL SISTEMA -->
+            <div class="card p-6 border-l-4 border-green-400 col-span-full">
+                <div class="flex items-center justify-between mb-1">
+                    <h2 class="text-[11px] font-black uppercase text-green-400 tracking-widest">Mensajes del Sistema</h2>
+                    <div class="flex gap-2">
+                        <button onclick="restaurarMensajesDefault()" class="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase transition">↺ Restaurar defaults</button>
+                        <button onclick="guardarMensajes()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase transition">💾 Guardar todos</button>
+                    </div>
+                </div>
+                <p class="text-[9px] opacity-60 mb-5">Editá el texto de cada mensaje que el sistema envía por WhatsApp. Usá las variables disponibles — se reemplazan automáticamente al enviar.</p>
+
+                <!-- Variables disponibles -->
+                <div class="bg-black/30 border border-white/10 rounded-xl p-4 mb-5">
+                    <p class="text-[8px] font-black uppercase text-green-300 mb-2">Variables disponibles</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[9px] bg-green-900/30 border border-green-500/30 text-green-300 px-2 py-1 rounded font-mono">{nombre}</span>
+                        <span class="text-[9px] bg-green-900/30 border border-green-500/30 text-green-300 px-2 py-1 rounded font-mono">{fecha}</span>
+                        <span class="text-[9px] bg-green-900/30 border border-green-500/30 text-green-300 px-2 py-1 rounded font-mono">{hora}</span>
+                        <span class="text-[9px] bg-green-900/30 border border-green-500/30 text-green-300 px-2 py-1 rounded font-mono">{servicio}</span>
+                        <span class="text-[9px] bg-green-900/30 border border-green-500/30 text-green-300 px-2 py-1 rounded font-mono">{tratamiento}</span>
+                        <span class="text-[9px] bg-green-900/30 border border-green-500/30 text-green-300 px-2 py-1 rounded font-mono">{clinica}</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/8">
+                        <p class="text-[9px] font-black uppercase text-green-300 mb-1">📅 Confirmación de turno</p>
+                        <p class="text-[8px] opacity-40 mb-2">Se envía al agendar un turno nuevo · Variables: {nombre} {fecha} {hora} {servicio}</p>
+                        <textarea id="msg_confirmacion_turno" class="inp text-[10px] leading-relaxed" style="height:120px;resize:none"></textarea>
+                    </div>
+
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/8">
+                        <p class="text-[9px] font-black uppercase text-green-300 mb-1">🔔 Recordatorio de turno</p>
+                        <p class="text-[8px] opacity-40 mb-2">Se envía desde la tarjeta del turno · Variables: {nombre} {fecha} {hora} {servicio}</p>
+                        <textarea id="msg_recordatorio_turno" class="inp text-[10px] leading-relaxed" style="height:120px;resize:none"></textarea>
+                    </div>
+
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/8">
+                        <p class="text-[9px] font-black uppercase text-green-300 mb-1">💤 Paciente inactivo</p>
+                        <p class="text-[8px] opacity-40 mb-2">Se envía desde el panel de inactivos · Variables: {nombre} {clinica}</p>
+                        <textarea id="msg_inactivo" class="inp text-[10px] leading-relaxed" style="height:120px;resize:none"></textarea>
+                    </div>
+
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/8">
+                        <p class="text-[9px] font-black uppercase text-green-300 mb-1">🎂 Cumpleaños</p>
+                        <p class="text-[8px] opacity-40 mb-2">Se envía el día del cumpleaños · Variables: {nombre} {clinica}</p>
+                        <textarea id="msg_cumpleanos" class="inp text-[10px] leading-relaxed" style="height:120px;resize:none"></textarea>
+                    </div>
+
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/8 lg:col-span-2">
+                        <p class="text-[9px] font-black uppercase text-green-300 mb-1">📋 Consentimiento firmado</p>
+                        <p class="text-[8px] opacity-40 mb-2">Se envía desde Legal después de guardar · Variables: {nombre} {tratamiento} {clinica}</p>
+                        <textarea id="msg_consentimiento" class="inp text-[10px] leading-relaxed" style="height:100px;resize:none"></textarea>
+                    </div>
+
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/8 lg:col-span-2">
+                        <p class="text-[9px] font-black uppercase text-green-300 mb-1">🎁 Gift Card — Cumpleaños próximo</p>
+                        <p class="text-[8px] opacity-40 mb-2">Se envía desde Index cuando el cumpleaños es en los próximos 7 días · Variables: {nombre} {clinica}</p>
+                        <textarea id="msg_gift_card" class="inp text-[10px] leading-relaxed" style="height:100px;resize:none"></textarea>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TAB ANÁLISIS DE PACIENTES (dashboard de patrones del módulo Perfil) -->
+    <div id="tab-analisis" class="tab-pane pt-6" style="display:none">
+        <div class="space-y-6">
+
+            <!-- Encabezado + botón refrescar -->
+            <div class="flex items-center justify-between mb-2">
+                <div>
+                    <h2 class="text-[14px] font-black uppercase tracking-widest text-blue-300">📊 Análisis de Pacientes</h2>
+                    <p class="text-[9px] opacity-60 mt-1">Patrones detectados en los perfiles relacionales y la bitácora. Datos en vivo.</p>
+                </div>
+                <button onclick="window.cargarAnalisisPacientes()" class="bg-blue-500 hover:bg-blue-400 text-white text-[10px] font-bold uppercase px-4 py-2 rounded-lg transition">🔄 Actualizar</button>
+            </div>
+
+            <!-- Estado vacío / cargando -->
+            <div id="analisisLoader" class="text-center opacity-50 italic text-[11px] py-8">
+                Hacé click en "Actualizar" para calcular los patrones.
+            </div>
+
+            <!-- Contenedor que se llena con los 5 bloques -->
+            <div id="analisisContenido" class="hidden space-y-6">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <!-- 🔝 Top 5 etiquetas -->
+                    <div class="card p-6 border-l-4 border-blue-400 bg-blue-900/10">
+                        <h3 class="text-[11px] font-black uppercase text-blue-300 tracking-widest mb-3">🔝 Top etiquetas más frecuentes</h3>
+                        <div id="topEtiquetas" class="space-y-2"></div>
+                    </div>
+
+                    <!-- ⚠️ Quejas del mes -->
+                    <div class="card p-6 border-l-4 border-amber-400 bg-amber-900/10">
+                        <h3 class="text-[11px] font-black uppercase text-amber-300 tracking-widest mb-1">⚠️ Quejas del mes</h3>
+                        <p id="quejasPeriodoLabel" class="text-[9px] opacity-60 italic mb-3"></p>
+                        <div id="quejasMes" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <!-- 📍 Canales de captación (full width para el gráfico de barras) -->
+                <div class="card p-6 border-l-4 border-purple-400 bg-purple-900/10">
+                    <h3 class="text-[11px] font-black uppercase text-purple-300 tracking-widest mb-3">📍 Canales de captación</h3>
+                    <div id="canalesCaptacion" class="space-y-2"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <!-- 🚨 Pacientes con alerta destacada -->
+                    <div class="card p-6 border-l-4 border-red-400 bg-red-900/10">
+                        <h3 class="text-[11px] font-black uppercase text-red-300 tracking-widest mb-3">🚨 Pacientes con alerta destacada</h3>
+                        <p class="text-[8px] opacity-60 italic mb-2">Click en cada nombre para abrir su ficha.</p>
+                        <div id="pacientesAlerta" class="space-y-2 max-h-[300px] overflow-y-auto custom-scroll pr-2"></div>
+                    </div>
+
+                    <!-- 📅 Sin entrada hace +3 meses -->
+                    <div class="card p-6 border-l-4 border-gray-400 bg-gray-900/10">
+                        <h3 class="text-[11px] font-black uppercase text-gray-300 tracking-widest mb-3">📅 Sin contacto registrado hace +3 meses</h3>
+                        <p class="text-[8px] opacity-60 italic mb-2">Pacientes que podrían necesitar seguimiento proactivo.</p>
+                        <div id="pacientesInactivos" class="space-y-2 max-h-[300px] overflow-y-auto custom-scroll pr-2"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-alertas" class="tab-pane pt-6" style="display:none">
+<div class="space-y-6">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6 border-l-4 border-orange-400">
+                <h2 class="text-[11px] font-black uppercase text-orange-400 tracking-widest mb-4">Alertas del Sistema</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Alerta de inactividad de pacientes</label>
+                        <select id="cfg_dias_inactividad" class="inp">
+                            <option value="15">15 días sin consulta</option>
+                            <option value="30" selected>30 días sin consulta (Recomendado)</option>
+                            <option value="45">45 días sin consulta</option>
+                            <option value="60">60 días sin consulta</option>
+                            <option value="90">90 días sin consulta</option>
+                        </select>
+                        <p class="text-[8px] opacity-40 mt-1">Los pacientes inactivos aparecen con alerta naranja en el panel principal.</p>
+                    </div>
+
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Stock mínimo de insumos (alerta en Index)</label>
+                        <div class="flex items-center gap-3">
+                            <input type="number" id="cfg_stock_minimo" min="1" max="999" value="5" class="inp w-32 text-center font-black text-lg">
+                            <p class="text-[8px] opacity-50">unidades. Si un insumo baja de este número aparece la alerta roja en el panel principal.</p>
+                        </div>
+                        <p class="text-[8px] opacity-40 mt-1">Podés sobreescribir este mínimo por insumo individualmente desde Laboratorio.</p>
+                    </div>
+
+                    <div class="bg-orange-900/20 p-3 rounded-lg border border-orange-500/30">
+                        <p class="text-[9px] font-bold text-orange-300 mb-1">💡 Cómo funcionan las alertas</p>
+                        <p class="text-[8px] opacity-60"><strong>Inactividad:</strong> Marca visual naranja en el panel (días sin consulta)</p>
+                        <p class="text-[8px] opacity-60"><strong>Stock mínimo:</strong> Alerta roja en Index con los nombres de los insumos</p>
+                        <p class="text-[8px] opacity-60"><strong>Archivado:</strong> Oculta pacientes de búsquedas (se configura arriba)</p>
+                    </div>
+                </div>
+
+                <button onclick="guardarAlertasInactividad()" class="btn-fluo w-full py-3 mt-4 text-[10px]">Guardar Configuracion</button>
+            </div>
+
+            <div class="card p-6 border-l-4 border-red-400">
+                <h2 class="text-[11px] font-black uppercase text-red-400 tracking-widest mb-4">Sesión del Sistema</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[8px] opacity-50 uppercase font-bold block mb-1">Timeout de sesión (minutos de inactividad)</label>
+                        <select id="cfg_timeout" class="inp">
+                            <option value="0">Sin timeout (no recomendado)</option>
+                            <option value="15">15 minutos</option>
+                            <option value="30">30 minutos (recomendado)</option>
+                            <option value="60">60 minutos</option>
+                        </select>
+                        <p class="text-[8px] opacity-40 mt-1">Tras este tiempo sin actividad, el sistema te cierra sesión automáticamente.</p>
+                    </div>
+                </div>
+                <button onclick="guardarSesion()" class="btn-fluo w-full py-3 mt-4 text-[10px]">Guardar Configuracion</button>
+            </div>
+
+        </div>
+    </div><!-- /space-y-6 -->
+    </div><!-- /tab-alertas -->
+
+</main>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, deleteDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const FC = { apiKey:"AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA", authDomain:"sanalys-2263e.firebaseapp.com", projectId:"sanalys-2263e", storageBucket:"sanalys-2263e.firebasestorage.app", messagingSenderId:"899593881035", appId:"1:899593881035:web:cd0ddfdb4f8af089e9224e" };
+    const app = initializeApp(FC);
+        const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let SESION={}, personas=[], maestros={ingresos:[],egresos:[],egresosVariables:[],centrosCosto:[]};
+    let configAgenda={salas:[],hInicioM:8,hFinM:13,hInicioT:16,hFinT:20,duracion:30,dias:[]};
+    let inversiones=[], configHon={porcentajeMedica:60,porcentajeSueros:0,porcentajeReserva:5,modoDistribucion:'proporcional'};
+
+    window.init = async () => {
+        const s=sessionStorage.getItem('usuario_sanalys'); if(!s){window.location.href='index.html';return;}
+        SESION=JSON.parse(s); if(!SESION.permisos?.includes('admin')){window.location.href='index.html';return;}
+        document.getElementById('sesionLabel').textContent=`Admin: ${esc(SESION.nombre)}`; document.getElementById('sesionLabel').classList.remove('hidden');
+
+        // Fecha de hoy en formularios
+        document.getElementById('fecha_consulta_honorarios').value = new Date().toISOString().split('T')[0];
+        const hoy = new Date();
+        document.getElementById('mes_liquidacion').value = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+
+        // C2 cerrado (Día 2): se eliminó CLAVE_MAESTRA hardcoded y la lectura
+        // de config/seguridad. La gestión de operaciones destructivas migró a
+        // Firebase Console (auditable). Ver panel "Gestión de datos" en Backups.
+        await cargarTodo();
+
+        escucharAuditoria();
+    };
+
+    async function cargarTodo(){
+        // Cargar todo en paralelo
+        const [smSnap, shSnap, saSnap] = await Promise.all([
+            getDoc(doc(db,'config','maestros')),
+            getDoc(doc(db,'config','reparto')),
+            getDoc(doc(db,'config','agenda')),
+        ]);
+
+        // Personas en tiempo real (necesario para cambios en vivo)
+        onSnapshot(collection(db,'personas'),snap=>{personas=snap.docs.map(d=>({id:d.id,...d.data()}));window._personasCache=personas;renderPersonas();actualizarSimMedicas();cargarPersonasEnDisp();cargarProfesionalesEnConsultorios();});
+
+        // Maestros
+        if(smSnap.exists()) maestros={ingresos:[],egresos:[],egresosVariables:[],centrosCosto:[],...smSnap.data()};
+        renderListas();
+
+        // Honorarios
+        if(shSnap.exists()){
+            const data = shSnap.data();
+            configHon={...configHon,...data};
+            document.getElementById('conf_medica').value=data.porcentajeMedica !== undefined ? data.porcentajeMedica : 60;
+            document.getElementById('conf_sueros').value=data.porcentajeSueros !== undefined ? data.porcentajeSueros : 0;
+            document.getElementById('conf_reserva').value=data.porcentajeReserva !== undefined ? data.porcentajeReserva : 5;
+            const _mm = document.getElementById('conf_monto_max');
+            if(_mm) _mm.value = data.montoMaxOperacion !== undefined ? data.montoMaxOperacion : 1000000;
+            if(configHon.modoDistribucion==='igualitaria') document.getElementById('dist_igualitaria').checked=true;
+        }
+
+        // Agenda — fix defensivo: setea solo si el elemento existe en el DOM
+        if(saSnap.exists()){
+          configAgenda={salas:[],hInicioM:8,hFinM:13,hInicioT:16,hFinT:20,duracion:30,dias:[],...saSnap.data()};
+          const _setV = (id,v) => { const el = document.getElementById(id); if(el) el.value = v; };
+          _setV('h_inicio_m', configAgenda.hInicioM);
+          _setV('h_fin_m', configAgenda.hFinM);
+          _setV('h_inicio_t', configAgenda.hInicioT);
+          _setV('h_fin_t', configAgenda.hFinT);
+          _setV('h_duracion', configAgenda.duracion || 30);
+          (configAgenda.dias||[]).forEach(d => { const cb = document.querySelector(`.dia-semana[value="${d}"]`); if(cb) cb.checked = true; });
+          renderSalas();
+        }
+
+        // Inversiones en tiempo real
+        onSnapshot(collection(db,'inversiones'),snap=>{inversiones=snap.docs.map(d=>({id:d.id,...d.data()}));renderInversiones();});
+        renderUsuarios();
+
+        // ─────────────────────────────────────────────────────────────────
+        // C3 residual cerrado: aquí había un "seed" que recreaba a
+        // luciana_ringa@hotmail.com y sanalys.sf@gmail.com como admin si no
+        // existían. Era el mismo backdoor que se cerró en login.html.
+        // Anulaba el control de la administradora (si borrabas un admin a
+        // propósito, volvía solo). Los usuarios se gestionan ahora SOLO desde
+        // el panel Admin → Usuarios (ver instrucciones en la pestaña Backups).
+        // ─────────────────────────────────────────────────────────────────
+
+        await Promise.all([
+            cargarTiposTratamiento(),
+            cargarMensajes(),
+        ]);
+    }
+
+    window.st = t => {
+        document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+        document.getElementById('tab-'+t).classList.add('on');
+        const idx=['personas','honorarios','cuentas','agenda','accesos','inversiones','sistema','seguridad','analisis','alertas'].indexOf(t);
+        document.querySelectorAll('.tab-btn')[idx]?.classList.add('on');
+    };
+
+    window.toggleRolSocia=()=>document.getElementById('box_parte_socia').classList.toggle('hidden',!document.getElementById('p_rol_socia').checked);
+    window.toggleRolMedica=()=>document.getElementById('box_pct_medica').classList.toggle('hidden',!document.getElementById('p_rol_medica').checked);
+
+    window.guardarPersona=async()=>{
+        const nombre=document.getElementById('p_nombre').value.trim(); if(!nombre)return toast('El nombre es obligatorio.', 'warn');
+        const data={nombre,dni:document.getElementById('p_dni').value.trim(),tel:document.getElementById('p_tel').value.trim(),email:document.getElementById('p_email').value.trim(),especialidad:document.getElementById('p_especialidad').value.trim(),esMedica:document.getElementById('p_rol_medica').checked,esSocia:document.getElementById('p_rol_socia').checked,matricula:document.getElementById('p_rol_medica').checked?document.getElementById('p_matricula').value.trim():null,pctMedicaIndividual:document.getElementById('p_rol_medica').checked?(parseFloat(document.getElementById('p_pct_medica').value)||null):null,parteSociedad:document.getElementById('p_rol_socia').checked?(parseFloat(document.getElementById('p_parte_pct').value)||0):0,tipo:document.getElementById('p_rol_medica').checked?'medica':null,activo:true};
+        const eid=document.getElementById('p_id').value;
+        try{if(eid)await setDoc(doc(db,'personas',eid),data,{merge:true});else await addDoc(collection(db,'personas'),data);limpiarPersona();await regAuditoria(`${eid?'EDICION':'ALTA'} PERSONA: ${nombre}`);}catch(e){toast('Error al guardar.', 'error');}
+    };
+    window.limpiarPersona=()=>{document.getElementById('p_id').value='';['p_nombre','p_dni','p_tel','p_email','p_especialidad','p_matricula','p_pct_medica','p_parte_pct'].forEach(id=>document.getElementById(id).value='');document.getElementById('p_rol_medica').checked=false;document.getElementById('p_rol_socia').checked=false;document.getElementById('box_parte_socia').classList.add('hidden');document.getElementById('box_pct_medica').classList.add('hidden');};
+    window.editarPersona=id=>{const p=personas.find(x=>x.id===id);if(!p)return;document.getElementById('p_id').value=id;document.getElementById('p_nombre').value=p.nombre||'';document.getElementById('p_dni').value=p.dni||'';document.getElementById('p_tel').value=p.tel||'';document.getElementById('p_email').value=p.email||'';document.getElementById('p_especialidad').value=p.especialidad||'';document.getElementById('p_matricula').value=p.matricula||'';document.getElementById('p_rol_medica').checked=p.esMedica||false;document.getElementById('p_rol_socia').checked=p.esSocia||false;document.getElementById('p_pct_medica').value=p.pctMedicaIndividual||'';document.getElementById('p_parte_pct').value=p.parteSociedad||'';document.getElementById('box_parte_socia').classList.toggle('hidden',!p.esSocia);document.getElementById('box_pct_medica').classList.toggle('hidden',!p.esMedica);window.st('personas');window.scrollTo({top:0,behavior:'smooth'});};
+    window.toggleActivoPersona=async(id,activo)=>await setDoc(doc(db,'personas',id),{activo:!activo},{merge:true});
+
+    function renderPersonas(){
+        const cont=document.getElementById('lista_personas'); if(!personas.length){cont.innerHTML='<p class="text-center opacity-30 text-xs py-8">Sin personas.</p>';return;}
+        const colores=['bg-orange-500','bg-purple-500','bg-blue-500','bg-teal-500','bg-pink-500'];
+        cont.innerHTML=personas.map((p,i)=>{
+            const tags=[p.esMedica?`<span class="badge badge-orange">Medica ${p.pctMedicaIndividual?p.pctMedicaIndividual+'%':'(global)'}</span>`:'',p.esSocia?`<span class="badge badge-purple">Socia ${p.parteSociedad?p.parteSociedad+'%':''}</span>`:''].filter(Boolean).join(' ');
+            const ini=p.nombre.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+            return `<div class="persona-card ${!p.activo?'opacity-40':''}"><div class="flex items-start gap-3"><div class="avatar ${colores[i%colores.length]}">${ini}</div><div class="flex-1 min-w-0"><div class="flex justify-between items-start"><p class="font-black text-[11px] uppercase truncate">${esc(p.nombre)}</p><div class="flex gap-1 ml-2"><button onclick="editarPersona('${p.id}')" class="btn-ghost px-2 py-1 text-[8px] font-bold rounded">Editar</button><button onclick="toggleActivoPersona('${p.id}',${p.activo})" class="btn-ghost px-2 py-1 text-[8px] font-bold rounded ${p.activo?'text-red-400':'text-green-400'}">${p.activo?'Inactivar':'Activar'}</button></div></div><p class="text-[8px] opacity-50 mt-0.5">${esc(p.especialidad||'')}</p><div class="flex gap-1.5 mt-1.5 flex-wrap">${tags}</div></div></div></div>`;
+        }).join('');
+        const socias=personas.filter(p=>p.esSocia);
+        if(socias.length){document.getElementById('resumen_sociedad').classList.remove('hidden');const total=socias.reduce((s,p)=>s+(p.parteSociedad||0),0);document.getElementById('barras_sociedad').innerHTML=socias.map(p=>`<div class="flex items-center gap-2 mb-1.5"><span class="text-[9px] font-bold w-24 truncate">${p.nombre.split(' ')[0]}</span><div class="flex-1 bg-white/10 rounded-full h-2"><div class="bg-purple-400 h-2 rounded-full" style="width:${p.parteSociedad||0}%"></div></div><span class="text-[9px] font-black text-purple-300 w-10 text-right">${p.parteSociedad||0}%</span></div>`).join('');const al=document.getElementById('alerta_partes');al.classList.remove('hidden');if(Math.abs(total-100)>0.01){al.className='text-[9px] font-black mt-2 text-red-400';al.textContent=`Las partes suman ${total.toFixed(1)}% — deben sumar 100%.`;}else{al.className='text-[9px] font-black mt-2 text-green-400';al.textContent='Las partes suman exactamente 100%.';}}
+        else document.getElementById('resumen_sociedad').classList.add('hidden');
+    }
+
+    function actualizarSimMedicas(){const sel=document.getElementById('sim_medica');sel.innerHTML='<option value="">Seleccionar medica</option>'+personas.filter(p=>p.esMedica&&p.activo).map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('');}
+
+    // SIMULADOR CORREGIDO PARA DISTINGUIR CONSULTA DE SUEROTERAPIA
+    window.simularReparto=()=>{
+        const monto=parseFloat(document.getElementById('sim_monto').value)||0; 
+        const mid=document.getElementById('sim_medica').value; 
+        const tipoPrac=document.getElementById('sim_tipo').value;
+        const cont=document.getElementById('resultado_simulador');
+        
+        if(!monto){cont.innerHTML='<p class="text-center opacity-30 text-xs py-4">Ingresa un monto.</p>';return;}
+        
+        const med=personas.find(p=>p.id===mid); 
+        
+        let pctM = 0;
+        if (tipoPrac === 'suero') {
+            pctM = configHon.porcentajeSueros; // Toma el 0% configurado para sueros
+        } else {
+            pctM = med?.pctMedicaIndividual ?? configHon.porcentajeMedica; // Toma el 60% global para consultas
+        }
+        
+        const honM=monto*pctM/100; 
+        const fondo=monto*configHon.porcentajeReserva/100; 
+        const rem=monto-honM-fondo;
+        
+        const socias=personas.filter(p=>p.esSocia&&p.activo); 
+        let dist=[];
+        if(configHon.modoDistribucion==='igualitaria'||!socias.length){
+            const pp=socias.length?rem/socias.length:0;
+            dist=socias.map(s=>({nombre:s.nombre,monto:pp,pct:100/socias.length}));
+        } else {
+            const tp=socias.reduce((s,p)=>s+(p.parteSociedad||0),0);
+            dist=socias.map(s=>({nombre:s.nombre,pct:tp?((s.parteSociedad||0)/tp*100):0,monto:tp?(rem*(s.parteSociedad||0)/tp):0}));
+        }
+        
+        cont.innerHTML=`<div class="space-y-2">
+            <div class="flex justify-between bg-black/30 p-3 rounded-lg border border-white/5"><span class="text-[10px] font-bold">Ingreso total</span><span class="text-[var(--fluo)] font-black">$ ${monto.toLocaleString()}</span></div>
+            <div class="flex justify-between bg-orange-900/20 p-3 rounded-lg border border-orange-500/20"><span class="text-[10px] font-bold text-orange-300">Honorario ${med?med.nombre:''}(${pctM}%)</span><span class="text-orange-300 font-black">- $ ${honM.toLocaleString()}</span></div>
+            <div class="flex justify-between bg-yellow-900/20 p-3 rounded-lg border border-yellow-500/20"><span class="text-[10px] font-bold text-yellow-300">Fondo reserva (${configHon.porcentajeReserva}%)</span><span class="text-yellow-300 font-black">- $ ${fondo.toLocaleString()}</span></div>
+            <div class="flex justify-between bg-purple-900/20 p-3 rounded-lg border border-purple-500/20"><span class="text-[10px] font-bold text-purple-200">Remanente para socias</span><span class="text-purple-200 font-black">= $ ${rem.toLocaleString()}</span></div>
+            ${dist.map(d=>`<div class="flex justify-between bg-purple-900/10 p-3 rounded-lg ml-4 border border-purple-500/10"><span class="text-[9px] font-bold text-purple-300">${esc(d.nombre)} (${d.pct.toFixed(1)}%)</span><span class="text-purple-300 font-black">$ ${d.monto.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>`).join('')}
+        </div>`;
+    };
+
+    // GUARDADO DE HONORARIOS - CORREGIDO PARA SOSTENER EL 0%
+    window.guardarConfigHonorarios=async()=>{
+        const pMedica = parseFloat(document.getElementById('conf_medica').value);
+        const pSueros = parseFloat(document.getElementById('conf_sueros').value);
+        const pReserva = parseFloat(document.getElementById('conf_reserva').value);
+
+        configHon.porcentajeMedica = isNaN(pMedica) ? 60 : pMedica;
+        configHon.porcentajeSueros = isNaN(pSueros) ? 0 : pSueros;
+        configHon.porcentajeReserva = isNaN(pReserva) ? 5 : pReserva;
+        const pMontoMax = parseFloat(document.getElementById('conf_monto_max').value);
+        configHon.montoMaxOperacion = (isNaN(pMontoMax) || pMontoMax <= 0) ? 1000000 : pMontoMax;
+        configHon.modoDistribucion=document.querySelector('input[name="modo_dist"]:checked').value;
+        configHon.fechaActualizacion=new Date().toLocaleString('es-AR');
+        configHon.actualizadoPor=SESION.nombre;
+        
+        await setDoc(doc(db,'config','reparto'),configHon, {merge: true});
+        await regAuditoria(`CONFIGURACION HONORARIOS actualizada — Médica: ${configHon.porcentajeMedica}% | Sueros: ${configHon.porcentajeSueros}% | Reserva: ${configHon.porcentajeReserva}%`);
+        toast('✅ Configuracion de honorarios guardada correctamente.', 'info');
+    };
+    
+    // Helper: normaliza cualquier fecha a yyyy-mm-dd
+    function normalizarFecha(f) {
+        if (!f) return '';
+        if (f.includes('-')) return f.slice(0, 10);
+        const p = f.split('/');
+        if (p.length === 3) {
+            const yy = p[2].length === 2 ? '20'+p[2] : p[2];
+            return `${yy}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+        }
+        return f;
+    }
+
+    async function cargarHonorariosDia(fecha) {
+        const snap = await getDocs(collection(db, 'caja'));
+        return snap.docs.map(d => d.data()).filter(m =>
+            m.esHonorario === true &&
+            m.tipo === 'EGRESO' &&
+            !m.anulado &&
+            normalizarFecha(m.fecha) === fecha
+        );
+    }
+
+    // CONSULTA DE HONORARIOS POR DIA
+    window.consultarHonorarios = async () => {
+        const fecha = document.getElementById('fecha_consulta_honorarios').value;
+        if (!fecha) return toast('Selecciona una fecha', 'warn');
+
+        const honorariosDia = await cargarHonorariosDia(fecha);
+        const [y, m, d] = fecha.split('-');
+        const porMedica = {};
+        honorariosDia.forEach(mov => {
+            if (mov.profesional)
+                porMedica[mov.profesional] = (porMedica[mov.profesional] || 0) + (mov.mon || 0);
+        });
+
+        const resultado = document.getElementById('resultado_honorarios');
+        const lista     = document.getElementById('lista_honorarios');
+
+        if (Object.keys(porMedica).length === 0) {
+            lista.innerHTML = '<p class="text-[9px] opacity-50 text-center py-2">No hay honorarios para este dia</p>';
+        } else {
+            const totalGeneral = Object.values(porMedica).reduce((a,b) => a+b, 0);
+            lista.innerHTML = Object.entries(porMedica)
+                .sort((a,b) => b[1] - a[1])
+                .map(([medica, total]) => `
+                    <div class="flex justify-between bg-white/5 p-3 rounded-lg mb-2 border border-white/10">
+                        <span class="text-[10px] font-bold text-orange-200">${medica}</span>
+                        <span class="text-[12px] font-black text-[var(--fluo)]">$ ${total.toLocaleString('es-AR')}</span>
+                    </div>`)
+                .join('') + `
+                <div class="flex justify-between bg-orange-500/20 p-3 rounded-lg mt-3 border border-orange-500/40">
+                    <span class="text-[11px] font-black text-white uppercase">Total Honorarios</span>
+                    <span class="text-[14px] font-black text-[var(--fluo)]">$ ${totalGeneral.toLocaleString('es-AR')}</span>
+                </div>`;
+        }
+        resultado.classList.remove('hidden');
+    };
+
+    window.generarPDFDia = async () => {
+        try {
+            if (!window.SanalysPDF || !window.jspdf) { toast('Recarga la pagina con Ctrl+Shift+R', 'info'); return; }
+            const fecha = document.getElementById('fecha_consulta_honorarios').value;
+            if (!fecha) return toast('Selecciona una fecha.', 'warn');
+
+            const honorariosDia = await cargarHonorariosDia(fecha);
+            if (!honorariosDia.length) return toast('No hay honorarios para este dia.', 'info');
+
+            const [yy, mm, dd] = fecha.split('-');
+            const fechaVisual = `${parseInt(dd)}/${parseInt(mm)}/${yy}`;
+
+            const porProf = {};
+            honorariosDia.forEach(mov => {
+                const prof = mov.profesional || 'Sin asignar';
+                if (!porProf[prof]) porProf[prof] = [];
+                porProf[prof].push(mov);
+            });
+
+            const T = SanalysPDF.T;
+            const { doc: _d, startY } = SanalysPDF.crear({
+                titulo:    'Honorarios del Dia',
+                subtitulo: fechaVisual,
+                emisor:    SESION?.nombre,
+            });
+
+            let yPos = startY;
+
+            Object.entries(porProf).sort().forEach(([prof, movs]) => {
+                if (yPos > 240) { _d.addPage(); yPos = 16; }
+                yPos = SanalysPDF.sectionTitle(_d, prof, yPos, T.VERDE);
+
+                const subtotal = movs.reduce((s, mov) => s + (mov.mon || 0), 0);
+                const rows = movs.map(mov => [
+                    mov.nroComp || '-',
+                    (mov.det || '-').substring(0, 55),
+                    '$' + (mov.mon || 0).toLocaleString('es-AR'),
+                ]);
+                rows.push(['', 'SUBTOTAL', '$' + subtotal.toLocaleString('es-AR')]);
+
+                _d.autoTable(SanalysPDF.tableConfig({
+                    head: [['N. COMP', 'CONCEPTO', 'MONTO']],
+                    body: rows,
+                    startY: yPos,
+                    styles:     { fontSize: 8, overflow: 'ellipsize' },
+                    headStyles: { fontSize: 7 },
+                    columnStyles: {
+                        0: { cellWidth: 28 },
+                        1: { cellWidth: 120 },
+                        2: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+                    },
+                    _didParseCell(data) {
+                        if (data.section === 'body' && data.row.index === rows.length - 1) {
+                            data.cell.styles.fillColor = T.VERDE;
+                            data.cell.styles.textColor = T.BLANCO;
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    },
+                }));
+                yPos = _d.lastAutoTable.finalY + 10;
+            });
+
+            if (yPos > 230) { _d.addPage(); yPos = 16; }
+            yPos = SanalysPDF.sectionTitle(_d, 'Resumen', yPos);
+            const totalGeneral = honorariosDia.reduce((s,m) => s+(m.mon||0), 0);
+            const resRows = Object.entries(porProf).sort().map(([prof, movs]) => [
+                prof, String(movs.length),
+                '$' + movs.reduce((s,m) => s+(m.mon||0), 0).toLocaleString('es-AR'),
+            ]);
+            resRows.push(['TOTAL', '', '$' + totalGeneral.toLocaleString('es-AR')]);
+
+            _d.autoTable(SanalysPDF.tableConfig({
+                head: [['PROFESIONAL', 'MOV.', 'TOTAL']],
+                body: resRows,
+                startY: yPos,
+                styles: { fontSize: 8 },
+                headStyles: { fontSize: 7 },
+                columnStyles: {
+                    0: { cellWidth: 110 },
+                    1: { cellWidth: 28, halign: 'center' },
+                    2: { cellWidth: 40, halign: 'right', fontStyle: 'bold' },
+                },
+                _didParseCell(data) {
+                    if (data.section === 'body' && data.row.index === resRows.length - 1) {
+                        data.cell.styles.fillColor = T.VERDE;
+                        data.cell.styles.textColor = T.BLANCO;
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fontSize  = 9;
+                    }
+                    if (data.section === 'body' && data.column.index === 2 && data.row.index < resRows.length - 1)
+                        data.cell.styles.textColor = T.VERDE_OK;
+                },
+            }));
+
+            SanalysPDF.save(_d, `Honorarios_${fecha}.pdf`,
+                { disclaimer: 'Sanalys Clinica Ortomolecular  -  Honorarios  -  Confidencial' });
+
+        } catch(err) { console.error('[ADMIN/PDF]:', err?.message || err); toast('Error: ' + err.message, 'error'); }
+    };
+
+    window.agregarItem=async(lista,inputId)=>{const val=document.getElementById(inputId).value.trim();if(!val)return;if(!maestros[lista])maestros[lista]=[];if(maestros[lista].includes(val))return toast('Ya existe.', 'info');maestros[lista].push(val);maestros[lista].sort((a,b)=>a.localeCompare(b));await setDoc(doc(db,'config','maestros'),maestros);document.getElementById(inputId).value='';renderListas();};
+    window.borrarItem=async(lista,idx)=>{maestros[lista].splice(idx,1);await setDoc(doc(db,'config','maestros'),maestros);renderListas();};
+    function renderListas(){const row=(arr,n)=>(arr||[]).map((v,i)=>`<div class="row-item"><span class=\"truncate pr-2\">${v}</span><button onclick=\"borrarItem(\'${n}\',${i})\" class=\"text-red-500 hover:text-red-400 font-black flex-shrink-0\">x</button></div>`).join('');['ingresos','egresos','egresosVariables','centrosCosto'].forEach(k=>{const el=document.getElementById('lista_'+k);if(el)el.innerHTML=row(maestros[k],k)||'<p class="text-[9px] opacity-30 text-center py-2">Vacio</p>';});}
+
+    window.guardarAgenda=async()=>{configAgenda.hInicioM=parseInt(document.getElementById('h_inicio_m').value)||8;configAgenda.hFinM=parseInt(document.getElementById('h_fin_m').value)||13;configAgenda.hInicioT=parseInt(document.getElementById('h_inicio_t').value)||16;configAgenda.hFinT=parseInt(document.getElementById('h_fin_t').value)||20;configAgenda.duracion=parseInt(document.getElementById('h_duracion').value)||30;configAgenda.dias=Array.from(document.querySelectorAll('.dia-semana:checked')).map(cb=>parseInt(cb.value));await setDoc(doc(db,'config','agenda'),configAgenda);toast('Agenda guardada.', 'info');};
+    window.agregarSala=async()=>{const nom=document.getElementById('sala_nombre').value.trim();const cap=parseInt(document.getElementById('sala_cap').value)||1;if(!nom)return toast('Escribi el nombre del espacio.', 'warn');configAgenda.salas=configAgenda.salas||[];configAgenda.salas.push({id:Date.now().toString(),nombre:nom,capacidad:cap,tipo:document.getElementById('sala_tipo').value,cobrarSuero:document.getElementById('sala_cobrar_suero').checked});await setDoc(doc(db,'config','agenda'),configAgenda);document.getElementById('sala_nombre').value='';document.getElementById('sala_cobrar_suero').checked=false;renderSalas();};
+    window.borrarSala=async id=>{if(!confirm('Borrar sala?'))return;configAgenda.salas=configAgenda.salas.filter(s=>s.id!==id);await setDoc(doc(db,'config','agenda'),configAgenda);renderSalas();};
+    function renderSalas(){
+        renderEspacios();
+        // Mantener compatibilidad con lista_salas en agenda
+        const divSalas = document.getElementById('lista_salas');
+        if (divSalas) divSalas.innerHTML = (configAgenda.salas||[]).map(s=>`<div class="bg-white/5 p-2 rounded-lg border border-white/8 flex justify-between items-center"><p class="text-[10px] font-bold">${esc(s.nombre)}</p><button onclick="borrarSala('${s.id}')" class="text-red-500 text-xs font-black px-1">✕</button></div>`).join('');
+    }
+
+    window.guardarUsuario = async () => {
+        const nombre    = document.getElementById('u_nombre').value.trim();
+        const emailOrig = document.getElementById('u_email_original').value;
+        const email     = emailOrig || document.getElementById('u_email').value.trim().toLowerCase();
+        const permisos  = Array.from(document.querySelectorAll('.perm-cb:checked')).map(cb => cb.value);
+        if (!nombre || !email || !permisos.length) return toast('Nombre, email y al menos un permiso son obligatorios.', 'warn');
+        await setDoc(doc(db,'usuarios',email), { nombre, rol:'operativo', permisos, activo:true });
+        cancelarEdicionUsuario();
+        renderUsuarios();
+    };
+
+    window.editarUsuario = async (email) => {
+        const snap = await getDoc(doc(db,'usuarios',email));
+        if (!snap.exists()) return;
+        const u = snap.data();
+        document.getElementById('u_titulo').textContent     = 'Editar Usuario';
+        document.getElementById('u_subtitulo').textContent  = email;
+        document.getElementById('u_nombre').value           = u.nombre || '';
+        document.getElementById('u_email_original').value   = email;
+        document.getElementById('u_email_row').style.display = 'none';
+        document.querySelectorAll('.perm-cb').forEach(cb => {
+            cb.checked = (u.permisos || []).includes(cb.value);
+        });
+        document.getElementById('u_btn_guardar').textContent = 'Guardar Cambios';
+        document.getElementById('u_btn_cancelar').classList.remove('hidden');
+        window.st('accesos');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.cancelarEdicionUsuario = () => {
+        document.getElementById('u_titulo').textContent     = 'Nuevo Usuario del Sistema';
+        document.getElementById('u_subtitulo').textContent  = 'El email debe existir en Firebase Auth.';
+        document.getElementById('u_nombre').value           = '';
+        document.getElementById('u_email').value            = '';
+        document.getElementById('u_email_original').value   = '';
+        document.getElementById('u_email_row').style.display = 'block';
+        document.querySelectorAll('.perm-cb').forEach(cb => cb.checked = false);
+        document.getElementById('u_btn_guardar').textContent = 'Guardar';
+        document.getElementById('u_btn_cancelar').classList.add('hidden');
+    };
+
+    async function renderUsuarios() {
+        const snap = await getDocs(collection(db,'usuarios'));
+        document.getElementById('listaUsuarios').innerHTML = snap.docs.map(d => {
+            const u = d.data();
+            const activo = u.activo !== false;
+            const badges = (u.permisos||[]).map(p => `<span class="badge badge-blue">${p}</span>`).join(' ');
+            return `<div class="p-3 rounded-xl border mb-2 transition ${activo ? 'bg-white/5 border-white/8' : 'bg-black/30 border-white/4 opacity-50'}">
+                <div class="flex justify-between items-start mb-1">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <p class="font-black text-[10px] ${activo ? 'text-[var(--fluo)]' : 'text-white/40'} uppercase">${esc(u.nombre)}</p>
+                            ${!activo ? '<span class="text-[7px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-black uppercase">Inactivo</span>' : ''}
+                        </div>
+                        <p class="text-[8px] opacity-40">${d.id}</p>
+                    </div>
+                    <div class="flex gap-1 ml-2 flex-shrink-0">
+                        <button onclick="editarUsuario('${d.id}')" class="bg-white/10 hover:bg-[var(--fluo)] hover:text-black text-white px-2 py-1 rounded text-[8px] font-black transition">Editar</button>
+                        <button onclick="toggleUsuario('${d.id}', ${activo})" class="px-2 py-1 rounded text-[8px] font-black transition ${activo ? 'text-orange-400 bg-orange-500/10 hover:bg-orange-500/30' : 'text-green-400 bg-green-500/10 hover:bg-green-500/30'}">${activo ? 'Desactivar' : 'Activar'}</button>
+                        <button onclick="eliminarUsuario('${d.id}')" class="text-red-500 bg-black/50 px-2 py-1 rounded text-[8px] font-black hover:bg-red-500 hover:text-white transition">Eliminar</button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-1">${badges}</div>
+            </div>`;
+        }).join('');
+    }
+
+    window.toggleUsuario = async (email, estaActivo) => {
+        const accion = estaActivo ? 'desactivar' : 'activar';
+        if (!confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} a este usuario?`)) return;
+        await setDoc(doc(db,'usuarios',email), { activo: !estaActivo }, { merge: true });
+        renderUsuarios();
+    };
+
+    window.eliminarUsuario = async (email) => {
+        if (!confirm('¿Eliminar permanentemente este usuario? Esta accion no se puede deshacer.')) return;
+        await deleteDoc(doc(db,'usuarios',email));
+        renderUsuarios();
+    };
+
+    window.guardarInversion=async()=>{const desc=document.getElementById('inv_desc').value.trim();const cap=parseFloat(document.getElementById('inv_capital').value)||0;if(!desc||!cap)return toast('Descripcion y capital son obligatorios.', 'warn');await addDoc(collection(db,'inversiones'),{descripcion:desc,tipo:document.getElementById('inv_tipo').value,entidad:document.getElementById('inv_entidad').value.trim(),capital:cap,valorActual:parseFloat(document.getElementById('inv_valor_actual').value)||cap,fechaInicio:document.getElementById('inv_fecha_inicio').value,fechaVenc:document.getElementById('inv_fecha_venc').value,notas:document.getElementById('inv_notas').value.trim(),fechaRegistro:new Date().toLocaleDateString(),estado:'activa'});['inv_desc','inv_entidad','inv_capital','inv_valor_actual','inv_fecha_inicio','inv_fecha_venc','inv_notas'].forEach(id=>document.getElementById(id).value='');};
+    window.cerrarInversion=async id=>{if(!confirm('Marcar como cerrada/liquidada?'))return;await setDoc(doc(db,'inversiones',id),{estado:'cerrada'},{merge:true});};
+    function renderInversiones(){const activas=inversiones.filter(i=>i.estado==='activa');const tc=activas.reduce((s,i)=>s+(i.capital||0),0);const tv=activas.reduce((s,i)=>s+(i.valorActual||0),0);const r=tv-tc;const rp=tc>0?(r/tc*100).toFixed(1):0;document.getElementById('kpi_capital').textContent=`$ ${tc.toLocaleString()}`;document.getElementById('kpi_valor').textContent=`$ ${tv.toLocaleString()}`;const re=document.getElementById('kpi_rend');re.textContent=`${r>=0?'+':'-'} $ ${Math.abs(r).toLocaleString()} (${rp}%)`;re.style.color=r>=0?'#D0FF4E':'#fca5a5';const cont=document.getElementById('lista_inversiones');if(!activas.length){cont.innerHTML='<p class="text-center opacity-30 text-xs py-6">Sin inversiones.</p>';return;}cont.innerHTML=activas.map(i=>{const ri=(i.valorActual||0)-(i.capital||0);return `<div class="bg-black/30 p-4 rounded-xl border border-green-500/20 mb-2"><div class="flex justify-between items-start mb-2"><div><p class="font-black text-[10px] text-white">${esc(i.descripcion)}</p><p class="text-[8px] opacity-50">${i.tipo} · ${esc(i.entidad||'S/D')} · ${i.fechaRegistro}</p></div><button onclick=\"cerrarInversion(\'${i.id}\')\" class=\"btn-ghost px-2 py-1 text-[8px] font-bold uppercase\">Cerrar</button></div><div class="grid grid-cols-3 gap-2 text-center"><div class="bg-black/20 p-2 rounded"><p class="text-[7px] opacity-50 uppercase">Capital</p><p class="text-[11px] font-black text-[var(--fluo)]">$${(i.capital||0).toLocaleString()}</p></div><div class="bg-black/20 p-2 rounded"><p class="text-[7px] opacity-50 uppercase">Valor actual</p><p class="text-[11px] font-black text-green-400">$${(i.valorActual||0).toLocaleString()}</p></div><div class="bg-black/20 p-2 rounded"><p class="text-[7px] opacity-50 uppercase">Rendimiento</p><p class="text-[11px] font-black ${ri>=0?'text-green-400':'text-red-400'}">${ri>=0?'+':''}$${ri.toLocaleString()}</p></div></div>${i.notas?`<p class="text-[8px] opacity-50 mt-2 italic">${esc(i.notas)}</p>`:''}</div>`;}).join('');}
+
+    window.descargarBackup=async()=>{const btn=document.getElementById('btnBackup');btn.disabled=true;btn.textContent='Empaquetando...';try{const gc=async n=>(await getDocs(collection(db,n))).docs.map(d=>({id:d.id,...d.data()}));const data={fechaBackup:new Date().toLocaleString(),version:'3.0',caja:await gc('caja'),pacientes:await gc('pacientes'),insumos:await gc('insumos'),formulas:await gc('formulas'),config:await gc('config'),usuarios:await gc('usuarios'),deudas:await gc('deudas'),turnos:await gc('turnos'),auditoria:await gc('auditoria'),personas:await gc('personas'),inversiones:await gc('inversiones')};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Sanalys_Backup_${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);await regAuditoria('BACKUP MANUAL DESCARGADO');}catch(e){toast('Error.', 'error');}btn.disabled=false;btn.textContent='Descargar Backup Completo (.json)';};
+
+    // ═══════════════════════════════════════════════════════════════
+    // DASHBOARD DE PATRONES — Análisis de pacientes
+    // Lee la colección 'pacientes' + subcolección bitácora de c/u
+    // y calcula los 5 bloques de la pestaña Análisis.
+    // ═══════════════════════════════════════════════════════════════
+
+    window.cargarAnalisisPacientes = async () => {
+        const loader = document.getElementById('analisisLoader');
+        const cont = document.getElementById('analisisContenido');
+        loader.classList.remove('hidden');
+        loader.textContent = '⏳ Calculando patrones... (puede tardar unos segundos)';
+        cont.classList.add('hidden');
+
+        try {
+            const pSnap = await getDocs(collection(db, 'pacientes'));
+            const pacientes = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            // Estructuras de conteo
+            const conteoEtiquetas = {};     // { 'Tranquilo': 5, 'Sensible al frío': 3, ... }
+            const conteoQuejasMes = {};     // { 'Tiempo de espera': 2, ... }
+            const conteoCanales = {};       // { 'recomendacion': 8, 'instagram': 4, ... }
+            const pacientesAlerta = [];     // [{nombre, alerta, id}]
+            const pacientesInactivos = [];  // [{nombre, ultimaFecha, diasInactivo, id}]
+
+            const HOY = Date.now();
+            const TRES_MESES_MS = 90 * 24 * 60 * 60 * 1000;
+            const INICIO_MES = new Date();
+            INICIO_MES.setDate(1); INICIO_MES.setHours(0,0,0,0);
+            const inicioMesTs = INICIO_MES.getTime();
+
+            // Recorrer cada paciente
+            for (const p of pacientes) {
+                // Alerta destacada
+                if (p.perfilAlerta && p.perfilAlerta.trim()) {
+                    pacientesAlerta.push({ id: p.id, nombre: p.nombre || '(sin nombre)', alerta: p.perfilAlerta });
+                }
+                // Canal de captación
+                if (p.perfilCanal) {
+                    conteoCanales[p.perfilCanal] = (conteoCanales[p.perfilCanal] || 0) + 1;
+                }
+
+                // Bitácora
+                const bSnap = await getDocs(collection(db, 'pacientes', p.id, 'bitacora'));
+                const bitacora = bSnap.docs.map(d => d.data());
+
+                // Última entrada (para inactivos)
+                let ultimaCreado = 0;
+                bitacora.forEach(e => {
+                    if (typeof e.creado === 'number' && e.creado > ultimaCreado) ultimaCreado = e.creado;
+                });
+
+                if (bitacora.length === 0 || (ultimaCreado && (HOY - ultimaCreado) > TRES_MESES_MS)) {
+                    pacientesInactivos.push({
+                        id: p.id,
+                        nombre: p.nombre || '(sin nombre)',
+                        ultimaFecha: ultimaCreado ? new Date(ultimaCreado).toLocaleDateString('es-AR') : 'Nunca',
+                        ultimaCreado
+                    });
+                }
+
+                // Contar etiquetas y quejas
+                bitacora.forEach(e => {
+                    if (!e.etiquetas) return;
+                    for (const grupo in e.etiquetas) {
+                        (e.etiquetas[grupo] || []).forEach(tag => {
+                            conteoEtiquetas[tag] = (conteoEtiquetas[tag] || 0) + 1;
+                            // Quejas: solo las del mes actual
+                            if (grupo === 'quejas' && typeof e.creado === 'number' && e.creado >= inicioMesTs) {
+                                conteoQuejasMes[tag] = (conteoQuejasMes[tag] || 0) + 1;
+                            }
+                        });
+                    }
+                });
+            }
+
+            // ── Renderizar los 5 bloques ──
+
+            // 1) Top etiquetas (todas, no solo quejas, ordenadas)
+            const topEtiq = Object.entries(conteoEtiquetas).sort((a,b) => b[1] - a[1]).slice(0, 8);
+            document.getElementById('topEtiquetas').innerHTML = topEtiq.length
+                ? topEtiq.map(([tag, n], i) => {
+                    const max = topEtiq[0][1];
+                    const pct = Math.round((n / max) * 100);
+                    return `<div class="flex items-center gap-2 text-[10px]">
+                        <span class="font-bold text-blue-300 w-5">${i+1}.</span>
+                        <span class="flex-1 truncate">${esc(tag)}</span>
+                        <div class="w-24 h-2 bg-black/30 rounded-full overflow-hidden"><div class="h-full bg-blue-400" style="width:${pct}%"></div></div>
+                        <span class="text-blue-200 font-bold w-8 text-right">${n}</span>
+                    </div>`;
+                }).join('')
+                : '<p class="text-[10px] opacity-40 italic">Sin etiquetas registradas todavía. Cargá entradas en la bitácora de algún paciente.</p>';
+
+            // 2) Quejas del mes
+            const nombreMes = INICIO_MES.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+            document.getElementById('quejasPeriodoLabel').textContent = `Período: ${nombreMes}`;
+            const quejasOrden = Object.entries(conteoQuejasMes).sort((a,b) => b[1] - a[1]);
+            document.getElementById('quejasMes').innerHTML = quejasOrden.length
+                ? quejasOrden.map(([q, n]) => `<div class="flex justify-between items-center text-[10px] py-1 border-b border-white/5">
+                    <span>${esc(q)}</span>
+                    <span class="font-bold text-amber-300">${n} caso${n>1?'s':''}</span>
+                </div>`).join('')
+                : '<p class="text-[10px] opacity-40 italic">Sin quejas registradas este mes. 🎉</p>';
+
+            // 3) Canales (gráfico de barras horizontal)
+            const labelsCanales = {
+                'recomendacion': 'Recomendación de paciente',
+                'instagram': 'Instagram',
+                'google': 'Búsqueda Google',
+                'medico': 'Derivación médica',
+                'evento': 'Evento / charla',
+                'otro': 'Otro'
+            };
+            const canalesOrden = Object.entries(conteoCanales).sort((a,b) => b[1] - a[1]);
+            const totalCanales = canalesOrden.reduce((s, [,n]) => s + n, 0);
+            document.getElementById('canalesCaptacion').innerHTML = canalesOrden.length
+                ? canalesOrden.map(([k, n]) => {
+                    const pct = Math.round((n / totalCanales) * 100);
+                    return `<div class="flex items-center gap-3 text-[10px]">
+                        <span class="w-40 truncate">${esc(labelsCanales[k] || k)}</span>
+                        <div class="flex-1 h-3 bg-black/30 rounded-full overflow-hidden">
+                            <div class="h-full bg-purple-400" style="width:${pct}%"></div>
+                        </div>
+                        <span class="font-bold text-purple-200 w-16 text-right">${n} (${pct}%)</span>
+                    </div>`;
+                }).join('')
+                : '<p class="text-[10px] opacity-40 italic">Sin datos de canal de captación todavía. Cargalo en el Perfil de cada paciente.</p>';
+
+            // 4) Pacientes con alerta
+            document.getElementById('pacientesAlerta').innerHTML = pacientesAlerta.length
+                ? pacientesAlerta.map(p => `<div class="bg-black/20 p-2 rounded border border-red-400/20 hover:border-red-400/50 transition">
+                    <a href="pacientes.html?id=${p.id}" class="text-[10px] font-bold text-red-200 hover:text-red-100 hover:underline">${esc(p.nombre)}</a>
+                    <p class="text-[9px] opacity-70 mt-1">${esc(p.alerta)}</p>
+                </div>`).join('')
+                : '<p class="text-[10px] opacity-40 italic">Ningún paciente con alerta destacada cargada.</p>';
+
+            // 5) Inactivos (ordenados: los más antiguos primero)
+            pacientesInactivos.sort((a, b) => a.ultimaCreado - b.ultimaCreado);
+            const mostrarInactivos = pacientesInactivos.slice(0, 30); // máx 30 para no abrumar
+            document.getElementById('pacientesInactivos').innerHTML = mostrarInactivos.length
+                ? mostrarInactivos.map(p => `<div class="flex items-center justify-between bg-black/20 p-2 rounded border border-white/10 hover:border-gray-400/40 transition">
+                    <a href="pacientes.html?id=${p.id}" class="text-[10px] font-bold text-gray-200 hover:text-white hover:underline flex-1 truncate">${esc(p.nombre)}</a>
+                    <span class="text-[9px] opacity-50 ml-2">${p.ultimaFecha}</span>
+                </div>`).join('') + (pacientesInactivos.length > 30 ? `<p class="text-[9px] opacity-50 italic text-center mt-2">+${pacientesInactivos.length - 30} más...</p>` : '')
+                : '<p class="text-[10px] opacity-40 italic">Todos los pacientes tienen entradas recientes. ✨</p>';
+
+            loader.classList.add('hidden');
+            cont.classList.remove('hidden');
+            try { await regAuditoria('CONSULTA dashboard analisis pacientes'); } catch(e){}
+        } catch (e) {
+            console.error('[ANALISIS]:', e?.message || e);
+            loader.textContent = '❌ Error al calcular patrones. Revisá la consola.';
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+
+    // Helper común: trae todos los pacientes con su bitácora resumida
+    async function _obtenerPerfilesPacientes() {
+        const pSnap = await getDocs(collection(db, 'pacientes'));
+        const filas = [];
+        for (const pDoc of pSnap.docs) {
+            const p = pDoc.data();
+            // Traer bitácora del paciente
+            const bSnap = await getDocs(collection(db, 'pacientes', pDoc.id, 'bitacora'));
+            const bitacora = bSnap.docs.map(d => d.data()).sort((a,b) => (b.creado||0) - (a.creado||0));
+            // Recolectar todas las etiquetas únicas (de toda la bitácora) por grupo
+            const tags = { personalidad: new Set(), puntualidad: new Set(), sensibilidad: new Set(), comunicacion: new Set(), quejas: new Set() };
+            bitacora.forEach(e => {
+                if (e.etiquetas) for (const g in e.etiquetas) (e.etiquetas[g]||[]).forEach(t => tags[g]?.add(t));
+            });
+            const comentariosBitacora = bitacora.map(e => `[${e.fecha} ${e.autor}]: ${e.comentario}`).join(' || ');
+            filas.push({
+                id: pDoc.id,
+                nombre: p.nombre || '',
+                dni: p.dni || '',
+                profesion: p.perfilProfesion || '',
+                canal: p.perfilCanal || '',
+                recomendadoPor: p.perfilRecomendadoPor || '',
+                alerta: p.perfilAlerta || '',
+                notas: p.perfilNotas || '',
+                personalidad: [...tags.personalidad].join(', '),
+                puntualidad: [...tags.puntualidad].join(', '),
+                sensibilidad: [...tags.sensibilidad].join(', '),
+                comunicacion: [...tags.comunicacion].join(', '),
+                quejas: [...tags.quejas].join(', '),
+                cantidadEntradasBitacora: bitacora.length,
+                comentariosBitacora,
+                fechaAlta: p.fechaAlta || ''
+            });
+        }
+        return filas;
+    }
+
+    // Convierte un array de objetos a CSV con escape correcto (comas, comillas, saltos)
+    function _aCSV(filas, columnas) {
+        const esc = (v) => {
+            const s = (v === null || v === undefined) ? '' : String(v);
+            if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+            return s;
+        };
+        const head = columnas.map(c => esc(c.label)).join(',');
+        const body = filas.map(f => columnas.map(c => esc(f[c.key])).join(',')).join('\n');
+        return head + '\n' + body;
+    }
+
+    function _descargarCSV(nombre, contenido) {
+        // BOM UTF-8 para que Excel abra bien los acentos
+        const blob = new Blob(['\uFEFF' + contenido], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = nombre;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    // 1) Con nombres reales (uso interno)
+    window.exportarPerfilesConNombres = async () => {
+        const ok = confirm(
+            '📋 EXPORTAR PERFILES CON NOMBRES\n\n' +
+            'Vas a descargar un archivo CSV con todos los pacientes y sus datos de perfil (etiquetas, observaciones, notas).\n\n' +
+            '⚠️ CONTIENE DATOS PERSONALES (Ley 25.326). Es solo para uso interno.\n' +
+            'NO subas este archivo a ChatGPT, Claude ni a ningún servicio externo.\n\n' +
+            '¿Continuar?'
+        );
+        if (!ok) return;
+        try {
+            toast('Preparando archivo...', 'info');
+            const filas = await _obtenerPerfilesPacientes();
+            const columnas = [
+                {key:'nombre', label:'Nombre'}, {key:'dni', label:'DNI'},
+                {key:'profesion', label:'Profesion'}, {key:'canal', label:'Como nos conocio'},
+                {key:'recomendadoPor', label:'Recomendado por'}, {key:'alerta', label:'Alerta destacada'},
+                {key:'notas', label:'Notas generales'},
+                {key:'personalidad', label:'Personalidad'}, {key:'puntualidad', label:'Puntualidad'},
+                {key:'sensibilidad', label:'Sensibilidades'}, {key:'comunicacion', label:'Comunicacion'},
+                {key:'quejas', label:'Quejas observadas'},
+                {key:'cantidadEntradasBitacora', label:'Cant. entradas bitacora'},
+                {key:'comentariosBitacora', label:'Comentarios bitacora'},
+                {key:'fechaAlta', label:'Fecha alta'}
+            ];
+            _descargarCSV(`Sanalys_Perfiles_CON_NOMBRES_${new Date().toISOString().split('T')[0]}.csv`, _aCSV(filas, columnas));
+            toast(`Descargado: ${filas.length} pacientes. NO subir a IA.`, 'ok');
+            try { await regAuditoria('EXPORTACION PERFILES con nombres'); } catch(e){}
+        } catch(e) {
+            console.error('[EXPORT-PERFILES]:', e?.message || e);
+            toast('Error al exportar. Probá de nuevo.', 'error');
+        }
+    };
+
+    // 2) Anonimizado (para IA)
+    window.exportarPerfilesAnonimo = async () => {
+        const ok = confirm(
+            '🤖 EXPORTAR PERFILES ANONIMIZADO\n\n' +
+            'Vas a descargar un CSV donde los nombres y DNIs se reemplazan por códigos (Paciente_A001, A002...).\n\n' +
+            '✅ Este archivo SÍ se puede subir a ChatGPT o Claude para análisis.\n' +
+            '💡 Conservá aparte la "Tabla de Equivalencias" para identificar después si la IA detecta algo en algún código.\n\n' +
+            '¿Continuar?'
+        );
+        if (!ok) return;
+        try {
+            toast('Preparando archivo...', 'info');
+            const filas = await _obtenerPerfilesPacientes();
+            // Sustituir identificadores y limpiar referencias personales del texto libre
+            const filasAnon = filas.map((f, i) => {
+                const codigo = `Paciente_A${String(i+1).padStart(3,'0')}`;
+                // En textos libres, reemplazar el nombre del paciente si aparece (parcial: primer nombre)
+                const primerNombre = (f.nombre.split(' ')[0] || '').trim();
+                const sanitizar = (t) => {
+                    if (!t || !primerNombre) return t;
+                    const re = new RegExp('\\b' + primerNombre.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+                    return t.replace(re, '[paciente]');
+                };
+                return {
+                    codigo,
+                    profesion: f.profesion,
+                    canal: f.canal,
+                    recomendadoPor: f.recomendadoPor ? '[anonimizado]' : '',
+                    alerta: sanitizar(f.alerta),
+                    notas: sanitizar(f.notas),
+                    personalidad: f.personalidad,
+                    puntualidad: f.puntualidad,
+                    sensibilidad: f.sensibilidad,
+                    comunicacion: f.comunicacion,
+                    quejas: f.quejas,
+                    cantidadEntradasBitacora: f.cantidadEntradasBitacora,
+                    comentariosBitacora: sanitizar(f.comentariosBitacora),
+                    fechaAlta: f.fechaAlta
+                };
+            });
+            const columnas = [
+                {key:'codigo', label:'Codigo'},
+                {key:'profesion', label:'Profesion'}, {key:'canal', label:'Como nos conocio'},
+                {key:'recomendadoPor', label:'Recomendado por'}, {key:'alerta', label:'Alerta destacada'},
+                {key:'notas', label:'Notas generales'},
+                {key:'personalidad', label:'Personalidad'}, {key:'puntualidad', label:'Puntualidad'},
+                {key:'sensibilidad', label:'Sensibilidades'}, {key:'comunicacion', label:'Comunicacion'},
+                {key:'quejas', label:'Quejas observadas'},
+                {key:'cantidadEntradasBitacora', label:'Cant. entradas bitacora'},
+                {key:'comentariosBitacora', label:'Comentarios bitacora'},
+                {key:'fechaAlta', label:'Fecha alta'}
+            ];
+            _descargarCSV(`Sanalys_Perfiles_ANONIMO_${new Date().toISOString().split('T')[0]}.csv`, _aCSV(filasAnon, columnas));
+            toast(`Descargado: ${filasAnon.length} pacientes anonimizados.`, 'ok');
+            try { await regAuditoria('EXPORTACION PERFILES anonimo'); } catch(e){}
+        } catch(e) {
+            console.error('[EXPORT-PERFILES-ANON]:', e?.message || e);
+            toast('Error al exportar. Probá de nuevo.', 'error');
+        }
+    };
+
+    // 3) Tabla de equivalencias (solo para la admin)
+    window.exportarTablaEquivalencias = async () => {
+        const ok = confirm(
+            '🔑 EXPORTAR TABLA DE EQUIVALENCIAS\n\n' +
+            'Vas a descargar un archivo que vincula cada código anónimo (Paciente_A001) con el nombre real del paciente.\n\n' +
+            '⚠️ ALTÍSIMA CONFIDENCIALIDAD. Es la "llave" que decodifica el archivo anónimo.\n' +
+            'NUNCA subas esto a la IA ni lo compartas. Guardalo aparte, en un lugar seguro.\n\n' +
+            '¿Continuar?'
+        );
+        if (!ok) return;
+        try {
+            toast('Preparando archivo...', 'info');
+            const filas = await _obtenerPerfilesPacientes();
+            const tabla = filas.map((f, i) => ({
+                codigo: `Paciente_A${String(i+1).padStart(3,'0')}`,
+                nombre: f.nombre,
+                dni: f.dni
+            }));
+            const columnas = [
+                {key:'codigo', label:'Codigo'},
+                {key:'nombre', label:'Nombre real'},
+                {key:'dni', label:'DNI'}
+            ];
+            _descargarCSV(`Sanalys_Equivalencias_CONFIDENCIAL_${new Date().toISOString().split('T')[0]}.csv`, _aCSV(tabla, columnas));
+            toast(`Descargada tabla con ${tabla.length} pacientes. CONFIDENCIAL.`, 'ok');
+            try { await regAuditoria('EXPORTACION tabla equivalencias'); } catch(e){}
+        } catch(e) {
+            console.error('[EXPORT-EQUIV]:', e?.message || e);
+            toast('Error al exportar. Probá de nuevo.', 'error');
+        }
+    };
+    // ─────────────────────────────────────────────────────────────────
+    // C2 cerrado (Día 2 — remediación de seguridad):
+    // Se eliminaron las siguientes funciones destructivas que operaban
+    // borrado masivo desde el cliente con CLAVE_MAESTRA hardcoded:
+    //   - restaurarBackup() — restauración masiva desde JSON
+    //   - blanquearCaja()   — borrado total de la colección caja
+    //   - formatearSistema()— borrado de 8 colecciones
+    //   - cambiarClaveMaestra() — gestión de la clave
+    //
+    // Motivo: la "clave maestra" no protegía nada (era visible en DevTools)
+    // y las rules permitían el borrado a cualquier usuario autenticado.
+    // El borrado masivo se gestiona ahora desde Firebase Console / CLI
+    // (vías auditables por Google).
+    //
+    // Ver panel "Gestión de datos en producción" dentro de Admin → Backups.
+    // ─────────────────────────────────────────────────────────────────
+
+
+    async function regAuditoria(accion,detalle=''){await addDoc(collection(db,'auditoria'),{timestamp:Date.now(),fecha:new Date().toLocaleString(),usuario:SESION.nombre||'Sistema',accion,detalle});}
+    function escucharAuditoria(){let ca=[],la=[];onSnapshot(collection(db,'caja'),snap=>{ca=snap.docs.map(d=>d.data()).filter(m=>m.anulado===true);renderAud(ca,la);});onSnapshot(collection(db,'auditoria'),snap=>{la=snap.docs.map(d=>d.data());renderAud(ca,la);});}
+    function renderAud(ca,la){const tbody=document.getElementById('listaAuditoria');const rows=[...ca.map(m=>({ts:m.id,fecha:`${m.fechaAnulacion||m.fecha}`,usuario:m.anuladoPor||m.usuario||'S/D',accion:'PAGO ANULADO',detalle:`$${m.mon} Motivo: ${esc(m.motivoAnulacion||'S/D')}`})),...la.map(l=>({ts:l.timestamp||0,fecha:l.fecha,usuario:l.usuario,accion:l.accion,detalle:l.detalle||''}))].sort((a,b)=>b.ts-a.ts);if(!rows.length){tbody.innerHTML='<tr><td colspan="4" class="text-center py-8 opacity-30 italic">Sin acciones criticas.</td></tr>';return;}tbody.innerHTML=rows.map(r=>`<tr class="hover:bg-white/4 border-b border-white/5"><td class="p-3 font-mono text-[9px] text-gray-400">${r.fecha}</td><td class="p-3 font-black text-[10px] text-[var(--fluo)]">${r.usuario}</td><td class="p-3 font-black text-[10px] text-red-400">${r.accion}</td><td class="p-3 text-[9px] text-gray-300 italic">${esc(r.detalle)}</td></tr>`).join('');}
+
+    // ==================== FUNCIONES CONFIG SISTEMA ====================
+    window.guardarFuncionalidades = async () => {
+        const consentimientos = document.getElementById('cfg_consentimientos').checked;
+        const trazabilidad = document.getElementById('cfg_trazabilidad_lotes').checked;
+        await setDoc(doc(db,'config','funcionalidades'), { consentimientosDigitales: consentimientos, trazabilidadLotes: trazabilidad });
+        toast('✅ Configuracion guardada. Los cambios se veran al recargar el sistema.', 'info');
+    };
+
+    window.guardarRecordatorios = async () => {
+        const texto = document.getElementById('cfg_recordatorio_texto').value.trim();
+        const hora = parseInt(document.getElementById('cfg_recordatorio_hora').value) || 18;
+        const anticipacion = parseInt(document.getElementById('cfg_recordatorio_anticipacion').value) || 24;
+        await setDoc(doc(db,'config','recordatorios'), { textoPlantilla: texto, horaEnvio: hora, horasAnticipacion: anticipacion });
+        toast('✅ Configuracion de recordatorios guardada.', 'info');
+    };
+
+    window.guardarTextosConsentimiento = async () => {
+        const textos = {};
+        document.querySelectorAll('#contenedor_textos_cons textarea').forEach(ta => {
+            textos[ta.dataset.slug] = ta.value.trim();
+        });
+        await setDoc(doc(db,'config','textosConsentimiento'), textos);
+        toast('Textos de consentimiento guardados.', 'ok');
+    };
+
+    function renderTextosConsentimiento(tipos, textosSaved) {
+        const cont = document.getElementById('contenedor_textos_cons');
+        if (!cont) return;
+        if (!tipos.length) {
+            cont.innerHTML = '<p class="text-[9px] opacity-40 text-center py-4">Agrega tipos de tratamiento primero en la seccion de arriba.</p>';
+            return;
+        }
+        cont.innerHTML = tipos.map(tipo => {
+            const slug = tipo.toLowerCase()
+                .replace(/ \/ /g,'_').replace(/\s+/g,'_')
+                .replace(/[áéíóú]/g, m=>({'á':'a','é':'e','í':'i','ó':'o','ú':'u'}[m]));
+            const val = textosSaved[slug] || '';
+            return `<div>
+                <label class="text-[8px] font-black uppercase text-pink-300/70 block mb-1">${tipo}</label>
+                <textarea data-slug="${slug}" class="inp h-28 resize-y text-[9px] leading-relaxed" placeholder="Texto del consentimiento para ${tipo}. Si lo dejas vacio, el area queda en blanco para escribir en el momento.">${val}</textarea>
+            </div>`;
+        }).join('');
+    }
+
+    // TIPOS DE TRATAMIENTO PARA CONSENTIMIENTOS
+    let tiposTratamiento = [];
+    
+    window.cargarTiposTratamiento = async () => {
+        const snap = await getDoc(doc(db,'config','tiposTratamiento'));
+        if(snap.exists()) {
+            tiposTratamiento = snap.data().lista || [];
+        } else {
+            tiposTratamiento = [
+                'Terapia Inyectable / Sueros IV',
+                'Mesoterapia',
+                'Pellets Hormonales',
+                'Terapia Hormonal',
+                'Medicina Ortomolecular',
+                'Tratamiento Estetico',
+                'Plasma Rico en Plaquetas'
+            ];
+            await setDoc(doc(db,'config','tiposTratamiento'), { lista: tiposTratamiento });
+        }
+        renderTiposTratamiento();
+
+        // Cargar textos guardados y renderizar textareas dinámicos
+        const tSnap = await getDoc(doc(db,'config','textosConsentimiento'));
+        const textosSaved = tSnap.exists() ? tSnap.data() : {};
+        renderTextosConsentimiento(tiposTratamiento, textosSaved);
+    };
+    
+    function renderTiposTratamiento() {
+        const div = document.getElementById('lista_tipos_tratamiento');
+        if(!tiposTratamiento.length) {
+            div.innerHTML = '<p class="text-xs opacity-30 text-center py-4">Sin tipos de tratamiento</p>';
+            return;
+        }
+        div.innerHTML = tiposTratamiento.map((tipo, idx) => `
+            <div class="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-white/5">
+                <span class="text-[10px] font-bold text-cyan-200">${tipo}</span>
+                <button onclick=\"eliminarTipoTratamiento(${idx})\" class=\"text-red-400 hover:text-red-300 text-xs px-2\">✕</button>
+            </div>
+        `).join('');
+    }
+    
+    window.agregarTipoTratamiento = async () => {
+        const input = document.getElementById('nuevo_tipo_tratamiento');
+        const tipo = input.value.trim();
+        if(!tipo) return toast('Escribi el nombre del tratamiento', 'warn');
+        if(tiposTratamiento.includes(tipo)) return toast('Ese tratamiento ya existe', 'info');
+        
+        tiposTratamiento.push(tipo);
+        await setDoc(doc(db,'config','tiposTratamiento'), { lista: tiposTratamiento });
+        input.value = '';
+        renderTiposTratamiento();
+        const tSnap2 = await getDoc(doc(db,'config','textosConsentimiento'));
+        renderTextosConsentimiento(tiposTratamiento, tSnap2.exists() ? tSnap2.data() : {});
+        await regAuditoria(`TIPO TRATAMIENTO AGREGADO: ${tipo}`);
+    };
+    
+    window.eliminarTipoTratamiento = async (idx) => {
+        if(!confirm(`¿Eliminar "${tiposTratamiento[idx]}"?`)) return;
+        const eliminado = tiposTratamiento.splice(idx, 1)[0];
+        await setDoc(doc(db,'config','tiposTratamiento'), { lista: tiposTratamiento });
+        renderTiposTratamiento();
+        const tSnap3 = await getDoc(doc(db,'config','textosConsentimiento'));
+        renderTextosConsentimiento(tiposTratamiento, tSnap3.exists() ? tSnap3.data() : {});
+        await regAuditoria(`TIPO TRATAMIENTO ELIMINADO: ${eliminado}`);
+    };
+
+
+    window.guardarArchivado = async () => {
+        const meses = parseInt(document.getElementById('cfg_archivo_meses').value) || 0;
+        await setDoc(doc(db,'config','archivado'), { mesesInactividad: meses });
+        toast('✅ Configuracion de archivado guardada.', 'info');
+    };
+
+    // MEDIOS DE PAGO
+    let mediosPago = ['Efectivo', 'Banco', 'Billetera Virtual', 'Inversiones'];
+    
+    function renderMediosPago() {
+        const div = document.getElementById('lista_medios_pago');
+        if(!mediosPago || mediosPago.length === 0) {
+            div.innerHTML = '<p class="text-center opacity-30 text-xs py-4">Sin medios de pago configurados</p>';
+            return;
+        }
+        div.innerHTML = mediosPago.map((m, i) => `
+            <div class="row-item">
+                <span>${m}</span>
+                <button onclick=\"eliminarMedioPago(${i})\" class=\"text-red-400 hover:text-red-300 font-black text-xs\">✕</button>
+            </div>
+        `).join('');
+    }
+    
+    window.agregarMedioPago = async () => {
+        const input = document.getElementById('nuevo_medio_pago');
+        const medio = input.value.trim();
+        if(!medio) return toast('Escribí el nombre del medio de pago', 'info');
+        if(mediosPago.includes(medio)) return toast('Ese medio de pago ya existe', 'info');
+        
+        mediosPago.push(medio);
+        await setDoc(doc(db,'config','mediosPago'), { lista: mediosPago });
+        input.value = '';
+        renderMediosPago();
+        await regAuditoria(`MEDIO DE PAGO AGREGADO: ${medio}`);
+    };
+    
+    window.eliminarMedioPago = async (idx) => {
+        if(!confirm(`¿Eliminar "${mediosPago[idx]}"? Los movimientos existentes mantendrán esta referencia.`)) return;
+        const eliminado = mediosPago.splice(idx, 1)[0];
+        await setDoc(doc(db,'config','mediosPago'), { lista: mediosPago });
+        renderMediosPago();
+        await regAuditoria(`MEDIO DE PAGO ELIMINADO: ${eliminado}`);
+    };
+
+    window.guardarAlertasInactividad = async () => {
+        const dias = parseInt(document.getElementById('cfg_dias_inactividad').value) || 30;
+        const stockMinimo = parseInt(document.getElementById('cfg_stock_minimo').value) || 5;
+        await setDoc(doc(db,'config','alertas'), { diasInactividad: dias, stockMinimo }, { merge: true });
+        await regAuditoria(`ALERTA INACTIVIDAD: ${dias} dias`);
+        toast('Alertas guardadas.', 'ok');
+    };
+
+    // C2: guardarSeguridad reemplazada por guardarSesion (sin clave maestra).
+    window.guardarSesion = async () => {
+        const timeout = parseInt(document.getElementById('cfg_timeout').value) || 30;
+        await setDoc(doc(db,'config','seguridad'), { timeoutMinutos: timeout }, { merge: true });
+        await regAuditoria(`TIMEOUT DE SESION configurado: ${timeout} min`);
+        toast('✅ Configuración de sesión guardada.', 'info');
+    };
+
+
+    // ── ESPACIOS ────────────────────────────────────────────────
+    let espTabActual = 'consultorios';
+    let espHorarios  = {1:[],2:[],3:[],4:[],5:[],6:[],7:[]}; // {dia: [{desde,hasta}]}
+    let espBloqueos  = [];
+
+    const DIAS_NOMBRES = ['','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+    window.switchEspacioTab = (tab) => {
+        espTabActual = tab;
+        document.getElementById('tab_cons_btn').className = `flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition ${tab==='consultorios'?'bg-blue-600 text-white':'bg-white/10 text-white/50'}`;
+        document.getElementById('tab_sue_btn').className  = `flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition ${tab==='sueros'?'bg-teal-600 text-white':'bg-white/10 text-white/50'}`;
+        cerrarFormEspacio();
+        renderEspacios();
+    };
+
+    function renderEspacios() {
+        const todos = configAgenda.salas || [];
+        const lista = espTabActual === 'consultorios'
+            ? todos.filter(s => s.tipo === 'consulta')
+            : todos.filter(s => s.tipo !== 'consulta');
+        const div = document.getElementById('lista_espacios');
+        if (!lista.length) {
+            div.innerHTML = `<p class="text-[8px] opacity-30 text-center py-3">Sin ${espTabActual==='consultorios'?'consultorios':'salas de suero'}</p>`;
+            return;
+        }
+        div.innerHTML = lista.map(s => {
+            const horarios = s.horarios || {};
+            const resumen = [1,2,3,4,5,6,7]
+                .filter(d => horarios[d] && horarios[d].length)
+                .map(d => DIAS_NOMBRES[d].slice(0,2) + ': ' + horarios[d].map(f=>f.desde+'-'+f.hasta).join(', '))
+                .join(' | ');
+            const bloqStr = (s.bloqueos||[]).length ? ` · ${s.bloqueos.length} bloqueo${s.bloqueos.length>1?'s':''}` : '';
+            return `<div class="bg-white/5 p-3 rounded-xl border border-white/8">
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0">
+                        <p class="font-black text-[10px] uppercase">${esc(s.nombre)}</p>
+                        <p class="text-[8px] opacity-40 mt-0.5 truncate">${s.tipo==='consulta'?'Consultorio':'Suero · '+s.capacidad+' cupos'}${resumen?' · '+resumen:''}${bloqStr}</p>
+                    </div>
+                    <div class="flex gap-1 flex-shrink-0">
+                        <button onclick="abrirFormEspacio('${s.id}')" class="bg-white/10 hover:bg-[var(--fluo)] hover:text-black text-white px-2 py-1 rounded text-[8px] font-black transition">Editar</button>
+                        <button onclick="borrarSala('${s.id}')" class="text-red-500 bg-black/40 px-2 py-1 rounded text-[8px] font-black hover:bg-red-500 hover:text-white transition">✕</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    window.abrirFormEspacio = (id) => {
+        const form = document.getElementById('form_espacio');
+        form.classList.remove('hidden');
+        espBloqueos = [];
+        espHorarios = {1:[],2:[],3:[],4:[],5:[],6:[],7:[]};
+
+        const esCons = espTabActual === 'consultorios';
+        document.getElementById('esp_prof_row').classList.toggle('hidden', !esCons);
+        document.getElementById('esp_nombre_row').classList.toggle('hidden', esCons);
+        document.getElementById('esp_cupos_row').classList.toggle('hidden', esCons);
+        document.getElementById('esp_tipo').value = esCons ? 'consulta' : 'sueros';
+        document.getElementById('esp_edit_id').value = '';
+        document.getElementById('esp_profesional').value = '';
+        document.getElementById('esp_nombre').value = '';
+        document.getElementById('esp_cupos').value = '4';
+
+        if (id) {
+            const s = (configAgenda.salas||[]).find(x => x.id === id);
+            if (!s) return;
+            document.getElementById('esp_edit_id').value = id;
+            if (esCons) document.getElementById('esp_profesional').value = s.profesionalId || '';
+            else {
+                document.getElementById('esp_nombre').value = s.nombre;
+                document.getElementById('esp_cupos').value  = s.capacidad || 4;
+            }
+            espHorarios  = JSON.parse(JSON.stringify(s.horarios  || {1:[],2:[],3:[],4:[],5:[],6:[],7:[]}));
+            espBloqueos  = JSON.parse(JSON.stringify(s.bloqueos  || []));
+        }
+        renderDiasHorario();
+        renderBloqueosEsp();
+        form.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    };
+
+    window.cerrarFormEspacio = () => {
+        document.getElementById('form_espacio').classList.add('hidden');
+        espHorarios = {1:[],2:[],3:[],4:[],5:[],6:[],7:[]};
+        espBloqueos = [];
+    };
+
+    function renderDiasHorario() {
+        const cont = document.getElementById('dias_horario_container');
+        cont.innerHTML = [1,2,3,4,5,6,7].map(dia => {
+            const franjas = espHorarios[dia] || [];
+            const franjasHtml = franjas.map((f,i) =>
+                `<span class="inline-flex items-center gap-1 bg-teal-900/30 border border-teal-500/30 rounded-md px-2 py-0.5 text-[8px] font-bold text-teal-300">
+                    ${f.desde}–${f.hasta}
+                    <button onclick="quitarFranjaEsp(${dia},${i})" class="text-red-400 font-black leading-none ml-0.5">×</button>
+                </span>`
+            ).join('');
+            return `<div class="flex items-center gap-2 bg-white/3 rounded-lg p-2 border border-white/6">
+                <span class="text-[9px] font-black w-20 flex-shrink-0 ${franjas.length?'text-white':'opacity-30'}">${DIAS_NOMBRES[dia]}</span>
+                <div class="flex flex-wrap gap-1 flex-1">${franjasHtml || '<span class="text-[8px] opacity-20 italic">sin horario</span>'}</div>
+                <div class="flex gap-1 flex-shrink-0">
+                    <input type="time" id="esp_desde_${dia}" class="bg-black/30 border border-white/10 rounded px-1 text-[9px] text-white w-20">
+                    <input type="time" id="esp_hasta_${dia}" class="bg-black/30 border border-white/10 rounded px-1 text-[9px] text-white w-20">
+                    <button onclick="agregarFranjaEsp(${dia})" class="bg-teal-700 hover:bg-teal-600 text-white px-2 py-0.5 rounded text-[8px] font-black transition">+</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    window.agregarFranjaEsp = (dia) => {
+        const desde = document.getElementById(`esp_desde_${dia}`).value;
+        const hasta = document.getElementById(`esp_hasta_${dia}`).value;
+        if (!desde || !hasta) { toast('Ingresá hora de inicio y fin.', 'warn'); return; }
+        if (!espHorarios[dia]) espHorarios[dia] = [];
+        espHorarios[dia].push({ desde, hasta });
+        espHorarios[dia].sort((a,b) => a.desde.localeCompare(b.desde));
+        renderDiasHorario();
+    };
+
+    window.quitarFranjaEsp = (dia, idx) => {
+        espHorarios[dia].splice(idx, 1);
+        renderDiasHorario();
+    };
+
+    function renderBloqueosEsp() {
+        document.getElementById('esp_bloqueos').innerHTML = espBloqueos.map((b,i) =>
+            `<div class="flex justify-between items-center bg-red-900/20 border border-red-500/20 rounded-lg px-3 py-1">
+                <span class="text-[9px] font-bold text-red-300">${b.desde} → ${b.hasta}${b.motivo?' · '+b.motivo:''}</span>
+                <button onclick="espBloqueos.splice(${i},1);renderBloqueosEsp()" class="text-red-400 font-black text-xs ml-2">×</button>
+            </div>`
+        ).join('') || '<p class="text-[8px] opacity-30">Sin bloqueos</p>';
+    }
+
+    window.agregarBloqEsp = () => {
+        const desde  = document.getElementById('esp_bloq_desde').value;
+        const hasta  = document.getElementById('esp_bloq_hasta').value || desde;
+        const motivo = document.getElementById('esp_bloq_motivo').value.trim();
+        if (!desde) { toast('Seleccioná una fecha.', 'warn'); return; }
+        espBloqueos.push({ desde, hasta, motivo });
+        espBloqueos.sort((a,b) => a.desde.localeCompare(b.desde));
+        document.getElementById('esp_bloq_desde').value  = '';
+        document.getElementById('esp_bloq_hasta').value  = '';
+        document.getElementById('esp_bloq_motivo').value = '';
+        renderBloqueosEsp();
+    };
+
+    window.guardarEspacio = async () => {
+        const editId = document.getElementById('esp_edit_id').value;
+        const tipo   = document.getElementById('esp_tipo').value;
+
+        // Verificar que hay al menos un día con horario
+        const tieneDias = Object.values(espHorarios).some(f => f.length > 0);
+        if (!tieneDias) { toast('Agregá al menos un horario para un día.', 'warn'); return; }
+
+        let nombre, profesionalId, capacidad;
+        if (tipo === 'consulta') {
+            profesionalId = document.getElementById('esp_profesional').value;
+            if (!profesionalId) { toast('Seleccioná un profesional.', 'warn'); return; }
+            nombre = document.getElementById('esp_profesional').selectedOptions[0].text;
+            capacidad = 1;
+        } else {
+            nombre = document.getElementById('esp_nombre').value.trim();
+            if (!nombre) { toast('Ingresá el nombre de la sala.', 'warn'); return; }
+            capacidad = parseInt(document.getElementById('esp_cupos').value) || 4;
+            profesionalId = null;
+        }
+
+        const sala = {
+            id: editId || Date.now().toString(),
+            nombre, tipo, capacidad,
+            horarios: espHorarios,
+            bloqueos: espBloqueos
+        };
+        if (profesionalId) sala.profesionalId = profesionalId;
+
+        configAgenda.salas = configAgenda.salas || [];
+        const idx = configAgenda.salas.findIndex(s => s.id === sala.id);
+        if (idx >= 0) configAgenda.salas[idx] = sala;
+        else configAgenda.salas.push(sala);
+
+        await setDoc(doc(db,'config','agenda'), configAgenda);
+        cerrarFormEspacio();
+        renderEspacios();
+        renderSalas();
+        toast('Espacio guardado.', 'ok');
+    };
+
+    window.cargarProfesionalesEnConsultorios = () => {
+        const sel = document.getElementById('esp_profesional');
+        if (!sel) return;
+        const medicas = (window._personasCache||[]).filter(p => p.esMedica && p.activo !== false);
+        sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
+            medicas.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
+    };
+
+    // ── FIN ESPACIOS ──────────────────────────────────────────────
+
+    // ── DISPONIBILIDAD POR PROFESIONAL ───────────────────────────
+    let dispActual = { franjas: {}, bloqueos: [] }; // franjas: { "1": [{desde:"09:00",hasta:"13:00"}], ... }
+    let dispPersonaId = null;
+
+    window.cargarDisponibilidad = async () => {
+        dispPersonaId = document.getElementById('disp_profesional').value;
+        if (!dispPersonaId) { document.getElementById('disp_panel').classList.add('hidden'); return; }
+        document.getElementById('disp_panel').classList.remove('hidden');
+        const snap = await getDoc(doc(db,'config','disp_' + dispPersonaId));
+        dispActual = snap.exists() ? snap.data() : { franjas:{}, bloqueos:[] };
+        renderDisponibilidad();
+    };
+
+    function renderDisponibilidad() {
+        // Renderizar franjas por día
+        [1,2,3,4,5,6,7].forEach(dia => {
+            const ids = ['','lun','mar','mie','jue','vie','sab','dom'];
+            const cont = document.querySelector(`#disp_${ids[dia]} .disp-franjas`);
+            if (!cont) return;
+            const franjas = (dispActual.franjas || {})[dia] || [];
+            cont.innerHTML = franjas.map((f,i) =>
+                `<div class="disp-franja">
+                    <span>${f.desde}–${f.hasta}</span>
+                    <button onclick="borrarFranja(${dia},${i})">×</button>
+                </div>`
+            ).join('');
+        });
+        // Renderizar bloqueos
+        const cont = document.getElementById('lista_bloqueos');
+        const bloqueos = dispActual.bloqueos || [];
+        cont.innerHTML = bloqueos.length ? bloqueos.map((b,i) =>
+            `<div class="flex justify-between items-center bg-red-900/20 border border-red-500/20 rounded-lg p-2">
+                <div>
+                    <p class="text-[9px] font-bold text-red-300">${b.desde} → ${b.hasta}</p>
+                    <p class="text-[8px] opacity-50">${esc(b.motivo||'')}</p>
+                </div>
+                <button onclick="borrarBloqueo(${i})" class="text-red-500 text-[10px] font-black px-2">×</button>
+            </div>`
+        ).join('') : '<p class="text-[8px] opacity-30 text-center py-2">Sin bloqueos</p>';
+    }
+
+    window.agregarFranja = (dia) => {
+        const desde = prompt('Hora de inicio (ej: 09:00):');
+        if (!desde) return;
+        const hasta = prompt('Hora de fin (ej: 13:00):');
+        if (!hasta) return;
+        if (!dispActual.franjas) dispActual.franjas = {};
+        if (!dispActual.franjas[dia]) dispActual.franjas[dia] = [];
+        dispActual.franjas[dia].push({ desde, hasta });
+        dispActual.franjas[dia].sort((a,b) => a.desde.localeCompare(b.desde));
+        renderDisponibilidad();
+    };
+
+    window.borrarFranja = (dia, idx) => {
+        dispActual.franjas[dia].splice(idx, 1);
+        renderDisponibilidad();
+    };
+
+    window.agregarBloqueo = () => {
+        const desde  = document.getElementById('bloqueo_desde').value;
+        const hasta  = document.getElementById('bloqueo_hasta').value || desde;
+        const motivo = document.getElementById('bloqueo_motivo').value.trim();
+        if (!desde) { toast('Seleccioná al menos la fecha de inicio.', 'warn'); return; }
+        if (!dispActual.bloqueos) dispActual.bloqueos = [];
+        dispActual.bloqueos.push({ desde, hasta, motivo });
+        dispActual.bloqueos.sort((a,b) => a.desde.localeCompare(b.desde));
+        document.getElementById('bloqueo_desde').value = '';
+        document.getElementById('bloqueo_hasta').value = '';
+        document.getElementById('bloqueo_motivo').value = '';
+        renderDisponibilidad();
+    };
+
+    window.borrarBloqueo = (idx) => {
+        dispActual.bloqueos.splice(idx, 1);
+        renderDisponibilidad();
+    };
+
+    window.guardarDisponibilidad = async () => {
+        if (!dispPersonaId) { toast('Seleccioná un profesional.', 'warn'); return; }
+        await setDoc(doc(db,'config','disp_' + dispPersonaId), dispActual);
+        toast('Disponibilidad guardada.', 'ok');
+    };
+
+    // Cargar profesionales en el selector de disponibilidad
+    window.cargarPersonasEnDisp = () => {
+        const sel = document.getElementById('disp_profesional');
+        if (!sel) return;
+        const personas = window._personasCache || [];
+        sel.innerHTML = '<option value="">-- Seleccionar profesional --</option>' +
+            personas.filter(p => p.esMedica).map(p =>
+                `<option value="${p.id}">${esc(p.nombre)}</option>`
+            ).join('');
+    };
+
+    window._personasCache = [];
+
+    // ── FIN DISPONIBILIDAD ────────────────────────────────────────
+
+    // ── MENSAJES DEL SISTEMA ─────────────────────────────────────
+    const MSG_DEFAULTS = {
+        confirmacion_turno:
+`Hola {nombre}! 👋
+
+Te confirmamos tu turno en *Sanalys*:
+
+📅 *{fecha}*
+🕐 *{hora} hs*
+💉 {servicio}
+
+Si necesitás cancelar o reprogramar avisanos con anticipación. ¡Te esperamos!
+
+_Sanalys — La ciencia de estar bien_ 🌿`,
+
+        recordatorio_turno:
+`Hola {nombre}! 👋
+
+Te recordamos tu turno *mañana* en *Sanalys*:
+
+📅 *{fecha}*
+🕐 *{hora} hs*
+💉 {servicio}
+
+¿Confirmás asistencia? Cualquier cambio avisanos. ✅
+
+_Sanalys — La ciencia de estar bien_ 🌿`,
+
+        inactivo:
+`Hola {nombre}! 💚
+
+Hace un tiempo que no te vemos por *Sanalys* y nos preguntamos cómo estás.
+
+Si querés retomar tu tratamiento o tenés alguna consulta, estamos disponibles para vos.
+
+¡Te esperamos! 🌿
+
+_Sanalys — La ciencia de estar bien_`,
+
+        cumpleanos:
+`¡Hola {nombre}! 🎉🎂
+
+Todo el equipo de *Sanalys* te desea un muy feliz cumpleaños.
+
+Que este año que comienza esté lleno de salud, bienestar y momentos hermosos. ✨
+
+_Con cariño — Sanalys_`,
+
+        consentimiento:
+`Hola {nombre}! 📋
+
+Adjuntamos tu *Consentimiento Informado* para el tratamiento de *{tratamiento}* firmado hoy en *Sanalys*.
+
+Guardá este mensaje como respaldo. Ante cualquier duda estamos a disposición.
+
+_Sanalys — La ciencia de estar bien_ 🌿`,
+
+        gift_card:
+`Hola {nombre}! 🎁
+
+Tu cumpleaños se acerca y queremos celebrarlo con vos.
+
+En *Sanalys* tenemos *Gift Cards* especiales para regalar salud y bienestar. ¿Se lo hacemos saber a alguien especial?
+
+¡Escribinos y lo coordinamos! ✨
+
+_Sanalys — La ciencia de estar bien_`
+    };
+
+    window.restaurarMensajesDefault = async () => {
+        Object.entries(MSG_DEFAULTS).forEach(([key, val]) => {
+            const el = document.getElementById('msg_' + key);
+            if (el) el.value = val;
+        });
+        await setDoc(doc(db,'config','mensajes'), Object.fromEntries(Object.entries(MSG_DEFAULTS)));
+        toast('Mensajes restaurados a los textos originales.', 'ok');
+    };
+
+    window.guardarMensajes = async () => {
+        const mensajes = {
+            confirmacion_turno: document.getElementById('msg_confirmacion_turno').value,
+            recordatorio_turno: document.getElementById('msg_recordatorio_turno').value,
+            inactivo:           document.getElementById('msg_inactivo').value,
+            cumpleanos:         document.getElementById('msg_cumpleanos').value,
+            consentimiento:     document.getElementById('msg_consentimiento').value,
+            gift_card:          document.getElementById('msg_gift_card').value,
+        };
+        await setDoc(doc(db,'config','mensajes'), mensajes);
+        toast('Mensajes guardados. Se usan en el próximo envío.', 'ok');
+    };
+
+    window.cargarMensajes = async () => {
+        const snap = await getDoc(doc(db,'config','mensajes'));
+        const m = snap.exists() ? snap.data() : {};
+        const toWrite = {};
+        let needsWrite = false;
+        Object.entries(MSG_DEFAULTS).forEach(([key, defaultVal]) => {
+            const stored = m[key];
+            const val = (stored && typeof stored === 'string' && stored.trim()) ? stored : defaultVal;
+            const el = document.getElementById('msg_' + key);
+            if (el) el.value = val;
+            toWrite[key] = val;
+            if (!stored || !stored.trim()) needsWrite = true;
+        });
+        if (needsWrite) await setDoc(doc(db,'config','mensajes'), toWrite);
+    };
+
+    // Helper para usar en otros módulos — reemplaza variables en un template
+    window.buildMensaje = (template, vars) => {
+        return template
+            .replace(/{nombre}/g,     vars.nombre     || '')
+            .replace(/{fecha}/g,      vars.fecha      || '')
+            .replace(/{hora}/g,       vars.hora       || '')
+            .replace(/{servicio}/g,   vars.servicio   || '')
+            .replace(/{tratamiento}/g,vars.tratamiento|| '')
+            .replace(/{clinica}/g,    vars.clinica    || 'Sanalys');
+    };
+
+    window.getMensaje = async (key) => {
+        const snap = await getDoc(doc(db,'config','mensajes'));
+        const m = snap.exists() ? snap.data() : {};
+        return m[key] || MSG_DEFAULTS[key] || '';
+    };
+
+    window.guardarDatosClinica = async () => {
+        const datos = {
+            nombre:    document.getElementById('cfg_clinica_nombre').value.trim(),
+            direccion: document.getElementById('cfg_clinica_direccion').value.trim(),
+            telefono:  document.getElementById('cfg_clinica_tel').value.trim(),
+            email:     document.getElementById('cfg_clinica_email').value.trim(),
+            instagram: document.getElementById('cfg_clinica_instagram').value.trim(),
+            web:       document.getElementById('cfg_clinica_web').value.trim(),
+            facebook:  document.getElementById('cfg_clinica_facebook').value.trim(),
+            tiktok:    document.getElementById('cfg_clinica_tiktok').value.trim(),
+            slogan:    document.getElementById('cfg_clinica_slogan').value.trim(),
+        };
+        await setDoc(doc(db,'config','datosClinica'), datos);
+        if (window.SanalysPDF) window.SanalysPDF.setClinica(datos);
+        toast('Datos de la clinica guardados. Apareceran en todos los PDFs y documentos.', 'ok');
+    };
+
+    // Cargar config del sistema al abrir el tab
+    async function cargarConfigSistema() {
+        const fSnap = await getDoc(doc(db,'config','funcionalidades'));
+        if(fSnap.exists()) {
+            document.getElementById('cfg_consentimientos').checked = fSnap.data().consentimientosDigitales || false;
+            document.getElementById('cfg_trazabilidad_lotes').checked = fSnap.data().trazabilidadLotes || false;
+        }
+        
+        const rSnap = await getDoc(doc(db,'config','recordatorios'));
+        if(rSnap.exists()) {
+            document.getElementById('cfg_recordatorio_texto').value = rSnap.data().textoPlantilla || '';
+            document.getElementById('cfg_recordatorio_hora').value = rSnap.data().horaEnvio || 18;
+            document.getElementById('cfg_recordatorio_anticipacion').value = rSnap.data().horasAnticipacion || 24;
+        }
+
+        // Los textos de consentimiento se cargan dinámicamente desde cargarTiposTratamiento()
+        
+        const aSnap = await getDoc(doc(db,'config','archivado'));
+        if(aSnap.exists()) {
+            document.getElementById('cfg_archivo_meses').value = aSnap.data().mesesInactividad || 0;
+        }
+        
+        // Carga del timeout de sesión (la clave maestra fue eliminada en C2)
+        const sSnap = await getDoc(doc(db,'config','seguridad'));
+        if(sSnap.exists()) {
+            const t = sSnap.data().timeoutMinutos;
+            const sel = document.getElementById('cfg_timeout');
+            if (sel && t !== undefined) sel.value = t;
+        }
+
+        const cSnap = await getDoc(doc(db,'config','datosClinica'));
+        if(cSnap.exists()) {
+            const d = cSnap.data();
+            document.getElementById('cfg_clinica_nombre').value    = d.nombre    || '';
+            document.getElementById('cfg_clinica_direccion').value = d.direccion || '';
+            document.getElementById('cfg_clinica_tel').value       = d.telefono  || '';
+            document.getElementById('cfg_clinica_email').value     = d.email     || '';
+            document.getElementById('cfg_clinica_instagram').value = d.instagram || '';
+            document.getElementById('cfg_clinica_web').value       = d.web       || '';
+            document.getElementById('cfg_clinica_facebook').value  = d.facebook  || '';
+            document.getElementById('cfg_clinica_tiktok').value    = d.tiktok    || '';
+            document.getElementById('cfg_clinica_slogan').value    = d.slogan    || '';
+        }
+        
+        // Cargar medios de pago
+        const mpSnap = await getDoc(doc(db,'config','mediosPago'));
+        if(mpSnap.exists()) {
+            mediosPago = mpSnap.data().lista || ['Efectivo', 'Banco', 'Billetera Virtual', 'Inversiones'];
+        }
+        renderMediosPago();
+        
+        // Cargar alertas de inactividad
+        const alSnap = await getDoc(doc(db,'config','alertas'));
+        if(alSnap.exists()) {
+            document.getElementById('cfg_dias_inactividad').value = alSnap.data().diasInactividad || 30;
+            if (alSnap.data().stockMinimo) document.getElementById('cfg_stock_minimo').value = alSnap.data().stockMinimo;
+        }
+    }
+    
+    // Ejecutar cuando se abre el tab Sistema
+    const originalSt = window.st;
+    window.st = t => {
+        originalSt(t);
+        if(t === 'sistema') cargarConfigSistema();
+        if(t === 'honorarios') {
+            const mesInput = document.getElementById('mes_liquidacion');
+            if (mesInput && !mesInput.value) {
+                const hoy = new Date();
+                mesInput.value = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+            }
+        }
+    };
+
+    window.generarLiquidacionPDF = async () => {
+        try {
+            if (!window.SanalysPDF || !window.jspdf) { toast('Recarga la pagina con Ctrl+Shift+R', 'info'); return; }
+            const mesVal = document.getElementById('mes_liquidacion').value;
+            if (!mesVal) return toast('Selecciona un mes.', 'warn');
+
+            const [anio, mes] = mesVal.split('-');
+            const mesNombre = new Date(parseInt(anio), parseInt(mes)-1, 1)
+                .toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+
+            const snap = await getDocs(collection(db, 'caja'));
+            const todos = snap.docs.map(d => d.data());
+
+            // Filtrar honorarios del mes — soporta dd/mm/yyyy y yyyy-mm-dd
+            const honorarios = todos.filter(m => {
+                if (!m.esHonorario || m.tipo !== 'EGRESO' || m.anulado) return false;
+                let fechaMes = '';
+                if (m.fecha && m.fecha.includes('/')) {
+                    const partes = m.fecha.split('/');
+                    if (partes.length === 3) {
+                        const mm = partes[1].padStart(2,'0');
+                        const yy = partes[2].length === 2 ? '20'+partes[2] : partes[2];
+                        fechaMes = `${yy}-${mm}`;
+                    }
+                } else if (m.fecha) {
+                    fechaMes = m.fecha.slice(0, 7);
+                }
+                return fechaMes === mesVal;
+            });
+
+            if (!honorarios.length) return toast('No hay honorarios en ' + mesNombre + '.', 'info');
+
+            // Agrupar por profesional
+            const porProf = {};
+            honorarios.forEach(m => {
+                const prof = m.profesional || 'Sin asignar';
+                if (!porProf[prof]) porProf[prof] = [];
+                porProf[prof].push(m);
+            });
+
+            const T = SanalysPDF.T;
+            const { doc: _d, startY } = SanalysPDF.crear({
+                titulo:    'Liquidacion de Honorarios',
+                subtitulo: mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1),
+                emisor:    SESION?.nombre,
+            });
+
+            let y = startY;
+
+            // Una tabla por profesional
+            Object.entries(porProf).sort().forEach(([prof, movs]) => {
+                if (y > 240) { _d.addPage(); y = 16; }
+                y = SanalysPDF.sectionTitle(_d, prof, y, T.VERDE);
+
+                const subtotal = movs.reduce((s, m) => s + (m.mon || 0), 0);
+                const rows = movs
+                    .sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''))
+                    .map(m => [
+                        m.fecha || '-',
+                        m.nroComp || '-',
+                        (m.det || '-').substring(0, 48),
+                        '$' + (m.mon || 0).toLocaleString('es-AR'),
+                    ]);
+
+                // Fila de subtotal como última fila, destacada
+                rows.push(['', '', 'SUBTOTAL', '$' + subtotal.toLocaleString('es-AR')]);
+
+                _d.autoTable(SanalysPDF.tableConfig({
+                    head: [['FECHA', 'N. COMP', 'CONCEPTO', 'MONTO']],
+                    body: rows,
+                    startY: y,
+                    styles:     { fontSize: 7.5, overflow: 'ellipsize' },
+                    headStyles: { fontSize: 7 },
+                    columnStyles: {
+                        0: { cellWidth: 22 },
+                        1: { cellWidth: 24 },
+                        2: { cellWidth: 108 },
+                        3: { cellWidth: 24, halign: 'right', fontStyle: 'bold' },
+                    },
+                    _didParseCell(data) {
+                        // Destacar fila de subtotal (última fila del body)
+                        if (data.section === 'body' && data.row.index === rows.length - 1) {
+                            data.cell.styles.fillColor  = T.VERDE;
+                            data.cell.styles.textColor  = T.BLANCO;
+                            data.cell.styles.fontStyle  = 'bold';
+                            data.cell.styles.fontSize   = 8;
+                        }
+                    },
+                }));
+
+                y = _d.lastAutoTable.finalY + 10;
+            });
+
+            // Resumen final
+            if (y > 230) { _d.addPage(); y = 16; }
+            y = SanalysPDF.sectionTitle(_d, 'Resumen del Mes', y);
+
+            const totalGeneral = honorarios.reduce((s,m) => s+(m.mon||0), 0);
+            const resumenRows = Object.entries(porProf).sort().map(([prof, movs]) => [
+                prof,
+                String(movs.length),
+                '$' + movs.reduce((s,m) => s+(m.mon||0), 0).toLocaleString('es-AR'),
+            ]);
+            resumenRows.push(['TOTAL GENERAL', '', '$' + totalGeneral.toLocaleString('es-AR')]);
+
+            _d.autoTable(SanalysPDF.tableConfig({
+                head: [['PROFESIONAL', 'MOV.', 'TOTAL']],
+                body: resumenRows,
+                startY: y,
+                styles:     { fontSize: 8 },
+                headStyles: { fontSize: 7 },
+                columnStyles: {
+                    0: { cellWidth: 110 },
+                    1: { cellWidth: 30, halign: 'center' },
+                    2: { cellWidth: 38, halign: 'right', fontStyle: 'bold' },
+                },
+                _didParseCell(data) {
+                    if (data.section === 'body' && data.row.index === resumenRows.length - 1) {
+                        data.cell.styles.fillColor = T.VERDE;
+                        data.cell.styles.textColor = T.BLANCO;
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fontSize  = 9;
+                    }
+                    if (data.section === 'body' && data.column.index === 2 && data.row.index < resumenRows.length - 1) {
+                        data.cell.styles.textColor = T.VERDE_OK;
+                    }
+                },
+            }));
+
+            SanalysPDF.save(_d, `Liquidacion_Honorarios_${mesVal}.pdf`,
+                { disclaimer: 'Sanalys Clinica Ortomolecular  -  Liquidacion de Honorarios  -  Confidencial' });
+
+        } catch(err) { console.error('[ADMIN/PDF]:', err?.message || err); toast('Error: ' + err.message, 'error'); }
+    };
+
+    // ── Reset de datos ───────────────────────────────────────────────────
+    // window.ejecutarResetMasivo y window.iniciarSanalys — eliminadas en C2
+    // (Día 2). Borrado masivo gestionado ahora desde Firebase Console / CLI.
+    // Ver panel "Gestión de datos en producción" en Admin → Backups.
+
+
+    // ── PDF Plan de Cuentas ──────────────────────────────────────────────
+    window.generarPDFPlanCuentas = () => {
+        try {
+            if (!window.SanalysPDF || !window.jspdf) { toast('Recarga la pagina con Ctrl+Shift+R', 'info'); return; }
+            const T = SanalysPDF.T;
+            const { doc: _d, startY } = SanalysPDF.crear({
+                titulo:    'Plan de Cuentas',
+                subtitulo: new Date().toLocaleDateString('es-AR'),
+                emisor:    SESION?.nombre,
+            });
+
+            const categorias = [
+                { titulo: 'INGRESOS',          key: 'ingresos',         color: T.VERDE_OK  },
+                { titulo: 'EGRESOS FIJOS',      key: 'egresos',          color: T.ROJO      },
+                { titulo: 'EGRESOS VARIABLES',  key: 'egresosVariables', color: [219,39,119]},
+                { titulo: 'CENTROS DE COSTO',   key: 'centrosCosto',     color: [59,130,246]},
+            ];
+
+            let y = startY;
+
+            categorias.forEach((cat, ci) => {
+                const items = maestros[cat.key] || [];
+                if (y > 240) { _d.addPage(); y = 16; }
+
+                // Encabezado de categoría
+                _d.setFillColor(...cat.color);
+                _d.rect(T.M, y - 3, 2, 8, 'F');
+                _d.setFont(T.FONT, 'bold'); _d.setFontSize(8.5);
+                _d.setTextColor(...cat.color);
+                _d.text(cat.titulo, T.M + 6, y + 2);
+
+                // Contador de ítems
+                _d.setFont(T.FONT, 'normal'); _d.setFontSize(7);
+                _d.setTextColor(...T.GRIS);
+                _d.text(`${items.length} cuenta${items.length !== 1 ? 's' : ''}`, 210 - T.M, y + 2, { align: 'right' });
+
+                // Línea separadora
+                _d.setDrawColor(...T.GRIS_CLARO); _d.setLineWidth(0.2);
+                _d.line(T.M + 6, y + 4, 210 - T.M, y + 4);
+                y += 11;
+
+                if (items.length === 0) {
+                    _d.setFont(T.FONT, 'normal'); _d.setFontSize(7.5);
+                    _d.setTextColor(...T.GRIS);
+                    _d.text('Sin cuentas registradas.', T.M + 8, y);
+                    y += 10;
+                    return;
+                }
+
+                // Tabla de ítems
+                const rows = items.map((item, idx) => [
+                    String(idx + 1).padStart(2, '0'),
+                    item,
+                ]);
+
+                _d.autoTable(SanalysPDF.tableConfig({
+                    body: rows,
+                    startY: y,
+                    styles:     { fontSize: 8, overflow: 'ellipsize' },
+                    columnStyles: {
+                        0: { cellWidth: 12, halign: 'center', textColor: T.GRIS },
+                        1: { cellWidth: 166 },
+                    },
+                    _didParseCell(data) {
+                        if (data.section === 'body' && data.row.index % 2 !== 0) {
+                            data.cell.styles.fillColor = [248, 249, 250];
+                        }
+                    },
+                }));
+
+                y = _d.lastAutoTable.finalY + 10;
+            });
+
+            SanalysPDF.save(_d, `Plan_de_Cuentas_${new Date().toISOString().split('T')[0]}.pdf`,
+                { disclaimer: 'Sanalys Clinica Ortomolecular  -  Plan de Cuentas  -  Contabilidad' });
+
+        } catch(err) { console.error('[ADMIN/PDF]:', err?.message || err); toast('Error: ' + err.message, 'error'); }
+    };
+
+    // Activar tabs con display:none (alertas y analisis) desde la barra
+    const _origSt = window.st;
+    window.st = t => {
+        _origSt(t);
+        // Tab Alertas: tiene display:none por defecto, hay que mostrarlo manualmente
+        const alertasTab = document.getElementById('tab-alertas');
+        if (alertasTab) alertasTab.style.display = t === 'alertas' ? 'block' : 'none';
+        // Tab Análisis: mismo caso (tiene display:none en el HTML)
+        const analisisTab = document.getElementById('tab-analisis');
+        if (analisisTab) analisisTab.style.display = t === 'analisis' ? 'block' : 'none';
+    };
+</script>
+<script src="sidebar.js"></script>
+
+</body>
+</html>

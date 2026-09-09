@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <meta charset="UTF-8">
+    <title>Sanalys - Monitor de Enfermería</title>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="pdf-master.js?v=3.1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..1000&display=swap" rel="stylesheet">
+    <style>
+        :root { --verde-deep: #0A3D33; --fluo: #D0FF4E; }
+        body { background: #071f1a; color: white; font-family: 'Roboto Flex', sans-serif; }
+        .card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; }
+        .inp { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); padding: 8px 10px; border-radius: 6px; width: 100%; color: white; outline: none; font-size: 11px; }
+        .inp:focus { border-color: var(--fluo); }
+        .btn-fluo { background: var(--fluo); color: var(--verde-deep); font-weight: 900; text-transform: uppercase; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .scroll::-webkit-scrollbar { width: 5px; }
+        .scroll::-webkit-scrollbar-thumb { background: var(--fluo); border-radius: 10px; }
+        select option { background: #0A3D33; }
+        .espera-card { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; transition: 0.2s; margin-bottom: 8px; }
+        .espera-card:hover { border-color: var(--fluo); }
+        .activo-card { background: linear-gradient(145deg, rgba(208,255,78,0.05) 0%, rgba(0,0,0,0.4) 100%); border: 1px solid rgba(208,255,78,0.3); border-radius: 16px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .timer-text { font-variant-numeric: tabular-nums; }
+    </style>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="p-4 md:p-8 pb-20" onload="init()">
+
+<div id="modalInicio" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+    <div class="card p-6 w-full max-w-6xl max-h-[95vh] overflow-y-auto scroll bg-gray-900 border-t-4 border-[var(--fluo)]">
+        <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+            <div>
+                <h2 class="text-xl font-black uppercase text-[var(--fluo)]">Iniciar Tratamiento</h2>
+                <p id="inicio_paciente_nombre" class="text-[14px] font-bold text-white tracking-wide"></p>
+            </div>
+            <button onclick="cerrarModales()" class="text-white hover:text-red-500 text-3xl font-bold">✕</button>
+        </div>
+
+        <input type="hidden" id="inicio_turnoId">
+        <input type="hidden" id="inicio_pacienteDni">
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            
+            <div class="md:col-span-7 space-y-4">
+                <div id="inicio_alertaAlergia" class="hidden bg-orange-500/20 border border-orange-500 p-3 rounded-lg">
+                    <p class="text-[10px] text-white" id="inicio_textoAlergia"></p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/5 p-3 rounded-lg">
+                        <p class="text-[9px] font-black uppercase text-white mb-2">Vía de Acceso</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="reg_via" class="inp text-xs"><option value="">-- Vía --</option><option value="Periférica derecha">Perif. Derecha</option><option value="Periférica izquierda">Perif. Izquierda</option><option value="PICC">PICC</option><option value="IM">IM</option><option value="SC">SC</option></select>
+                            <input type="text" id="reg_calibre" class="inp text-xs" placeholder="Calibre (Ej: 22G)">
+                        </div>
+                    </div>
+                    <div class="bg-white/5 p-3 rounded-lg">
+                        <p class="text-[9px] font-black uppercase text-white mb-2">Fórmula / Lote</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="reg_formula" class="inp text-xs"></select>
+                            <input type="text" id="reg_lote" class="inp text-xs" placeholder="Nº Lote (Opcional)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white/5 p-3 rounded-lg">
+                    <p class="text-[9px] font-black uppercase text-white mb-2">Signos Vitales (Opcional)</p>
+                    <div class="grid grid-cols-5 gap-2">
+                        <div><label class="text-[8px] opacity-50 uppercase block">TA</label><input type="text" id="reg_ta" class="inp text-xs" placeholder="120/80"></div>
+                        <div><label class="text-[8px] opacity-50 uppercase block">FC</label><input type="number" id="reg_fc" class="inp text-xs"></div>
+                        <div><label class="text-[8px] opacity-50 uppercase block">SatO2</label><input type="number" id="reg_sato2" class="inp text-xs"></div>
+                        <div><label class="text-[8px] opacity-50 uppercase block">Temp</label><input type="number" step="0.1" id="reg_temp" class="inp text-xs"></div>
+                        <div><label class="text-[8px] opacity-50 uppercase block">Peso</label><input type="number" step="0.1" id="reg_peso" class="inp text-xs"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white/5 p-3 rounded-lg">
+                    <p class="text-[9px] font-black uppercase text-white mb-2">Materiales a descontar</p>
+                    <div class="grid grid-cols-3 gap-2 text-[10px]">
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_jeringas"> Jeringas</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_agujas"> Agujas</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_cloruro"> Cloruro de sodio</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_alcohol"> Alcohol</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_algodon"> Algodón</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_gasas"> Gasas</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_guantes"> Guantes</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_cateter"> Catéter</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="mat_equipo"> Equipo de suero</label>
+                    </div>
+                </div>
+
+                <div class="bg-red-500/10 border-2 border-red-500/40 p-3 rounded-lg">
+                    <p class="text-[9px] font-black uppercase text-red-400 mb-2">✅ Checklist Obligatorio</p>
+                    <div class="space-y-1 text-[10px] grid grid-cols-2">
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="check_alergias" class="w-4 h-4"><span>Verifiqué alergias</span></label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="check_via" class="w-4 h-4"><span>Vía correcta</span></label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="check_identificacion" class="w-4 h-4"><span>Identifiqué al paciente</span></label>
+                    </div>
+                </div>
+
+                <button onclick="guardarInicioInfusion()" class="btn-fluo w-full py-4 text-[12px] shadow-lg mt-2">▶️ INICIAR INFUSIÓN Y CRONÓMETRO</button>
+            </div>
+
+            <div class="md:col-span-5 bg-black/40 rounded-xl border border-white/5 p-4 flex flex-col max-h-[600px]">
+                <div class="flex flex-col gap-2 mb-4 border-b border-white/10 pb-3">
+                    <h3 class="text-[11px] font-black uppercase text-purple-400">📋 Historial del Paciente</h3>
+                    <input type="text" id="buscadorHistorialPanel" class="inp py-3 w-full text-[11px] bg-white/10 border-purple-500/50" placeholder="🔍 Buscar por fecha, fórmula o notas..." oninput="filtrarHistorialPanel()">
+                </div>
+                
+                <div id="historialPanelRegistros" class="space-y-3 overflow-y-auto scroll pr-2 flex-1">
+                    <p class="text-center opacity-30 text-xs py-10">Cargando historial...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div id="modalFin" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+    <div class="card p-6 w-full max-w-md bg-gray-900 border-t-4 border-blue-500">
+        <h2 class="text-lg font-black uppercase text-blue-400 mb-2">Finalizar Tratamiento</h2>
+        <p id="fin_paciente_nombre" class="text-[12px] font-bold text-white mb-4 border-b border-white/10 pb-4"></p>
+
+        <input type="hidden" id="fin_turnoId">
+
+        <div class="mb-4">
+            <label class="text-[9px] uppercase font-bold text-white block mb-2">Observaciones finales de la sesión</label>
+            <textarea id="fin_observaciones" class="inp h-24 resize-none" placeholder="Ej: Se retira vía sin complicaciones, el paciente tolera bien el procedimiento..."></textarea>
+        </div>
+
+        <button onclick="guardarFinInfusion()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-lg text-[12px] shadow-lg transition">⏹️ GUARDAR Y LIBERAR SILLÓN</button>
+        <button onclick="cerrarModales()" class="w-full mt-2 text-[10px] font-bold uppercase opacity-50 hover:opacity-100 py-2">Cancelar</button>
+    </div>
+</div>
+
+<div id="modalHistorialSolo" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4">
+    <div class="card p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto scroll bg-gray-900 border-t-4 border-purple-500">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-black uppercase text-purple-400">Historial Clínico</h2>
+            <button onclick="cerrarModales()" class="text-white hover:text-red-500 text-2xl font-bold">✕</button>
+        </div>
+        
+        <p id="histSolo_paciente_nombre" class="text-[14px] font-black text-white mb-4 border-b border-white/10 pb-3"></p>
+        
+        <div class="mb-4">
+            <input type="text" id="buscadorHistorialSolo" class="inp py-3 w-full text-[11px] bg-white/10 border-purple-500/50" placeholder="🔍 Filtrar registros por fecha, fórmula o palabra clave..." oninput="filtrarHistorialSolo()">
+        </div>
+
+        <div id="historialSoloRegistros" class="space-y-3 max-h-[400px] overflow-y-auto scroll pr-2">
+            <p class="text-center opacity-30 text-xs py-6">Cargando historial...</p>
+        </div>
+    </div>
+</div>
+
+<header class="max-w-7xl mx-auto mb-4 flex justify-between items-center border-b border-white/10 pb-6">
+    <div>
+        <h1 style="font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1">sanalys<span style="color:var(--fluo)">.</span></h1>
+        <p class="text-[10px] uppercase tracking-widest opacity-60 font-bold text-teal-400">Monitor Central de Enfermería</p>
+    </div>
+    <div class="flex gap-2">
+        <span id="turnoEnfermera" class="bg-white/10 px-4 py-2 rounded-lg text-[9px] font-bold uppercase hidden md:inline-block"></span>
+        <a href="index.html" class="bg-white/10 px-4 py-2 rounded-lg text-[9px] font-bold uppercase hover:bg-white/20 transition text-white">Volver</a>
+    <div class="flex items-center gap-1 border-l border-white/10 pl-3 ml-1"><a href="pacientes.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Pacientes"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Pacientes</span></a><a href="sueros.html" class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 hover:border-white/20 transition text-white/50 hover:text-white group" title="Laboratorio"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.5 2v11.5l4 6H5.5l4-6V2M8 2h8"/></svg><span class="text-[7px] font-bold uppercase tracking-wide">Laboratorio</span></a></div>
+    </div>
+</header>
+
+<div class="max-w-7xl mx-auto mb-6">
+    <div class="bg-black/30 border border-purple-500/30 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center shadow-lg">
+        <div class="flex-1 w-full relative">
+            <input type="text" id="buscadorGlobalEnfermeria" list="listaPacientesGlobal" class="inp py-3 text-[12px] font-bold pl-10" placeholder="🔍 Buscar historial de cualquier paciente por Nombre o DNI..." onchange="buscarHistorialGlobal()">
+            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg opacity-50">🔍</span>
+            <datalist id="listaPacientesGlobal"></datalist>
+        </div>
+        <button onclick="buscarHistorialGlobalBtn()" class="bg-purple-600 hover:bg-purple-500 text-white w-full md:w-auto px-6 py-3 rounded-lg text-[11px] font-black uppercase transition shadow-lg whitespace-nowrap">📋 Ver Historial</button>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto mb-6">
+    <div class="bg-black/30 border border-white/5 rounded-xl p-4 flex justify-between items-center">
+        <div>
+            <p class="text-[9px] font-bold uppercase opacity-60 text-teal-300">Rendimiento Operativo de Hoy</p>
+            <p class="text-xl font-black text-white">⏱️ Tiempo Promedio por Paciente: <span id="kpiPromedio" class="text-[var(--fluo)]">-- min</span></p>
+        </div>
+        <div class="text-right">
+            <p class="text-[9px] font-bold uppercase opacity-60">Pacientes Atendidos</p>
+            <p id="kpiAtendidos" class="text-xl font-black text-white">0</p>
+        </div>
+    </div>
+</div>
+
+<main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <div class="lg:col-span-4 space-y-4">
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="text-[11px] font-black uppercase text-teal-400 border-b border-white/10 pb-2 flex-1">1. Sala de Espera (Por Atender)</h2>
+        </div>
+        <!-- [INFO] Explicación del comportamiento de la lista para el equipo -->
+        <div id="infoListaEspera" class="bg-blue-900/20 border border-blue-500/20 rounded-lg px-3 py-2.5 text-[8px] text-blue-300 opacity-80 leading-relaxed">
+            <span class="font-black uppercase">ℹ️ ¿Cómo funciona esta lista?</span><br>
+            Solo aparecen pacientes con turno <strong>PAGADO en Caja</strong> hoy. Si un paciente pagó y no aparece, 
+            verificá que el cobro se registró con el DNI correcto en Caja. 
+            La lista se actualiza en tiempo real y muestra únicamente turnos del día de hoy.
+        </div>
+        <div id="listaEspera" class="space-y-2 max-h-[600px] overflow-y-auto scroll pr-2">
+            <p class="text-center opacity-30 text-xs py-6">Sala de espera vacía</p>
+        </div>
+    </div>
+
+    <div class="lg:col-span-8 space-y-4">
+        <h2 class="text-[11px] font-black uppercase text-[var(--fluo)] mb-2 border-b border-white/10 pb-2">2. Sillones Activos (En Tratamiento)</h2>
+        <div id="listaActivos" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="col-span-full"><p class="text-center opacity-30 text-xs py-10">No hay pacientes conectados en este momento</p></div>
+        </div>
+    </div>
+
+</main>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const FC = { apiKey:"AIzaSyC5Kzsw9QR3tc_3jSgh72VENMZxXfZy-ZA", authDomain:"sanalys-2263e.firebaseapp.com", projectId:"sanalys-2263e", storageBucket:"sanalys-2263e.firebasestorage.app", messagingSenderId:"899593881035", appId:"1:899593881035:web:cd0ddfdb4f8af089e9224e" };
+    const app = initializeApp(FC);
+        const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let SESION = {}, turnosHoy = [], pacientes = [], formulas = [], salas = [];
+    let registrosHistorialActivo = []; 
+    let pacienteDniActual = null;
+    let pacienteNombreActual = null;
+    let pacienteIdActual = null;
+
+    window.init = async () => {
+        const s = sessionStorage.getItem('usuario_sanalys');
+        if(!s) { window.location.href = 'login.html'; return; }
+        SESION = JSON.parse(s);
+            if(SESION.rol !== 'admin' && !SESION.permisos?.includes('enfermeria')) {
+                window.location.href = 'index.html'; return;
+            }
+        document.getElementById('turnoEnfermera').textContent = `Enfermera: ${esc(SESION.nombre)}`;
+
+        const agendaSnap = await getDoc(doc(db,'config','agenda'));
+        if(agendaSnap.exists()) salas = agendaSnap.data().salas || [];
+
+        onSnapshot(collection(db,'formulas'), snap => {
+            formulas = snap.docs.map(d => ({id:d.id,...d.data()}));
+            document.getElementById('reg_formula').innerHTML = '<option value="">-- Seleccionar --</option>' + formulas.map(f => `<option value="${f.id}">${esc(f.nombre)}</option>`).join('');
+        });
+
+        // [CLINICA] Cargar datos reales desde admin para todos los PDFs
+        getDoc(doc(db,'config','datosClinica')).then(snap => {
+            if(snap.exists() && window.SanalysPDF) window.SanalysPDF.setClinica(snap.data());
+        }).catch(() => {});
+
+        onSnapshot(collection(db,'pacientes'), snap => {
+            pacientes = snap.docs.map(d => ({id:d.id,...d.data()}));
+            // ACTUALIZAR DATALIST DEL BUSCADOR GLOBAL
+            const dl = document.getElementById('listaPacientesGlobal');
+            if(dl) dl.innerHTML = pacientes.map(p => `<option value="${esc(p.nombre)} (${p.dni || 'S/D'})">`).join('');
+        });
+
+        cargarTurnos();
+        iniciarRelojesGlobales();
+    };
+
+    // ================= FUNCIONES DEL BUSCADOR GLOBAL =================
+    window.buscarHistorialGlobalBtn = () => {
+        window.buscarHistorialGlobal();
+    };
+
+    window.buscarHistorialGlobal = () => {
+        const val = document.getElementById('buscadorGlobalEnfermeria').value.trim();
+        if(!val) return;
+
+        let pac = null;
+        if(val.includes('(')) {
+            const dni = val.split('(')[1].replace(')','').trim();
+            pac = pacientes.find(p => p.dni === dni);
+        } else {
+            pac = pacientes.find(p => p.nombre.toLowerCase() === val.toLowerCase() || p.dni === val);
+        }
+
+        if(pac) {
+            document.getElementById('buscadorGlobalEnfermeria').value = ''; // Limpiar buscador
+            abrirHistorialSolo(pac.dni, pac.nombre);
+        } else {
+            toast('❌ Paciente no encontrado en la base de datos.', 'info');
+        }
+    };
+
+    function cargarTurnos() {
+        const hoy = new Date();
+        const offset = hoy.getTimezoneOffset();
+        const fechaStr = new Date(hoy.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+
+        onSnapshot(query(collection(db,'turnos'), where('fecha','==',fechaStr)), snap => {
+            turnosHoy = snap.docs.map(d => ({id:d.id,...d.data()}));
+            const pagados = turnosHoy.filter(t => t.estado === 'PAGADO' || t.estado === 'EN RECEPCIÓN');
+            console.log('[ENFERMERÍA] Turnos del día:', turnosHoy.length, '| En espera (PAGADOS):', pagados.length, '| Fecha query:', fechaStr);
+            renderPaneles();
+        });
+    }
+
+    function renderPaneles() {
+        const panelEspera = document.getElementById('listaEspera');
+        const panelActivos = document.getElementById('listaActivos');
+
+        const turnosEspera = turnosHoy.filter(t => t.estado === 'PAGADO' || t.estado === 'EN RECEPCIÓN');
+        const turnosActivos = turnosHoy.filter(t => t.estado === 'EN TRATAMIENTO');
+        const turnosFinalizados = turnosHoy.filter(t => t.estado === 'FINALIZADO' && t.duracionRealMinutos);
+
+        // Render Espera
+        turnosEspera.sort((a,b) => a.hora.localeCompare(b.hora));
+        if(!turnosEspera.length) {
+            panelEspera.innerHTML = '<p class="text-center opacity-30 text-xs py-6">Sala de espera vacía</p>';
+        } else {
+            panelEspera.innerHTML = turnosEspera.map(t => {
+                const sala = salas.find(s => s.id === t.salaId);
+                const pac = pacientes.find(p => p.dni === t.dni);
+                const alertaHTML = (pac?.alergias && pac.alergias.trim() && pac.alergias.toUpperCase() !== 'NINGUNA') 
+                    ? `<div class="bg-red-500/20 border border-red-500 text-red-300 text-[9px] font-black p-1.5 rounded mt-2 uppercase tracking-wide">⚠️ ALERGIA: ${esc(pac.alergias)}</div>` 
+                    : '';
+                
+                return `
+                <div class="espera-card flex flex-col justify-between">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <p class="text-[12px] font-black text-white">${t.hora} · ${t.paciente}</p>
+                            <p class="text-[9px] opacity-60">${esc(t.servicio || 'Sin motivo')} · ${sala?.nombre || 'Sin sala'}</p>
+                            ${alertaHTML}
+                        </div>
+                    </div>
+                    <div class="flex gap-1">
+                        <a href="pacientes.html" onclick="sessionStorage.setItem('sanalys_buscar_paciente', '${t.dni}')" class="bg-blue-600/20 border border-blue-500/30 text-blue-400 p-2 rounded hover:bg-blue-600 hover:text-white transition text-[10px] font-black uppercase flex-1 text-center" title="Abrir Historia Clínica">🏥 Ficha</a>
+                        <button onclick="abrirHistorialSolo('${t.dni}', '${esc(t.paciente)}')" class="bg-purple-600/20 border border-purple-500/30 text-purple-400 p-2 rounded hover:bg-purple-600 hover:text-white transition text-[10px] font-black uppercase flex-1" title="Ver Historial de Sesiones">📋 Historial</button>
+                        <button onclick="abrirInicio('${t.id}')" class="bg-[var(--fluo)] text-black px-4 py-2 rounded text-[10px] font-black uppercase hover:brightness-110 transition shadow-lg flex-1">▶️ Iniciar</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Render Activos
+        if(!turnosActivos.length) {
+            panelActivos.innerHTML = '<div class="col-span-full"><p class="text-center opacity-30 text-xs py-10">No hay pacientes conectados en este momento</p></div>';
+        } else {
+            panelActivos.innerHTML = turnosActivos.map(t => {
+                const pac = pacientes.find(p => p.dni === t.dni);
+                const alertaHTML = (pac?.alergias && pac.alergias.trim() && pac.alergias.toUpperCase() !== 'NINGUNA') 
+                    ? `<div class="bg-red-500/20 border border-red-500 text-red-300 text-[9px] font-black p-1.5 rounded mt-2 uppercase tracking-wide">⚠️ ALERGIA: ${esc(pac.alergias)}</div>` 
+                    : '';
+
+                const inicioTS = t.horaInicioInfusion || Date.now(); 
+                return `
+                <div class="activo-card flex flex-col justify-between">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="w-full pr-2">
+                            <p class="text-[14px] font-black text-white leading-tight">${t.paciente}</p>
+                            <p class="text-[10px] font-bold text-[var(--fluo)] uppercase">${t.formulaNombre || t.servicio || 'Tratamiento'}</p>
+                            ${alertaHTML}
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 mb-4 border-b border-white/10 pb-4">
+                        <a href="pacientes.html" onclick="sessionStorage.setItem('sanalys_buscar_paciente', '${t.dni}')" class="bg-blue-600/20 border border-blue-500/30 text-blue-400 py-1.5 rounded hover:bg-blue-600 hover:text-white transition text-[9px] font-black uppercase flex-1 text-center" title="Abrir Historia Clínica">🏥 Ficha HC</a>
+                        <button onclick="abrirHistorialSolo('${t.dni}', '${esc(t.paciente)}')" class="bg-purple-600/20 border border-purple-500/30 text-purple-400 py-1.5 rounded hover:bg-purple-600 hover:text-white transition text-[9px] font-black uppercase flex-1" title="Ver Historial de Sesiones">📋 Historial</button>
+                    </div>
+
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <p class="text-[8px] uppercase opacity-50 font-bold">Tiempo Transcurrido</p>
+                            <p class="text-3xl font-black text-white timer-text timer-target" data-start="${inicioTS}">00:00</p>
+                        </div>
+                        <button onclick="abrirFin('${t.id}')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase transition shadow-lg border border-red-400">⏹️ Finalizar</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Calcular KPI
+        if(turnosFinalizados.length > 0) {
+            const sum = turnosFinalizados.reduce((a,b) => a + (b.duracionRealMinutos || 0), 0);
+            const prom = Math.round(sum / turnosFinalizados.length);
+            document.getElementById('kpiPromedio').textContent = `${prom} min`;
+            document.getElementById('kpiAtendidos').textContent = turnosFinalizados.length;
+        } else {
+            document.getElementById('kpiPromedio').textContent = `-- min`;
+            document.getElementById('kpiAtendidos').textContent = `0`;
+        }
+    }
+
+    function iniciarRelojesGlobales() {
+        setInterval(() => {
+            const ahora = Date.now();
+            document.querySelectorAll('.timer-target').forEach(el => {
+                const start = parseInt(el.getAttribute('data-start'));
+                if(start) {
+                    const diff = ahora - start;
+                    const m = Math.floor(diff / 60000).toString().padStart(2, '0');
+                    const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+                    el.textContent = `${m}:${s}`;
+                }
+            });
+        }, 1000);
+    }
+
+    // ================= INICIAR INFUSIÓN =================
+    window.abrirInicio = async (turnoId) => {
+        const t = turnosHoy.find(x => x.id === turnoId);
+        if(!t) return;
+        
+        pacienteDniActual = t.dni;
+        pacienteNombreActual = t.paciente;
+
+        document.getElementById('inicio_turnoId').value = t.id;
+        document.getElementById('inicio_pacienteDni').value = t.dni;
+        document.getElementById('inicio_paciente_nombre').textContent = t.paciente;
+
+        const pac = pacientes.find(p => p.dni === t.dni);
+        const alerta = document.getElementById('inicio_alertaAlergia');
+        
+        if(pac) {
+            pacienteIdActual = pac.id;
+            if(pac.alergias && pac.alergias.trim() && pac.alergias.toUpperCase() !== 'NINGUNA') {
+                alerta.classList.remove('hidden');
+                alerta.className = 'bg-red-500/20 border border-red-500 p-3 rounded-lg mb-4';
+                document.getElementById('inicio_textoAlergia').innerHTML = `<span class="font-black text-red-300 uppercase tracking-widest text-[11px]">⚠️ ATENCIÓN - ALERGIAS:</span><br><span class="text-[12px] font-bold">${esc(pac.alergias)}</span>`;
+            } else { alerta.classList.add('hidden'); }
+        } else {
+            pacienteIdActual = null;
+            alerta.classList.remove('hidden');
+            alerta.className = 'bg-orange-500/20 border border-orange-500 p-3 rounded-lg mb-4';
+            document.getElementById('inicio_textoAlergia').innerHTML = `💡 Paciente nuevo. Se creará su HC automáticamente.`;
+        }
+
+        ['reg_ta','reg_fc','reg_sato2','reg_temp','reg_peso','reg_calibre','reg_lote'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('reg_via').value = ''; document.getElementById('reg_formula').value = '';
+        ['check_alergias','check_via','check_identificacion'].forEach(id => document.getElementById(id).checked = false);
+        ['jeringas','agujas','cloruro','alcohol','algodon','gasas','guantes','cateter','equipo'].forEach(m => document.getElementById(`mat_${m}`).checked = false);
+        
+        document.getElementById('buscadorHistorialPanel').value = '';
+        await cargarDataHistorial(); 
+        renderHistorialGlobal(registrosHistorialActivo, 'historialPanelRegistros');
+
+        document.getElementById('modalInicio').classList.remove('hidden');
+    };
+
+    window.guardarInicioInfusion = async () => {
+        const turnoId = document.getElementById('inicio_turnoId').value;
+        const turno = turnosHoy.find(t => t.id === turnoId);
+        if(!turno) return;
+
+        const checks = ['check_alergias', 'check_via', 'check_identificacion'];
+        if(!checks.every(id => document.getElementById(id).checked)) return toast('⚠️ Debes completar el checklist de seguridad.', 'info');
+
+        const dni = document.getElementById('inicio_pacienteDni').value || '00000000';
+        let pId = pacienteIdActual;
+
+        if(!pId) {
+            const pRef = await addDoc(collection(db, 'pacientes'), {
+                nombre: turno.paciente, dni: dni, fechaAlta: new Date().toLocaleDateString('es-AR'), evoluciones: []
+            });
+            pId = pRef.id;
+        }
+
+        const formulaId = document.getElementById('reg_formula').value;
+        const formula = formulas.find(f => f.id === formulaId);
+        const fNombre = formula?.nombre || turno.servicio || 'Tratamiento';
+
+        const mats = [];
+        ['jeringas','agujas','cloruro','alcohol','algodon','gasas','guantes','cateter','equipo'].forEach(m => {
+            if(document.getElementById(`mat_${m}`).checked) mats.push(m);
+        });
+
+        const horaInicioTs = Date.now();
+        const registro = {
+            timestamp: horaInicioTs, fecha: new Date().toLocaleDateString('es-AR'), enfermera: SESION.nombre, turnoId: turnoId, estado: 'EN CURSO',
+            signos: { ta: document.getElementById('reg_ta').value, fc: document.getElementById('reg_fc').value, sato2: document.getElementById('reg_sato2').value, temp: document.getElementById('reg_temp').value, peso: document.getElementById('reg_peso').value },
+            via: { tipo: document.getElementById('reg_via').value, calibre: document.getElementById('reg_calibre').value },
+            tratamiento: { formulaId: formulaId, formulaNombre: fNombre, lote: document.getElementById('reg_lote').value, inicio: new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) },
+            materiales: mats
+        };
+
+        try {
+            const regRef = await addDoc(collection(db, `pacientes/${pId}/registrosEnfermeria`), registro);
+            
+            await updateDoc(doc(db, 'turnos', turnoId), { 
+                estado: 'EN TRATAMIENTO', 
+                horaInicioInfusion: horaInicioTs,
+                registroRefId: regRef.id,
+                pacienteDocId: pId,
+                formulaNombre: fNombre
+            });
+
+            if(mats.length > 0) {
+                const insumosSnap = await getDocs(collection(db, 'insumos'));
+                const mapeo = { 'jeringas':'Jeringas', 'agujas':'Agujas', 'cloruro':'Cloruro de sodio', 'alcohol':'Alcohol', 'algodon':'Algodón', 'gasas':'Gasas', 'guantes':'Guantes', 'cateter':'Catéter', 'equipo':'Equipo de suero' };
+                for(const m of mats) {
+                    const ins = insumosSnap.docs.find(d => d.data().nombre?.toLowerCase().includes(m) || d.data().nombre === mapeo[m]);
+                    if(ins) await updateDoc(doc(db, 'insumos', ins.id), { stockDisp: Math.max(0, (ins.data().stockDisp || 0) - 1) });
+                }
+            }
+
+            // Descontar componentes de la fórmula seleccionada
+            if(formula && formula.componentes?.length > 0) {
+                const insumosSnap2 = await getDocs(collection(db, 'insumos'));
+                for(const comp of formula.componentes) {
+                    const insDoc = insumosSnap2.docs.find(d => d.id === comp.insumoId || d.data().nombre === comp.nombre);
+                    if(insDoc) {
+                        const stockActual = parseFloat(insDoc.data().stockDisp) || 0;
+                        const dosis = parseFloat(comp.dosis) || 0;
+                        const nuevoStock = Math.max(0, stockActual - dosis);
+                        await updateDoc(doc(db, 'insumos', insDoc.id), { stockDisp: nuevoStock });
+                    }
+                }
+            }
+
+            cerrarModales();
+            toast('✅ Atención iniciada. Stock de fórmula descontado.', 'warn');
+        } catch(e) { toast('Error al iniciar: ' + e.message, 'error'); }
+    };
+
+    // ================= FINALIZAR INFUSIÓN =================
+    window.abrirFin = (turnoId) => {
+        const t = turnosHoy.find(x => x.id === turnoId);
+        if(!t) return;
+        document.getElementById('fin_turnoId').value = t.id;
+        document.getElementById('fin_paciente_nombre').textContent = t.paciente;
+        document.getElementById('fin_observaciones').value = '';
+        document.getElementById('modalFin').classList.remove('hidden');
+    };
+
+    window.guardarFinInfusion = async () => {
+        const turnoId = document.getElementById('fin_turnoId').value;
+        const turno = turnosHoy.find(t => t.id === turnoId);
+        if(!turno) return;
+
+        const obs = document.getElementById('fin_observaciones').value.trim();
+        const horaFinTs = Date.now();
+        const inicioTs = turno.horaInicioInfusion || horaFinTs;
+        const duracionMinutos = Math.max(1, Math.floor((horaFinTs - inicioTs) / 60000));
+        const horaFinStr = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+
+        try {
+            if(turno.pacienteDocId && turno.registroRefId) {
+                await updateDoc(doc(db, `pacientes/${turno.pacienteDocId}/registrosEnfermeria`, turno.registroRefId), {
+                    estado: 'FINALIZADO',
+                    'tratamiento.fin': horaFinStr,
+                    duracionMinutos: duracionMinutos,
+                    observaciones: obs
+                });
+
+                const pacSnap = await getDoc(doc(db, 'pacientes', turno.pacienteDocId));
+                if(pacSnap.exists()) {
+                    const evos = pacSnap.data().evoluciones || [];
+                    evos.unshift({
+                        fecha: new Date().toLocaleDateString('es-AR'),
+                        tipo: 'Enfermería',
+                        detalle: `Sesión de ${turno.formulaNombre}. Duración: ${duracionMinutos} min. ${obs ? 'Obs: '+obs : ''}`,
+                        profesional: SESION.nombre
+                    });
+                    await updateDoc(doc(db, 'pacientes', turno.pacienteDocId), { evoluciones: evos });
+                }
+            }
+
+            await updateDoc(doc(db, 'turnos', turnoId), {
+                estado: 'FINALIZADO',
+                duracionRealMinutos: duracionMinutos
+            });
+
+            cerrarModales();
+        } catch(e) { toast('Error al finalizar: ' + e.message, 'error'); }
+    };
+
+    // ================= HISTORIAL COMPARTIDO (PANEL Y MODAL SOLO) =================
+    async function cargarDataHistorial() {
+        if(!pacienteIdActual) {
+            registrosHistorialActivo = [];
+            return;
+        }
+        const regSnap = await getDocs(collection(db, `pacientes/${pacienteIdActual}/registrosEnfermeria`));
+        registrosHistorialActivo = regSnap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b) => b.timestamp - a.timestamp);
+    }
+
+    function renderHistorialGlobal(lista, contenedorId) {
+        const cont = document.getElementById(contenedorId);
+        if(!lista.length) { cont.innerHTML = '<p class="text-center opacity-30 text-[11px] py-10">Sin registros previos en la Historia Clínica.</p>'; return; }
+        
+        cont.innerHTML = lista.map((r, index) => {
+            const fNombre = r.tratamiento?.formulaNombre || 'Tratamiento';
+            return `
+            <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-purple-500/30 transition">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <p class="text-[12px] font-black text-teal-300">${r.fecha}</p>
+                        <p class="text-[9px] opacity-60 uppercase">Enfermera: ${r.enfermera}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="descargarPDFRegistro(${index})" class="bg-white/10 hover:bg-white/20 p-2 rounded text-[9px] font-black uppercase transition" title="Descargar PDF">📄 PDF</button>
+                        <button onclick="enviarWhatsAppRegistro(${index})" class="bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white p-2 rounded text-[9px] font-black uppercase transition" title="Enviar WhatsApp">💬 WA</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-[10px]">
+                    <div>
+                        <p class="font-bold text-[var(--fluo)] uppercase tracking-wide">${fNombre}</p>
+                        <p class="opacity-70 mt-1">Vía: ${r.via?.tipo || '-'} <span class="font-bold text-white">${r.via?.calibre ? `(${r.via.calibre})`:''}</span></p>
+                        ${r.duracionMinutos ? `<p class="opacity-70 mt-1">Duración: ${r.duracionMinutos} min</p>` : ''}
+                    </div>
+                    <div class="border-l border-white/10 pl-4 opacity-70 space-y-1">
+                        ${r.signos?.ta ? `<p>TA: <span class="text-white font-bold">${r.signos.ta}</span></p>` : ''}
+                        ${r.signos?.fc ? `<p>FC: <span class="text-white font-bold">${r.signos.fc}</span></p>` : ''}
+                        ${r.observaciones ? `<p class="italic mt-2">" ${esc(r.observaciones)} "</p>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    window.filtrarHistorialPanel = () => {
+        const q = document.getElementById('buscadorHistorialPanel').value.toLowerCase();
+        const filtrados = registrosHistorialActivo.filter(r => 
+            (r.fecha && r.fecha.toLowerCase().includes(q)) || 
+            (r.tratamiento?.formulaNombre && r.tratamiento.formulaNombre.toLowerCase().includes(q)) ||
+            (r.observaciones && r.observaciones.toLowerCase().includes(q)) ||
+            (r.enfermera && r.enfermera.toLowerCase().includes(q))
+        );
+        renderHistorialGlobal(filtrados, 'historialPanelRegistros');
+    };
+
+    window.abrirHistorialSolo = async (dni, nombre) => {
+        pacienteDniActual = dni;
+        pacienteNombreActual = nombre;
+        
+        const pac = pacientes.find(p => p.dni === dni);
+        if(!pac) return toast("Paciente no encontrado en la base de datos.", 'info');
+        
+        pacienteIdActual = pac.id;
+        document.getElementById('histSolo_paciente_nombre').textContent = nombre;
+        document.getElementById('buscadorHistorialSolo').value = '';
+        
+        document.getElementById('historialSoloRegistros').innerHTML = '<p class="text-center opacity-30 text-xs py-10">Cargando historial...</p>';
+        document.getElementById('modalHistorialSolo').classList.remove('hidden');
+
+        await cargarDataHistorial();
+        renderHistorialGlobal(registrosHistorialActivo, 'historialSoloRegistros');
+    };
+
+    window.filtrarHistorialSolo = () => {
+        const q = document.getElementById('buscadorHistorialSolo').value.toLowerCase();
+        const filtrados = registrosHistorialActivo.filter(r => 
+            (r.fecha && r.fecha.toLowerCase().includes(q)) || 
+            (r.tratamiento?.formulaNombre && r.tratamiento.formulaNombre.toLowerCase().includes(q)) ||
+            (r.observaciones && r.observaciones.toLowerCase().includes(q)) ||
+            (r.enfermera && r.enfermera.toLowerCase().includes(q))
+        );
+        renderHistorialGlobal(filtrados, 'historialSoloRegistros');
+    };
+
+    // Exportación
+    window.descargarPDFRegistro = (idx) => {
+
+            try {
+            if(!window.SanalysPDF || !window.jspdf) { toast('Error: librería PDF no cargada. Recargá la página.', 'error'); return; }
+        const r = registrosHistorialActivo[idx];
+
+        // ── Template maestro ────────────────────────────────────────────
+        const { doc: _jdoc, startY } = SanalysPDF.crear({
+            titulo:    'Informe de Procedimiento Clínico',
+            subtitulo: `Paciente: ${pacienteNombreActual}  ·  Fecha: ${r.fecha}`,
+            emisor:    r.enfermera,
+        });
+        const T = SanalysPDF.T;
+
+        _jdoc.setFontSize(9); _jdoc.setFont(T.FONT,'normal'); _jdoc.setTextColor(...T.GRIS_OSC);
+        _jdoc.text(`Paciente: ${pacienteNombreActual}`, 14, startY);
+        _jdoc.text(`Profesional actuante: ${r.enfermera}`, 110, startY);
+
+        _jdoc.autoTable(SanalysPDF.tableConfig({
+            startY: startY + 8, head: [['CONTROL DE SIGNOS VITALES', 'VALORES']],
+            body: [
+                ['Tensión Arterial', r.signos?.ta || '-'],
+                ['Frecuencia Cardíaca', r.signos?.fc ? r.signos.fc + ' lpm' : '-'],
+                ['Saturación Oxígeno', r.signos?.sato2 ? r.signos.sato2 + '%' : '-'],
+                ['Temperatura', r.signos?.temp ? r.signos.temp + ' °C' : '-'],
+                ['Peso', r.signos?.peso ? r.signos.peso + ' kg' : '-']
+            ],
+        }));
+
+        _jdoc.autoTable(SanalysPDF.tableConfig({
+            startY: _jdoc.lastAutoTable.finalY + 10, head: [['DETALLE DEL TRATAMIENTO', 'INFORMACIÓN']],
+            body: [
+                ['Fórmula Administrada', r.tratamiento?.formulaNombre || '-'],
+                ['Vía de Acceso', `${r.via?.tipo || '-'} ${r.via?.calibre ? '('+r.via.calibre+')' : ''}`],
+                ['Horario Infusión', `De ${r.tratamiento?.inicio || '-'} a ${r.tratamiento?.fin || '-'}`],
+                ['Duración Total', r.duracionMinutos ? `${r.duracionMinutos} minutos` : '-'],
+                ['Observaciones Clínicas', r.observaciones || 'Paciente tolera procedimiento sin complicaciones adversas.']
+            ],
+        }));
+
+        SanalysPDF.save(_jdoc, `Atencion_${pacienteNombreActual.replace(/ /g,'_')}_${r.fecha.split(',')[0]}.pdf`,
+            { disclaimer: 'Sanalys Clínica Ortomolecular  ·  Informe de Procedimiento  ·  Documento médico confidencial' });
+    
+            } catch(err) { console.error("[ENFERMERIA/PDF]:", err?.message || err); toast("❌ Error al generar PDF: " + err.message, 'error'); }
+            };
+
+    window.enviarWhatsAppRegistro = (idx) => {
+        const r = registrosHistorialActivo[idx];
+        const pacDoc = pacientes.find(p => p.id === pacienteIdActual);
+        
+        const tel = pacDoc?.tel?.replace(/\D/g, '') || '';
+        if(!tel) return toast('El paciente no tiene un número de teléfono cargado en su ficha.', 'info');
+
+        const fName = r.tratamiento?.formulaNombre || 'tu tratamiento';
+        const msg = `*Sanalys - Resumen de Sesión*\n\nHola ${pacienteNombreActual.split(' ')[0]}! 👋\nTe compartimos el resumen de tu sesión del día ${r.fecha}:\n\n✅ *Tratamiento:* ${fName}\n✅ *Duración:* ${r.duracionMinutos || '--'} minutos\n${r.signos?.ta ? `✅ *Tensión Arterial:* ${r.signos.ta}\n` : ''}\nGracias por elegirnos para tu bienestar 💚\n\n_Sanalys - Medicina de Precisión_`;
+        
+        window.open(`https://api.whatsapp.com/send?phone=54${tel}&text=${encodeURIComponent(msg)}`, '_blank');
+    };
+
+    window.cerrarModales = () => {
+        document.getElementById('modalInicio').classList.add('hidden');
+        document.getElementById('modalFin').classList.add('hidden');
+        document.getElementById('modalHistorialSolo').classList.add('hidden');
+    };
+
+</script>
+<script src="sidebar.js"></script></body>
+</html>
