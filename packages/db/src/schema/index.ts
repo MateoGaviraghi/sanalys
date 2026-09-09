@@ -1,0 +1,12 @@
+/** Every table in one place; drizzle-kit reads `src/schema/*.ts`. */
+export * from "./agenda"
+export * from "./caja"
+export * from "./columns"
+export * from "./consentimientos"
+export * from "./crm"
+export * from "./enfermeria"
+export * from "./enums"
+export * from "./pacientes"
+export * from "./sistema"
+export * from "./stock"
+export * from "./usuarios"
