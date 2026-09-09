@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "db:generate": "pnpm --filter @sanalys/db exec drizzle-kit generate",
-    "db:migrate": "pnpm --filter @sanalys/db exec drizzle-kit migrate",
+    "db:migrate": "pnpm --filter @sanalys/db run db:migrate",
     "db:seed": "pnpm --filter @sanalys/db run db:seed"
   },
   "devDependencies": {

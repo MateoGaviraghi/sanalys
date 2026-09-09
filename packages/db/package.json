@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "db:seed": "node --experimental-strip-types seeds/index.ts"
+    "db:seed": "node --env-file-if-exists=.env.local --experimental-strip-types seeds/index.ts",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/apply-migration.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.1.0",
