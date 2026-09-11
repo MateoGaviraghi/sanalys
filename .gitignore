@@ -19,3 +19,10 @@ dist/
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# playwright-cli snapshots and traces (docs/13-SKILLS.md §3)
+.playwright-cli/
+
+# Cuadros intermedios del generador de sueros (tools/drips). Los AVIF finales viven en
+# web/public/img/drips/ y esos si se commitean; estos PNG son 67 MB de paso intermedio.
+tools/drips/frames/

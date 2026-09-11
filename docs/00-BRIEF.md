@@ -89,7 +89,7 @@ Status values: `PENDIENTE` · `PARCIAL` · `RECIBIDO` · `WAIVED` · `CANCELADO`
 | CI-11 | Booking confirmation channel: e-mail only, or e-mail + `wa.me` button (default) | DEFERRABLE | `{{CONFIRMAR}}` | Default ships | PENDIENTE |
 | CI-12 | Cancellation policy text and window | SHIP-BLOCK for unit 8 | `{{CONFIRMAR}}` | Shown as `{{CONFIRMAR}}`; booking does not launch | PENDIENTE |
 | CI-13 | Who reads the monthly number (D-MEASURE) | DEFERRABLE | `{{CONFIRMAR}}` | Written `NONE` | PENDIENTE |
-| CR-01 | Real photography: hero, space, each team member — with an estimated date | SHIP-BLOCK for launch of Home and Nosotros | `{{CONFIRMAR}}` | Placeholders stay; launch with placeholders only with written acceptance | PENDIENTE |
+| CR-01 | Real photography: hero, space, each team member — with an estimated date | SHIP-BLOCK for launch of Home and Nosotros | `{{CONFIRMAR}}` | Placeholders stay; launch with placeholders only with written acceptance | PARCIAL — 2026-09-11: facade, application room, boxes and patio shown in chat (docs/14-MARCA §9); files not yet in the repo; team photos still missing |
 | CR-02 | 40–60 words per Drip (8) beyond the one-liner the PDF already has | SHIP-BLOCK | `{{CONFIRMAR}}` | Page shows the PDF one-liner only | PENDIENTE |
 | CR-03 | Team stories and the "how Sanalys was born" text | SHIP-BLOCK for Nosotros | `{{CONFIRMAR}}` | Placeholder copy in Spanish, never published | PENDIENTE |
 | CR-04 | Novedades: who signs each post (matrícula), cadence, what happens if nobody feeds it | SHIP-BLOCK for unit 10 | `{{CONFIRMAR}}` | Section exists, empty state designed, no posts | PENDIENTE |

@@ -18,6 +18,7 @@ You are building Sanalys: a public site (`web/`) and the rebuild of a clinic's i
 | Touch `packages/db`, a migration, a query, money, dates | `docs/03-DATOS.md` |
 | Build or change a page or screen, a block, a state | `docs/04-INTERFAZ.md` |
 | Touch colour, type, spacing, motion, images, 3D | `docs/05-DISENO.md` |
+| Need an image, a headline, an icon, a composition reference, or anything from the identity folder | `docs/14-MARCA.md` — the brand folder mined: renders to export, copy bank, composition rules, what is never used |
 | Touch auth, permissions, input, headers, secrets, files, PII | `docs/06-SEGURIDAD.md` |
 | Add a file, a script, a workflow, a branch | `docs/07-REPO.md` |
 | **Build or review any internal-system screen** | `docs/08-REGLAS-SISTEMA.md` — the parity contract, verbatim |
@@ -37,16 +38,40 @@ You are building Sanalys: a public site (`web/`) and the rebuild of a clinic's i
 
 **End (mandatory, even if the unit is unfinished).** Append one entry to `docs/09-WORKLOG.md` §2 using its template and overwrite §1 STATE; append any `D-/G-/TD-/OQ-` to `docs/10-MEMORY.md`; then one short Spanish message: done, failed, next. A chat that ends without the WORKLOG entry has lost its memory.
 
+## Skills per unit — mandatory, loaded before the plan is written
+
+The design and motion knowledge is not in this repo; it is in Mateo's skills, available in every chat on his machine. **`docs/13-SKILLS.md` is the map: need → skill → what to take → when.** Read it before planning any UI, motion, booking or performance work; cite the skill per block in the plan; record which were used in the WORKLOG entry. When a block needs a reference, go and look at it first (`docs/13-SKILLS.md` §3: Browser pane, Apify, `playwright-cli`). Load with the `Skill` tool or by reading the file; **if one cannot be loaded, stop and report — never design or animate from memory.** The table below is the short version.
+
+| Units | Load, in this order | How |
+|---|---|---|
+| WU-04, WU-05, WU-06, WU-07, WU-09, WU-10, WU-11 (public UI) | `web-distintiva` (anti-generic protocol, self-critique pass) · `ui-ideas` (real component references) · `impeccable` (polish/critique when asked) | `Skill(web-distintiva)`, `Skill(ui-ideas)` |
+| Same units | `animate`, `find-animation-opportunities`, `tailwindcss-mobile-first` | Read `C:\Users\mateo\.claude\skills-library\arsenal\<name>\SKILL.md` in full and follow it |
+| WU-04, WU-05, WU-06, WU-07, WU-08 (motion, carousels, calendar) | `motion-web-senior` + its `references/carousels.md`, text-animation and performance references · `gsap-scrolltrigger` | `Skill(motion-web-senior)`; `C:\Users\mateo\.claude\skills-library\arsenal\gsap-scrolltrigger\SKILL.md` |
+| WU-08 (booking) | `fixing-accessibility` | library, same path pattern |
+| WU-12 onwards (`sistema/`) | `optimize` for UI performance; `security-review` before each PR | library / built-in |
+| Any unit that installs a package | `security-and-hardening` §supply chain | library |
+
+**Prohibited in every unit:** mockups, wireframes, Miro/Figma boards, "reference sheets", self-contained HTML files, playgrounds outside the app. Design is done in the running app, reviewed in the browser at 375 and 1440, with the motion running. Approval happens on the real page (D-010).
+
+**`prototype` is allowed and is the tool for divergence (D-019).** When a block has no obvious composition and the brief is adjectives ("minimalista", "que juegue con las imágenes"), do not average the adjectives into a layout — run `prototype`: three to five working versions in this stack with `@sanalys/brand` tokens, each diverging on a declared axis, behind its picker, and Mateo picks on the real page. The winner is promoted into `web/src/` and the rest deleted. It was on the prohibited list until 2026-09-10 by mistake.
+
+**Nothing is HECHO until it has been looked at (G-040).** Before reporting any UI block done: open the running page in the Browser pane, screenshot at **375 and 1440**, and check your own screenshot against `docs/05` §10 and §11 line by line. Both screenshots go in the report. A block reported done without them is sent back unread. A comment in the code explaining why something is correct is not evidence that it renders.
+
 ## How to talk to Mateo — strict rule
 
-Every message to Mateo has this shape and nothing else, in Spanish:
+Every message to Mateo has this shape and nothing else, in Spanish, as **rendered markdown — never inside a code block** (2026-09-11: in the app a code block is monospace, long lines wrap under the labels and the sections run together; Mateo called it illegible):
 
-```
-HECHO:    <what exists now, one line per item>
-FALTA:    <what is missing, one line per item, with who unblocks it>
-SIGUE:    <the next single action>
-DE VOS:   <exactly what you need from Mateo, or "nada">
-```
+> **Hecho**
+> - what exists now, one short bullet per item
+>
+> **Falta**
+> - what is missing, one bullet per item, with who unblocks it
+>
+> **Sigue**
+> - the next single action
+>
+> **De vos**
+> - exactly what you need from Mateo, or "nada"
 
 Rules: no preamble, no recap of what Mateo said, no reasoning narrative, no options he did not ask for. A plan is the only long message and it is a table (`archivo | qué contiene | doc que lo gobierna`) followed by the four lines above. Numbers go in tables, never in prose. If a message needs more than ~15 lines outside a table, it is two messages or it is too much. Questions to Mateo: at most three, numbered, each one answerable with one word. Mateo must be able to understand the whole state of the build from the last message alone.
 

@@ -1,0 +1,18 @@
+{
+  "_nota": "Los 8 Drips. Nombre, bajada y ground de etiqueta salen del manual de identidad p.28, leidos del PDF. El color de liquido de 01 a 06 esta muestreado de los renders del manual (p.26 y p.27); los de 07 y 08 no existen en ninguna fuente y los propone este proyecto siguiendo la secuencia — marcados con propuesto:true. Este archivo es la unica fuente: lo consume el generador de imagenes y web/src/content/drips.ts.",
+  "grounds": {
+    "verde": { "fondo": "#0A3D33", "tinta": "#D0FF4E", "texto": "#FFFFFF", "banda": "#D0FF4E", "bandaTinta": "#0A3D33" },
+    "gris": { "fondo": "#9A9B9D", "tinta": "#D0FF4E", "texto": "#FFFFFF", "banda": "#D0FF4E", "bandaTinta": "#0A3D33" },
+    "fluo": { "fondo": "#D0FF4E", "tinta": "#0A3D33", "texto": "#0A3D33", "banda": "#FFFFFF", "bandaTinta": "#0A3D33" }
+  },
+  "drips": [
+    { "n": "01", "slug": "detox-vital", "nombre": ["Detox", "Vital"], "bajada": "Limpieza profunda y depuración", "ground": "verde", "liquido": "#E6EA86", "propuesto": false },
+    { "n": "02", "slug": "escudo-antioxidante", "nombre": ["Escudo", "Antioxidante"], "bajada": "Protección celular e inmunidad", "ground": "gris", "liquido": "#C9C4E4", "propuesto": false },
+    { "n": "03", "slug": "recuperacion-deportiva", "nombre": ["Recuperación", "Deportiva"], "bajada": "Energía y regeneración muscular", "ground": "fluo", "liquido": "#A8E6D2", "propuesto": false },
+    { "n": "04", "slug": "impulso-celular", "nombre": ["Impulso", "Celular"], "bajada": "Vitalidad y metabolismo", "ground": "verde", "liquido": "#F0B8A0", "propuesto": false },
+    { "n": "05", "slug": "equilibrio-mental", "nombre": ["Equilibrio", "Mental"], "bajada": "Regulación del ánimo y descanso", "ground": "gris", "liquido": "#CFE3A8", "propuesto": false },
+    { "n": "06", "slug": "anti-estres-plus", "nombre": ["Anti-Estrés", "Plus"], "bajada": "Relajación y alivio del dolor", "ground": "fluo", "liquido": "#A9D68C", "propuesto": false },
+    { "n": "07", "slug": "renovacion-celular", "nombre": ["Renovación", "Celular"], "bajada": "Regeneración y frescura", "ground": "verde", "liquido": "#A9D2E8", "propuesto": true },
+    { "n": "08", "slug": "juventud-activa", "nombre": ["Juventud", "Activa"], "bajada": "Limpieza profunda y depuración", "ground": "gris", "liquido": "#EFC0CE", "propuesto": true }
+  ]
+}
