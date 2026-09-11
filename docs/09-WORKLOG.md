@@ -7,11 +7,11 @@
 | Field | Value |
 |---|---|
 | Current unit | WU-04 · Design — **in progress** (Home, built section by section on the real page) |
-| Status | Home built section by section; method and motion bar are D-038. Hero approved by Mateo, including the entrance circle that opens instead of fading (D-042, approved on the real page on 2026-09-11) and the fixes of D-036, D-037, D-039, D-041. Section 2 done and approved: services as sticky stacking cards that open in place with a carousel (D-034), on a white ground, header taking each section's colour, grounds alternating blanco / verde (D-035). Pending from the original WU-04 plan: DripCard, Carousel, CtaBand, to be reconciled with this build. Nothing committed yet. |
+| Status | Home built section by section; method and motion bar are D-038. Sections 1 and 2 approved by Mateo on the real page and **committed** as `c42df25` on branch `wu-04-home` (108 files, +4078 / -148), not pushed and no PR yet. Hero with its entrance circle that opens (D-042) and the Drip step; services as sticky stacking cards that open in place with a carousel (D-034), on a white ground, header taking each section's colour, grounds alternating blanco / verde (D-035). Pending from the original WU-04 plan: DripCard, Carousel, CtaBand, to be reconciled with this build. |
 | Last chat | 2026-09-11 · WU-04 (Home sections 1 and 2) |
-| Waiting on Mateo | Say when to commit the WU-04 work (nothing committed yet, 23 paths dirty on `main`) · Rotate the `sanalys_owner` password (open since 2026-09-09) · Move the age private key off the Desktop into the password manager |
+| Waiting on Mateo | Say whether to push `wu-04-home` and open the PR into `main` · Rotate the `sanalys_owner` password (open since 2026-09-09) · Move the age private key off the Desktop into the password manager |
 | Waiting on the client | `docs/00-BRIEF.md` §8, all `PENDIENTE`, batched in `docs/12-CLIENT-QUESTIONS.md` (WU-22b), except a question that hard-blocks a unit. CI-08 (Borna) blocks only Borna |
-| Next action | Home section 3, on a verde ground, with the method of D-038 — or the commit first, if Mateo says so |
+| Next action | Home section 3, on a verde ground, with the method of D-038 — or push and PR first, if Mateo says so |
 | Do not touch | `sistema-interno/` (parity reference) · `brandign-sanalys/` (source material) · any decision `D-001`–`D-042` |
 
 ## 2. Entries (append-only, newest at the bottom)
@@ -277,3 +277,11 @@
 - **Verdict:** "si", on the real page, after reloading. The entrance circle that opens (D-042) and the steps at their fluid timing are both accepted; sections 1 and 2 of the Home are approved.
 - **Open:** nothing on these two sections. The commit is still pending on his word.
 - **Next:** Home section 3 on a verde ground, with the method of D-038.
+
+### 2026-09-11 · WU-04 · First commit of the Home (`c42df25` on `wu-04-home`)
+- **Asked for:** "commit", after approving the hero entrance.
+- **Branch:** `wu-04-home`, created off `main` per docs/07 §2 (one branch per work unit, PR into `main`); nothing was committed straight to `main`.
+- **Commit:** `c42df25` · 108 files · +4078 / -148 · Conventional message with the decisions in the body. Not pushed, no PR opened.
+- **Before committing:** the first `pnpm lint` of the unit found two real errors (G-063) — `setState` inside a `useEffect` in `Hero.tsx`, now `useSyncExternalStore` for `prefers-reduced-motion`, and the header logo using `<a href="/">` instead of `next/link`. Both fixed, then `pnpm lint`, `pnpm --filter web typecheck` and `pnpm test` (3 tests) green, and the entrance re-checked headless with a clean console.
+- **Kept out of the commit:** `tools/drips/frames/` (293 intermediate PNGs, about 67 MB) via `.gitignore`; the final AVIF/WebP bags and brand renders are in. No `.env` file of any kind, checked before staging.
+- **Next:** Mateo says whether to push and open the PR; then Home section 3 on verde.
