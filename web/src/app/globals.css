@@ -1,2 +1,245 @@
 @import "tailwindcss";
 @import "@sanalys/brand/tokens.css";
+
+/*
+  Hoja global de web/. Los tokens de marca NO se definen acá: viven en packages/brand/tokens.css
+  y entran por el @import de arriba (docs/05-DISENO.md section 10, "Fonts and tokens": sólo
+  @sanalys/brand, nunca un CDN de fuentes ni tokens copiados).
+
+  Acá viven tres cosas que son de la app y no de la marca:
+    1. la grilla de página con líneas nombradas, que es lo que permite que una sección sangre
+       al borde del viewport sin márgenes negativos (docs/05 section 10, "Hero");
+    2. el duotono verde/fluo de las fotos (docs/05 section 4 y 10);
+    3. las medidas del header sticky y de la barra fija de móvil.
+*/
+
+:root {
+  /* Grilla de página. 12 columnas de contenido entre dos calles, con líneas nombradas
+     full-start / content-start / col-start N / col-end N / content-end / full-end. */
+  --page-gutter: clamp(1rem, 5vw, 4rem);
+  --page-gap: clamp(0.75rem, 2vw, 1.5rem);
+  --page-col: 5.5rem; /* ancho maximo de una columna: 12 col + 11 gaps ~ 1312 px a 1440 */
+
+  /* Header sticky: 72 px, compacta a 64 px pasados 80 px de scroll (docs/05 section 10, D-036).
+     Nunca menos: el boton de reserva mide 48 px con su canto y necesita 8 px de aire. */
+  --head-h: 72px;
+  --head-h-compact: 64px;
+  --head-scroll: 80px;
+
+  /* Barra fija del primario en telefono. El alto entra en el padding del contenido
+     para que la barra nunca tape la ultima linea. */
+  --bar-h: 76px;
+
+  /* Paleta del header y del hero (D-025). Estos son los valores de reposo: los de la etiqueta
+     verde del Drip 01, que es el que se ve sin JavaScript y en cualquier otra pagina. El hero
+     los tweenea sobre <html> cuando cambia el suero; la fuente de verdad es PALETAS en
+     web/src/content/drips.ts. Van en hex literal y no como var(--verde): GSAP lee el valor
+     inicial de la variable para interpolar, y necesita un color, no una referencia. */
+  --p-fondo: #0a3d33;
+  --p-texto: #ffffff;
+  --p-acento: #d0ff4e;
+  --p-halo: #0f4a3e;
+  --p-cta-fondo: #d0ff4e;
+  --p-cta-texto: #0a3d33;
+  --p-cta-canto: #91b237;
+  --p-hl-fondo: #d0ff4e;
+  --p-hl-texto: #0a3d33;
+}
+
+/*
+  Lenis maneja el scroll (docs/05 section 5). Next 16 ya no aplica scroll-behavior: smooth solo;
+  hay que optar por el con data-scroll-behavior="smooth" en <html>, y no lo hacemos a proposito:
+  dos sistemas de suavizado peleando es un defecto, no una preferencia.
+*/
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* El fondo del body es la paleta del hero y no un ground fijo: en telefono, si la pagina queda
+   mas corta que la pantalla o se estira el scroll, lo que asoma abajo es el mismo color del hero
+   y no una franja blanca (D-026). */
+body {
+  margin: 0;
+  background-color: var(--p-fondo);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: var(--wght-body);
+  line-height: var(--leading-body);
+}
+
+/* Los anclas no quedan debajo del header sticky. */
+:target {
+  scroll-margin-top: calc(var(--head-h) + var(--space-4));
+}
+
+/*
+  Reduced motion: red de seguridad global, ademas del gsap.matchMedia() de cada componente.
+  0.01ms y no 0s: con duracion cero algunos navegadores no disparan transitionend/animationend
+  y se rompe cualquier JS que espere ese evento.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Grilla de página ────────────────────────────────────────────────────────────────────
+   Cada columna lleva sus propias lineas nombradas (col-start / col-end se repiten 12 veces),
+   asi que "col-start 7" es la septima linea y se puede escribir un tramo que arranca en la
+   columna 7 y termina en el borde del viewport: grid-column: col-start 7 / full-end.
+   Eso es el sangrado, sin margenes negativos y sin overflow horizontal.                    */
+@utility page-grid {
+  display: grid;
+  grid-template-columns:
+    [full-start] minmax(var(--page-gutter), 1fr)
+    [content-start] repeat(12, [col-start] minmax(0, var(--page-col)) [col-end])
+    [content-end] minmax(var(--page-gutter), 1fr)
+    [full-end];
+  column-gap: var(--page-gap);
+}
+
+/* Tramo de borde a borde del viewport, calles incluidas. */
+@utility page-full {
+  grid-column: full-start / full-end;
+}
+
+/* Tramo dentro de las calles: el ancho de lectura normal. */
+@utility page-content {
+  grid-column: content-start / content-end;
+}
+
+/* Hero: el texto ocupa las columnas 1 a 6 (docs/05 section 10). */
+@utility page-copy {
+  grid-column: content-start / col-end 6;
+}
+
+/* Hero: la imagen arranca en la columna 7 y sangra al borde derecho. */
+@utility page-media {
+  grid-column: col-start 7 / full-end;
+}
+
+/* ── Duotono ─────────────────────────────────────────────────────────────────────────────
+   El filtro SVG #duo se monta una sola vez en el layout raiz. No se usa mix-blend-mode:
+   los blend modes dependen del rango tonal nativo de cada foto — con una foto clara todo el
+   rango cae en fluo, y el fluo es el unico acento de la marca (docs/05 section 1.2), nunca
+   un ground. El filtro define la curva de salida, asi que cualquier foto entra al mismo
+   duotono. Se ajusta con un solo numero, el exponent del gamma, en el layout.               */
+@utility duotone {
+  filter: url(#duo);
+}
+
+/* ── Aire para la máscara de SplitText ───────────────────────────────────────────────────
+   SplitText con mask:"lines" envuelve cada linea en un contenedor con overflow:clip. La caja
+   del resaltador se ancla al fondo del area de contenido y sobresale ~0.2em por debajo, asi
+   que sin aire extra el clip le come el borde inferior — se ve como si el texto estuviera
+   cortado. El padding le da lugar al clip y el margen negativo devuelve el ritmo vertical,
+   de modo que el paso de linea sigue siendo el 0.95 de docs/05 §2.2.
+   Alcance acotado a los titulares partidos: SplitReveal marca su raiz con data-split.
+
+   La estructura real que arma SplitText es: .line-mask (overflow: clip) > .line > contenido.
+   Con type-display el area de contenido va recortada a la altura de mayuscula (text-box:
+   trim-both), asi que la caja del resaltador sobresale por ARRIBA y por abajo.
+
+   El padding va en .line, que es lo que hace crecer la caja de recorte de la mascara.
+   La compensacion va en .line-mask: un margen negativo ahi devuelve el ritmo sin tocar el
+   area de recorte, porque el margen queda fuera de la caja de borde. Puesto al reves — el
+   margen negativo en .line — la mascara se ACHICA y el recorte empeora.                      */
+[data-split] .line {
+  padding-block: 0.22em;
+}
+[data-split] .line-mask {
+  margin-block: -0.22em;
+}
+
+/* ── Entrada de la Home (D-027) ─────────────────────────────────────────────────────────
+   En la pagina que tiene el hero ([data-hero]), lo marcado con [data-intro] arranca oculto
+   desde el primer cuadro. El hero fija los estados iniciales con GSAP y pone .intro-listo en
+   <html> en el mismo cuadro: la regla deja de aplicar y GSAP toma el control, sin parpadeo.
+   Sin esto el HTML del servidor se pintaba completo, hidrataba React, GSAP ocultaba todo y lo
+   volvia a mostrar: ese era el "bug" al entrar.
+   Solo CSS, sin script en <head>: un script inline daba error de hidratacion (la clase en
+   <html>) y el aviso de React por <script> en un componente, y ademas pedia un hash de CSP.
+   Red de seguridad: si el JS nunca corre, la animacion muestra todo a los 3 s. Es animacion y
+   no transition a proposito: al entrar .intro-listo desaparece con la regla y no pisa a GSAP.
+   Con movimiento reducido no se oculta nada.                                               */
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.intro-listo):has([data-hero]) [data-intro] {
+    opacity: 0;
+    animation: intro-red 0s linear 3s forwards;
+  }
+}
+@keyframes intro-red {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Links animados (D-026) ──────────────────────────────────────────────────────────────
+   La linea de abajo se dibuja desde la izquierda al entrar y se retira hacia la derecha al
+   salir: el cambio de transform-origin entre los dos estados es lo que hace que no "vuelva"
+   por donde vino. Solo transform, 240 ms, la curva de la marca. El hover va gateado a punteros
+   finos: en un telefono el toque no deja la linea pegada. Con teclado, el foco la dibuja igual.
+   .link-linea-base agrega una linea fija al 45 % debajo, para links que viven sueltos.       */
+/* En @layer components y no suelto: CSS sin capa le gana a TODAS las utilidades de Tailwind
+   (que viven en @layer utilities), asi que un `absolute` o un `hidden` puesto en el mismo link
+   no hacia nada. En las tarjetas de servicios el "Ver mas" de escritorio quedaba en el flujo y
+   en telefono se mostraba aunque tenia `hidden` (G-057). Dentro de la capa, la utilidad manda. */
+@layer components {
+.link-linea {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 2.75rem;
+}
+.link-linea::after,
+.link-linea-base::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: calc(50% + 0.78em);
+  height: 1px;
+}
+.link-linea::after {
+  background: var(--p-acento);
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform var(--dur-2) var(--ease);
+}
+.link-linea-base::before {
+  background: color-mix(in oklab, var(--p-acento) 45%, transparent);
+}
+.link-flecha {
+  transition: transform var(--dur-2) var(--ease);
+}
+.link-linea:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+@media (hover: hover) and (pointer: fine) {
+  .link-linea:hover::after {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+  .link-linea:hover .link-flecha {
+    transform: translateX(4px);
+  }
+}
+}
+
+/* ── Barra fija de móvil ─────────────────────────────────────────────────────────────────
+   env(safe-area-inset-bottom) para que en un telefono con notch la barra no quede debajo
+   del indicador del sistema (tailwindcss-mobile-first, section safe areas).                 */
+@utility bar-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Deja aire abajo del contenido para que la barra fija no tape la ultima linea. */
+@utility bar-clearance {
+  padding-bottom: calc(var(--bar-h) + env(safe-area-inset-bottom) + var(--space-6));
+}

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>generador de sueros · sanalys</title>
+<style>
+  html,body{margin:0;background:#0a3d33;height:100%;font:13px/1.4 system-ui,sans-serif;color:#d0ff4e}
+  #c{display:block;width:100vw;height:100vh}
+  #hud{position:fixed;left:12px;top:12px;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:4px}
+</style></head><body>
+<canvas id="c"></canvas><div id="hud">listo</div>
+<script type="importmap">{"imports":{"three":"https://cdnjs.cloudflare.com/ajax/libs/three.js/0.185.0/three.module.min.js"}}</script>
+<script type="module">
+import * as THREE from "three";
+
+/*
+  Generador de los 8 sueros de Sanalys en 3D.
+
+  Por que existe: no hay archivo fuente de nada (G-044). Las bolsas no se pueden pedir ni
+  recortar — se construyen. Este archivo modela la bolsa una vez y la renderiza 8 veces con
+  los datos de drips.json, que sale del manual de identidad p.28.
+
+  Como leer la geometria: una bolsa de fluido NO es un rectangulo extruido. Es dos laminas
+  soldadas por el perimetro. Eso se reproduce con un plano subdividido desplazado en Z por
+  una funcion de inflado que CAE A CERO en el borde: frente y dorso se tocan ahi y forman el
+  reborde soldado plano, que es el rasgo que hace que lea "suero" y no "bidon". Encima va
+  ruido fbm suave para las arrugas del polietileno.
+
+  Dos funciones de inflado y no una: la etiqueta y el liquido usan la version SIN arrugas.
+  Con arrugas, la etiqueta sale jaspeada como camuflaje y el liquido produce vetas blancas.
+
+  Uso:  /render.html?render=36        -> los 8, 36 cuadros cada uno, posteados al server
+        /render.html?solo=03          -> uno solo, para mirar
+*/
+
+const HUD = document.getElementById("hud");
+const DATOS = await (await fetch("./drips.json")).json();
+
+// ── ruido ─────────────────────────────────────────────────────────────────────
+const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+function vnoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  return hash(xi, yi) * (1 - u) * (1 - v) + hash(xi + 1, yi) * u * (1 - v)
+       + hash(xi, yi + 1) * (1 - u) * v + hash(xi + 1, yi + 1) * u * v;
+}
+const fbm = (x, y) => { let s = 0, a = .5, f = 1; for (let i = 0; i < 4; i++) { s += a * vnoise(x * f, y * f); f *= 2.1; a *= .5; } return s; };
+
+// ── silueta e inflado ─────────────────────────────────────────────────────────
+const W = 2.5, H = 3.6, SEG = 420;
+function perfil(u, v) {
+  const x = (u - .5) * 2, y = (v - .5) * 2;
+  const rx = .86 * (1 + .06 * (1 - v)), ry = .94, r = .34;
+  return r - Math.hypot(Math.max(Math.abs(x) - (rx - r), 0), Math.max(Math.abs(y) - (ry - r), 0));
+}
+function base(u, v) {
+  const d = perfil(u, v); if (d <= 0) return null;
+  const t = Math.min(d / .3, 1), suave = t * t * (3 - 2 * t);
+  return .42 * suave * (1 - .35 * Math.pow(Math.max(0, v - .35) / .65, 2));
+}
+const infladoSuave = base;
+function inflado(u, v) {
+  const b = base(u, v); if (b === null) return null;
+  const d = perfil(u, v), t = Math.min(d / .3, 1), suave = t * t * (3 - 2 * t);
+  return b + (fbm(u * 8, v * 10) - .5) * .055 * suave + (fbm(u * 22, v * 26) - .5) * .018 * suave;
+}
+
+function cara(signo, escala = 1, empuje = 0, suave = false) {
+  const fn = suave ? infladoSuave : inflado;
+  const g = new THREE.PlaneGeometry(W * escala, H * escala, SEG, SEG);
+  const p = g.attributes.position, fuera = new Set();
+  for (let i = 0; i < p.count; i++) {
+    const u = p.getX(i) / (W * escala) + .5, v = p.getY(i) / (H * escala) + .5;
+    const z = fn(u, v);
+    if (z === null) { fuera.add(i); p.setZ(i, 0); } else p.setZ(i, signo * (z * escala + empuje));
+  }
+  const idx = g.index.array, keep = [];
+  for (let i = 0; i < idx.length; i += 3)
+    if (!fuera.has(idx[i]) && !fuera.has(idx[i + 1]) && !fuera.has(idx[i + 2])) keep.push(idx[i], idx[i + 1], idx[i + 2]);
+  g.setIndex(keep); g.computeVertexNormals();
+  return g;
+}
+
+// ── etiquetas: frente y dorso, dibujadas con los datos del manual ─────────────
+function texFrente(d, g) {
+  const c = document.createElement("canvas"); c.width = 760; c.height = 1040;
+  const x = c.getContext("2d");
+  x.fillStyle = g.fondo; x.fillRect(0, 0, 760, 1040);
+  const vig = x.createLinearGradient(0, 0, 0, 1040);
+  vig.addColorStop(0, "rgba(0,0,0,.20)"); vig.addColorStop(.12, "rgba(0,0,0,0)");
+  vig.addColorStop(.88, "rgba(0,0,0,0)"); vig.addColorStop(1, "rgba(0,0,0,.20)");
+  x.fillStyle = vig; x.fillRect(0, 0, 760, 1040);
+  x.fillStyle = g.texto; x.font = "600 30px Arial"; x.textAlign = "right";
+  x.fillText("Drip # " + d.n, 700, 130);
+  x.strokeStyle = g.tinta; x.lineWidth = 3; x.beginPath(); x.moveTo(60, 176); x.lineTo(700, 176); x.stroke();
+  x.textAlign = "left"; x.fillStyle = g.tinta; x.font = "700 70px Arial";
+  x.fillText(d.nombre[0], 60, 470); x.fillText(d.nombre[1], 60, 548);
+  x.fillStyle = g.texto; x.font = "400 29px Arial"; x.fillText(d.bajada, 60, 606);
+  x.fillStyle = g.banda; x.fillRect(60, 716, 640, 76);
+  x.fillStyle = g.bandaTinta; x.font = "600 22px Arial"; x.fillText("PACIENTE", 82, 762);
+  x.fillStyle = g.tinta; x.font = "700 46px Arial"; x.fillText("sanalys", 60, 960);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+function texDorso(d, g) {
+  const c = document.createElement("canvas"); c.width = 760; c.height = 1040;
+  const x = c.getContext("2d");
+  x.fillStyle = g.fondo; x.fillRect(0, 0, 760, 1040);
+  x.fillStyle = g.tinta; x.textAlign = "center"; x.font = "700 54px Arial";
+  x.fillText("sanalys", 380, 300);
+  x.fillStyle = g.texto; x.font = "400 27px Arial";
+  x.fillText("La ciencia de estar bien.", 380, 358);
+  x.strokeStyle = g.tinta; x.lineWidth = 3; x.beginPath(); x.moveTo(150, 430); x.lineTo(610, 430); x.stroke();
+  x.fillStyle = g.tinta; x.font = "700 120px Arial"; x.fillText(d.n, 380, 600);
+  x.fillStyle = g.texto; x.font = "400 26px Arial";
+  x.fillText(d.nombre.join(" "), 380, 660);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+
+// ── render ────────────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("c"), antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.18;
+
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, .1, 100);
+cam.position.set(.10, 0, 8.9); cam.lookAt(0, -.18, 0);
+
+const env = (() => {
+  const s = new THREE.Scene();
+  const cv = document.createElement("canvas"); cv.width = 4; cv.height = 256;
+  const cx = cv.getContext("2d"), gr = cx.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, "#ffffff"); gr.addColorStop(.45, "#c6ccc7"); gr.addColorStop(1, "#5d635e");
+  cx.fillStyle = gr; cx.fillRect(0, 0, 4, 256);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  s.add(new THREE.Mesh(new THREE.SphereGeometry(30, 32, 32), new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide })));
+  const panel = (w, h, px, py, pz, i) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(i, i, i) })); m.position.set(px, py, pz); m.lookAt(0, 0, 0); s.add(m); };
+  panel(3.2, 14, -5.2, 1.5, 4, 7.0); panel(3, 12, 5.5, .5, 3.5, 2.0); panel(10, 3, 0, 6.5, 1, 2.4);
+  return s;
+})();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(env, .03).texture;
+
+const plastico = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: .13, metalness: 0, transmission: .95, thickness: .35, ior: 1.47, clearcoat: .85, clearcoatRoughness: .08, transparent: true, side: THREE.DoubleSide });
+const metal = new THREE.MeshStandardMaterial({ color: 0xcfcfcf, roughness: .25, metalness: .85 });
+
+// geometrias: se calculan UNA vez y se comparten entre los 8
+const gFrente = cara(1), gDorso = cara(-1);
+const gLiqF = cara(1, .965, -.03, true), gLiqD = cara(-1, .965, -.03, true);
+const gEtiq = (() => {
+  const g = new THREE.PlaneGeometry(W * .60, H * .56, 110, 110), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const u = p.getX(i) / (W * .60) + .5, v = p.getY(i) / (H * .56) + .5;
+    const z = infladoSuave(.5 + (u - .5) * .60, .5 + (v - .5) * .56);
+    p.setZ(i, (z === null ? 0 : z) + .02);
+  }
+  g.computeVertexNormals(); return g;
+})();
+const gEtiqD = gEtiq.clone().scale(-1, 1, -1);
+
+function armar(d) {
+  const g = DATOS.grounds[d.ground];
+  const grupo = new THREE.Group();
+  grupo.add(new THREE.Mesh(gFrente, plastico), new THREE.Mesh(gDorso, plastico));
+  const liq = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(d.liquido), roughness: .26, metalness: 0, transmission: .32, thickness: 2.1, ior: 1.34, transparent: true, side: THREE.DoubleSide });
+  grupo.add(new THREE.Mesh(gLiqF, liq), new THREE.Mesh(gLiqD, liq));
+  // Color de marca exacto: toneMapped false hace que ACES no toque la etiqueta. El fluo
+  // #D0FF4E es color de marca (docs/05 section 2.1) y no puede salir desviado; ACES aplasta
+  // los saturados y lo dejaba amarillo palido.
+  // La etiqueta va POR FUERA de la lamina: probada por dentro, las arrugas del plastico la
+  // pican y el texto deja de leerse. El relieve lo da el degradado que ya trae la textura.
+  const matEt = (map) => new THREE.MeshBasicMaterial({ map, toneMapped: false });
+  grupo.add(new THREE.Mesh(gEtiq, matEt(texFrente(d, g))));
+  grupo.add(new THREE.Mesh(gEtiqD, matEt(texDorso(d, g))));
+  const anilla = new THREE.Mesh(new THREE.TorusGeometry(.16, .035, 16, 40), plastico); anilla.position.y = 1.9;
+  const puerto = new THREE.Mesh(new THREE.CylinderGeometry(.13, .16, .42, 32), plastico); puerto.position.y = -1.92;
+  const tapa = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .2, 24), metal); tapa.position.y = -2.2;
+  const tubo = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .9, 20), plastico); tubo.position.y = -2.72;
+  grupo.add(anilla, puerto, tapa, tubo);
+  grupo.rotation.set(.02, -.34, .05);
+  return grupo;
+}
+
+const params = new URLSearchParams(location.search);
+const N = parseInt(params.get("render") || "0", 10);
+const SOLO = params.get("solo");
+const lista = SOLO ? DATOS.drips.filter((d) => d.n === SOLO) : DATOS.drips;
+
+if (!N) {
+  const g = armar(lista[0]); scene.add(g); renderer.render(scene, cam);
+  HUD.textContent = `vista: ${lista[0].nombre.join(" ")}`;
+} else {
+  (async () => {
+    let hechos = 0, total = lista.length * N;
+    for (const d of lista) {
+      const g = armar(d); scene.add(g);
+      const base0 = g.rotation.y;
+      for (let i = 0; i < N; i++) {
+        g.rotation.y = base0 + (i / N) * Math.PI * 2;
+        renderer.render(scene, cam);
+        const blob = await new Promise((r) => renderer.domElement.toBlob(r, "image/png"));
+        await fetch(`/save?name=${d.slug}-${String(i).padStart(2, "0")}.png`, { method: "POST", body: blob });
+        hechos++; HUD.textContent = `${d.n} ${d.nombre.join(" ")} — ${hechos}/${total}`;
+        window.__progreso = hechos;
+      }
+      scene.remove(g);
+    }
+    HUD.textContent = `terminado: ${hechos} cuadros`;
+    window.__renderListo = hechos;
+  })();
+}
+</script>
+</body></html>
